@@ -7,6 +7,8 @@ import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { LoginPage } from "./pages/login";
+import { ReactRoutes } from "./routers";
+import { BrowserRouter, HashRouter, Router } from "react-router-dom";
 
 const App: React.FC = () => {
   const [greetMsg, setGreetMsg] = useState("");
@@ -18,9 +20,8 @@ const App: React.FC = () => {
   }
 
   return <>
-    <React.StrictMode>
-      <ConfigProvider theme={{ token: theme.lightTheme }}>
-        <div className="container">
+
+{/* <div className="container">
           <h1>Welcome to Tauri!</h1>
 
           <div className="row">
@@ -34,8 +35,13 @@ const App: React.FC = () => {
               <img src={reactLogo} className="logo react" alt="React logo" />
             </a>
           </div>
-        </div>
-        <LoginPage/>
+        </div> */}
+    <React.StrictMode>
+      <ConfigProvider theme={{ token: theme.lightTheme }}>
+        <BrowserRouter>
+          <ReactRoutes />
+        </BrowserRouter>
+        {/* <LoginPage/> */}
       </ConfigProvider>
     </React.StrictMode>
   </>
