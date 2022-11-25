@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import * as path from 'path'
+import autoprefixer from 'autoprefixer'
+import PostcssFlexbugsFixes from 'postcss-flexbugs-fixes'
 
 function _resolve(dir: string) {
   return path.resolve(__dirname, dir)
@@ -32,6 +34,25 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': _resolve('src')
+    }
+  },
+  css: {
+    postcss: {
+      plugins: [
+        // 前缀追加
+        autoprefixer({
+          overrideBrowserslist: [
+            'Android 4.1',
+            'iOS 7.1',
+            'Chrome > 31',
+            'ff > 31',
+            'ie >= 8',
+            '> 1%',
+          ],
+          grid: true,
+        }),
+        PostcssFlexbugsFixes
+      ],
     }
   }
 });
