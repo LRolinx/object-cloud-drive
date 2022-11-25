@@ -1,5 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import * as path from 'path'
+
+function _resolve(dir: string) {
+  return path.resolve(__dirname, dir)
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -24,4 +29,9 @@ export default defineConfig({
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
   },
+  resolve: {
+    alias: {
+      '@': _resolve('src')
+    }
+  }
 });
