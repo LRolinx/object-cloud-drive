@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/login";
 import { ReactRoutes } from "./routers";
 import { BrowserRouter } from "react-router-dom";
 import zh from '@/locales/zh'
+import { InjectContextProvider } from "./components/InjectContextProvider";
 
 const App: React.FC = () => {
   const [greetMsg, setGreetMsg] = useState("");
@@ -41,10 +42,11 @@ const App: React.FC = () => {
     <React.StrictMode>
       <ConfigProvider theme={{ token: theme.lightTheme }} componentSize={'large'}>
         <IntlProvider locale={'zh'} messages={zh}>
-          <BrowserRouter>
-            <ReactRoutes />
-          </BrowserRouter>
-          {/* <LoginPage/> */}
+          <InjectContextProvider>
+            <BrowserRouter>
+              <ReactRoutes />
+            </BrowserRouter>
+          </InjectContextProvider>
         </IntlProvider>
       </ConfigProvider>
     </React.StrictMode>
