@@ -19,7 +19,9 @@ export const LoginPage: React.FC = () => {
     console.log('Failed:', errorInfo);
   };
 
-  return <>
+  return <div>
+    <div data-tauri-drag-region style={{ height: 50, width: '100vw' }}>
+    </div>
     <Form
       name="basic"
       labelCol={{ span: 9 }}
@@ -55,5 +57,5 @@ export const LoginPage: React.FC = () => {
         </Button>
       </Form.Item>
     </Form>
-  </>
+  </div>
 }
