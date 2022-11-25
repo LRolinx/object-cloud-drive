@@ -54,11 +54,24 @@
     },
     "windows": [
       {
+        "width": 400,
+        "height": 600,
+        "resizable": false,
+        "label": "login",
+        "url": "/login",
+        "fileDropEnabled": false,
+        "center": true,
+        "maximized": false,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay"
+      },
+      {
         "fullscreen": false,
         "height": 600,
         "resizable": true,
         "title": "object-cloud-drive",
-        "width": 800
+        "width": 800,
+        "visible": false
       }
     ]
   }
