@@ -7,29 +7,67 @@
  * @author: Clover
  * @create: 2022-11-25 11:42
  */
-import { Button, Checkbox, Form, Input } from 'antd';
-import { useContext } from 'react';
-import { IntlProvider, FormattedMessage, useIntl } from 'react-intl';
+import { memo, useContext, useState } from 'react'
+import { Button, Card, Checkbox, Col, Divider, Form, FormProps, Input, Row } from 'antd'
+import { useIntl, FormattedMessage } from 'react-intl'
+import Icon, { LockOutlined, UserOutlined } from '@ant-design/icons'
+import * as StringUtils from '@/utils/StringUtils'
+import { Link } from 'react-router-dom'
+import { ValidateStatus } from 'antd/es/form/FormItem'
+import { theme } from 'antd'
+import { InjectContextProvider } from '@/components/InjectContextProvider'
+import { ValidateErrorEntity } from '@/types/antd'
 
-export const LoginPage: React.FC = () => {
+export const LoginPage = memo((p, c) => {
+
+  const [form] = Form.useForm<Account.LoginTo>()
   const intl = useIntl()
+  const context = useContext(InjectContextProvider.Context)
+  const [validateStatus, setValidateStatus] = useState<{ [key in Account.LoginToKeys]: ValidateStatus }>({
+    password: '',
+    username: ''
+  })
+  const [errorMessageBoxState, setErrorMessageBoxState] = useState(false)
 
-  const onFinish = (values: any) => {
-    console.log('Success:', values);
-  };
+  const onFormFinishFailed = async (errorInfo: ValidateErrorEntity<Account.LoginTo>) => {
+    let firstField
+    if ((firstField = errorInfo.errorFields[0])) {
+      if (firstField.errors[0]) {
+        if (errorMessageBoxState) return
+        setErrorMessageBoxState(true)
+        context.message?.error(firstField.errors[0], () => {
+          setErrorMessageBoxState(false)
+        })
+        setValidateStatus({
+          ...validateStatus,
+          [firstField.name[0]]: 'error'
+        })
+      }
+    }
+  }
 
-  const onFinishFailed = (errorInfo: any) => {
-    console.log('Failed:', errorInfo);
-  };
+  const clearValidateStatus = (field: Account.LoginToKeys) => {
+    if (StringUtils.hasText(validateStatus[field])) {
+      setValidateStatus({ ...validateStatus, [field]: '' })
+    }
+  }
+
+  const onFinish = (value: Account.LoginTo) => {
+  }
+
+  const { token } = theme.useToken()
+
+  console.log(token.boxShadowSecondary);
 
   return <>
     <Form
       data-tauri-drag-region
-      name="basic"
-      initialValues={{ remember: true }}
+      form={form}
+      scrollToFirstError={true}
+      labelCol={{ span: 2 }}
+      onFinishFailed={onFormFinishFailed}
+      autoComplete='off'
       onFinish={onFinish}
-      onFinishFailed={onFinishFailed}
-      autoComplete="off"
       style={{
         height: '100vh',
         width: '100vw',
@@ -38,28 +76,41 @@ export const LoginPage: React.FC = () => {
       }}
     >
       <Form.Item
-        name="username"
+        name={'username'}
+        validateStatus={validateStatus.username}
+        help={''}
         rules={[{ required: true, message: intl.formatMessage({ id: 'pleaseInputYourUsername' }) }]}
       >
-        <Input placeholder={intl.formatMessage({id: 'username'})} />
+        <Input
+          prefix={<UserOutlined style={{ color: token.colorTextPlaceholder }} />}
+          placeholder={intl.formatMessage({ id: 'username' })}
+          onChange={() => clearValidateStatus('username')}
+        />
       </Form.Item>
-
       <Form.Item
-        name="password"
+        name={'password'}
+        help={''}
+        validateStatus={validateStatus.password}
         rules={[{ required: true, message: intl.formatMessage({ id: 'pleaseInputYourPassword' }) }]}
       >
-        <Input.Password placeholder={intl.formatMessage({id: 'password'})} />
+        <Input.Password
+          prefix={<LockOutlined style={{ color: token.colorTextPlaceholder }} />}
+          onChange={() => clearValidateStatus('password')}
+          autoComplete={'none'}
+          placeholder={intl.formatMessage({ id: 'password' })}
+        />
       </Form.Item>
-
-      <Form.Item name="remember" valuePropName="checked" wrapperCol={{ offset: 0, span: 0 }}>
-        <Checkbox><FormattedMessage id={'rememberMe'} /></Checkbox>
+      <Form.Item>
+        <Row>
+          <Col flex={1}>
+            <Checkbox><FormattedMessage id={'rememberMe'} /></Checkbox>
+          </Col>
+          <Col>
+            <Link to={'/forget'}><FormattedMessage id={'forgotThePassword'} /></Link>
+          </Col>
+        </Row>
       </Form.Item>
-
-      <Form.Item wrapperCol={{ offset: 0, span: 0 }}>
-        <Button type="primary" htmlType="submit" block>
-          <FormattedMessage id={'login'} />
-        </Button>
-      </Form.Item>
+      <Button block htmlType={'submit'} type={'primary'} ><FormattedMessage id={'login'} /></Button>
     </Form>
   </>
-}
+})

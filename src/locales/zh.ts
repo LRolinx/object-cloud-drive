@@ -15,6 +15,7 @@ const zh =  {
   submit: '提交',
   pleaseInputYourPassword: '请输入密码!',
   pleaseInputYourUsername: '请输入用户名!',
+  forgotThePassword: '忘记密码?'
 }
 
 export type Locales = typeof zh
