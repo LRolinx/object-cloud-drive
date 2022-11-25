@@ -10,8 +10,6 @@
 import { theme } from 'antd'
 import { AliasToken } from 'antd/es/theme'
 
-const { defaultSeed } = theme
-
 export const lightTheme: Partial<AliasToken> = {
   colorPrimary: '#00a846'
 }

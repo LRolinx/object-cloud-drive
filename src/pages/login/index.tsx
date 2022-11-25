@@ -8,13 +8,13 @@
  * @create: 2022-11-25 11:42
  */
 import { memo, useContext, useState } from 'react'
-import { Button, Card, Checkbox, Col, Divider, Form, FormProps, Input, Row } from 'antd'
-import { useIntl, FormattedMessage } from 'react-intl'
-import Icon, { LockOutlined, UserOutlined } from '@ant-design/icons'
-import * as StringUtils from '@/utils/StringUtils'
-import { Link } from 'react-router-dom'
+import { Button, Checkbox, Col, Form, theme, Input, Row } from 'antd'
 import { ValidateStatus } from 'antd/es/form/FormItem'
-import { theme } from 'antd'
+import { useIntl, FormattedMessage } from 'react-intl'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import { Link } from 'react-router-dom'
+
+import * as StringUtils from '@/utils/StringUtils'
 import { InjectContextProvider } from '@/components/InjectContextProvider'
 import { ValidateErrorEntity } from '@/types/antd'
 
@@ -22,7 +22,7 @@ export const LoginPage = memo((p, c) => {
 
   const [form] = Form.useForm<Account.LoginTo>()
   const intl = useIntl()
-  const context = useContext(InjectContextProvider.Context)
+  const contextHolder = useContext(InjectContextProvider.Context) // 全局上下文
   const [validateStatus, setValidateStatus] = useState<{ [key in Account.LoginToKeys]: ValidateStatus }>({
     password: '',
     username: ''
@@ -35,9 +35,10 @@ export const LoginPage = memo((p, c) => {
       if (firstField.errors[0]) {
         if (errorMessageBoxState) return
         setErrorMessageBoxState(true)
-        context.message?.error(firstField.errors[0], () => {
+        contextHolder.message?.error(firstField.errors[0], () => {
           setErrorMessageBoxState(false)
         })
+        
         setValidateStatus({
           ...validateStatus,
           [firstField.name[0]]: 'error'
@@ -78,7 +79,6 @@ export const LoginPage = memo((p, c) => {
       <Form.Item
         name={'username'}
         validateStatus={validateStatus.username}
-        help={''}
         rules={[{ required: true, message: intl.formatMessage({ id: 'pleaseInputYourUsername' }) }]}
       >
         <Input
