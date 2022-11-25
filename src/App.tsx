@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ConfigProvider } from "antd";
+import { IntlProvider } from 'react-intl';
 
 import * as theme from '@/themes/light'
 
@@ -8,7 +9,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
 import { LoginPage } from "./pages/login";
 import { ReactRoutes } from "./routers";
-import { BrowserRouter, HashRouter, Router } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
+import zh from '@/locales/zh'
 
 const App: React.FC = () => {
   const [greetMsg, setGreetMsg] = useState("");
@@ -21,7 +23,7 @@ const App: React.FC = () => {
 
   return <>
 
-{/* <div className="container">
+    {/* <div className="container">
           <h1>Welcome to Tauri!</h1>
 
           <div className="row">
@@ -37,11 +39,13 @@ const App: React.FC = () => {
           </div>
         </div> */}
     <React.StrictMode>
-      <ConfigProvider theme={{ token: theme.lightTheme }}>
-        <BrowserRouter>
-          <ReactRoutes />
-        </BrowserRouter>
-        {/* <LoginPage/> */}
+      <ConfigProvider theme={{ token: theme.lightTheme }} componentSize={'large'}>
+        <IntlProvider locale={'zh'} messages={zh}>
+          <BrowserRouter>
+            <ReactRoutes />
+          </BrowserRouter>
+          {/* <LoginPage/> */}
+        </IntlProvider>
       </ConfigProvider>
     </React.StrictMode>
   </>
