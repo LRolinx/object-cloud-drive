@@ -7,7 +7,7 @@
  * @author: Clover
  * @create: 2022-11-25 11:42
  */
-import { memo, useContext, useState } from 'react'
+import { memo, useContext, useEffect, useState } from 'react'
 import { Button, Checkbox, Col, Form, theme, Input, Row } from 'antd'
 import { ValidateStatus } from 'antd/es/form/FormItem'
 import { useIntl, FormattedMessage } from 'react-intl'
@@ -59,6 +59,9 @@ export const LoginPage = memo((p, c) => {
   const { token } = theme.useToken()
 
   console.log(token.boxShadowSecondary);
+
+  useEffect(() => {
+  }, [])
 
   return <>
     <Form

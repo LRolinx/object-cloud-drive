@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { ConfigProvider } from "antd";
+import React, { useState, useEffect } from "react";
+import { ConfigProvider, theme } from "antd";
 import { IntlProvider } from 'react-intl';
 
-import * as theme from '@/themes/light'
+import * as myTheme from '@/themes/light'
 
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -16,11 +16,23 @@ import { InjectContextProvider } from "./components/InjectContextProvider";
 const App: React.FC = () => {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
+  const [osThemeModal, setOsThemeModal] = useState<'light' | 'dark'>()
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     setGreetMsg(await invoke("greet", { name }));
   }
+
+  useEffect(() => {
+    let matchMedia = window.matchMedia('(prefers-color-scheme:dark)')
+    // 监听主题变更
+    matchMedia.onchange = function (e) {
+      console.log('prefers-color-scheme', e);
+      setOsThemeModal(e.matches ? 'dark' : 'light')
+    }
+
+    setOsThemeModal(matchMedia.matches ? 'dark' : 'light')
+  }, [])
 
   return <>
 
@@ -40,7 +52,7 @@ const App: React.FC = () => {
           </div>
         </div> */}
     <React.StrictMode>
-      <ConfigProvider theme={{ token: theme.lightTheme }} componentSize={'large'}>
+      <ConfigProvider theme={{ token: myTheme.lightTheme, algorithm: (osThemeModal === 'dark' ? [theme.darkAlgorithm] : []) }} componentSize={'large'}>
         <IntlProvider locale={'zh'} messages={zh}>
           <InjectContextProvider>
             <BrowserRouter>
