@@ -11,11 +11,7 @@ import { theme } from 'antd'
 import { AliasToken } from 'antd/es/theme'
 import { lightTheme } from './light'
 
-
 const lightToDark = theme.darkAlgorithm(lightTheme as AliasToken)
-
-
-
 
 export const darkTheme: Partial<AliasToken> = {
   ...lightToDark,

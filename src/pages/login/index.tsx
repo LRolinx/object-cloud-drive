@@ -7,12 +7,13 @@
  * @author: Clover
  * @create: 2022-11-25 11:42
  */
-import { memo, useContext, useState } from 'react'
+import { memo, useContext, useEffect, useState } from 'react'
 import { Button, Checkbox, Col, Form, theme, Input, Row } from 'antd'
 import { ValidateStatus } from 'antd/es/form/FormItem'
 import { useIntl, FormattedMessage } from 'react-intl'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import { Link } from 'react-router-dom'
+import { invoke } from '@tauri-apps/api'
 
 import * as StringUtils from '@/utils/StringUtils'
 import { InjectContextProvider } from '@/components/InjectContextProvider'
@@ -38,7 +39,7 @@ export const LoginPage = memo((p, c) => {
         contextHolder.message?.error(firstField.errors[0], () => {
           setErrorMessageBoxState(false)
         })
-        
+
         setValidateStatus({
           ...validateStatus,
           [firstField.name[0]]: 'error'
@@ -58,7 +59,10 @@ export const LoginPage = memo((p, c) => {
 
   const { token } = theme.useToken()
 
-  console.log(token.boxShadowSecondary);
+  useEffect(() => {
+    // 页面挂载完成，显示窗口
+    invoke('show_win')
+  }, [])
   return <>
     <Form
       data-tauri-drag-region
