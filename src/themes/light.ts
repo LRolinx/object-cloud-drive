@@ -11,5 +11,6 @@ import { theme } from 'antd'
 import { AliasToken } from 'antd/es/theme'
 
 export const lightTheme: Partial<AliasToken> = {
+  ...theme.defaultSeed,
   colorPrimary: '#00a846'
 }

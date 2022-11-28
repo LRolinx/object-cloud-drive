@@ -3,6 +3,7 @@ import { ConfigProvider, theme } from "antd";
 import { IntlProvider } from 'react-intl';
 
 import * as myTheme from '@/themes/light'
+import { darkTheme } from '@/themes/dark'
 
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -52,7 +53,7 @@ const App: React.FC = () => {
           </div>
         </div> */}
     <React.StrictMode>
-      <ConfigProvider theme={{ token: myTheme.lightTheme, algorithm: (osThemeModal === 'dark' ? [theme.darkAlgorithm] : []) }} componentSize={'large'}>
+      <ConfigProvider theme={{ token: osThemeModal === 'dark' ? darkTheme : myTheme.lightTheme}} componentSize={'large'}>
         <IntlProvider locale={'zh'} messages={zh}>
           <InjectContextProvider>
             <BrowserRouter>
