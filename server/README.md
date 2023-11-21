@@ -1,16 +1,13 @@
-# server
+A sample command-line application with an entrypoint in `bin/`, library code
+in `lib/`, and example unit test in `test/`.
 
-A new Flutter project.
+``` bash
+//使用kernel 编译二进制文件以可以在各大系统使用
+dart compile kernel bin/p2pserver.dart
 
-## Getting Started
+//本地运行
+dart run
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+//二进制运行
+dart p2pserver.dill
+```
