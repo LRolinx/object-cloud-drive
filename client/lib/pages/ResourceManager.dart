@@ -73,12 +73,12 @@ class _ResourceManagerState extends State<ResourceManager> {
     });
 
     return Container(
-      height: MediaQuery.of(context).size.height / 100 * 28.5,
+      height: MediaQuery.of(context).size.height / 100 * 100,
       child: Obx(
         () => GridView(
           padding: EdgeInsets.symmetric(vertical: 0),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 10,
+            crossAxisCount: 8,
           ),
           children: roots.value.map((item) {
             return TextButton(
@@ -96,8 +96,8 @@ class _ResourceManagerState extends State<ResourceManager> {
                       width: 50,
                       height: 50,
                       child: item.isfolder
-                          ? Image.asset("assets/icons/folder-128.png")
-                          : Image.asset("assets/icons/file-128.png"),
+                          ? Image.asset("assets/img/folder.png")
+                          : Image.asset("assets/img/folder_share.png"),
                     ),
                     Text(item.title!)
                   ],
