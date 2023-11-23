@@ -1,7 +1,10 @@
 import 'package:client/pages/ResourceManager.dart';
+import 'package:client/pages/login/login.dart';
+import 'package:client/routers/routers.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,7 +16,9 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
+      initialRoute: "/login",
+      getPages: Routers.getPages,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -150,6 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Expanded(child: ListView(
           children: [
             ResourceManager(),
+            // Login()
           ],
         ),),
 

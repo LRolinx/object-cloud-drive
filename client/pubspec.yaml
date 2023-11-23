@@ -40,6 +40,8 @@ dependencies:
   path_provider: ^2.1.1
   get: ^4.6.6
   uuid: ^4.1.0
+  flutter_svg: ^2.0.9
+  shared_preferences: ^2.2.2 #这是本地存储
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +69,8 @@ flutter:
   assets:
     - assets/img/folder.png
     - assets/img/folder_share.png
+    - assets/svg/login.svg
+    - assets/svg/register.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
