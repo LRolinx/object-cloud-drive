@@ -24,7 +24,8 @@ networklist.forEach((element) {
 });
 
 
-  String ipv4ip = "142.171.184.126";
+  String ipv4ip = "127.0.0.1";
+//   String ipv4ip = "142.171.184.126";
   int ipv4port = 6666;
   ServerSocket.bind(ipv4ip, ipv4port).then((ServerSocket server) {
     print("服务器->启动完成 ${ipv4ip}->${ipv4port}");
