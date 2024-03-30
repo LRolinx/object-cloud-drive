@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:p2pserver/sql.dart';
+
 /// 创建Socket服务器
 /// 
 
@@ -9,6 +12,7 @@ import 'dart:typed_data';
 Map<String,Map<String,dynamic>> addressBook = {};
 
 void createSocketServer () async {
+  connect();
 List<NetworkInterface> networklist  = await NetworkInterface.list();
 
 networklist.forEach((element) {
