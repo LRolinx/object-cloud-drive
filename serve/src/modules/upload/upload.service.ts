@@ -3,12 +3,11 @@ import { Request } from 'express';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
 import { Injectable } from '@nestjs/common';
 import conf from 'src/config/config';
-import {DataBaseConfig} from 'src/config/orm.config';
 import * as fs from 'fs';
 import { UserFilesEntity } from 'src/entity/user_files.entity';
 import { FilesEntity } from 'src/entity/files.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOneOptions, Repository } from 'typeorm';
 import DateUtils from 'src/utils/DateUtils';
 import { format } from 'date-fns';
 import * as path from 'path';
@@ -59,10 +58,13 @@ export class UploadService {
   ): Promise<AjaxResult> {
     const enres = { userFileExist: false, fileExist: false };
     const file = await this.filesEntity.findOne(
-      FilesEntity.instance({ sha256: sha256Id }),
+      FilesEntity.instance({ sha256: sha256Id }) as FindOneOptions<FilesEntity>,
     );
     const folder = await this.folderEntity.findOne(
-      FolderEntity.instance({ id: folderid, del: false }),
+      FolderEntity.instance({
+        id: folderid,
+        del: false,
+      }) as FindOneOptions<FolderEntity>,
     );
 
     const userfile = await this.userFilesEntity.findOne(
@@ -72,7 +74,7 @@ export class UploadService {
         fileName: filename,
         suffix: fileext,
         del: false,
-      }),
+      }) as FindOneOptions<UserFilesEntity>,
     );
 
     if (file != undefined) {
@@ -113,7 +115,7 @@ export class UploadService {
     currentChunkMax: number,
     currentChunkIndex: number,
   ): Promise<AjaxResult> {
-    return new Promise<AjaxResult>(async (resolve, reject) => {
+    return new Promise<AjaxResult>(async (resolve) => {
       try {
         const sha256Path = `${conf.upload.temp}${fileSha256}/`;
         const uploadPath = `${conf.upload.path}${fileSha256}`;
@@ -175,7 +177,7 @@ export class UploadService {
                   fileTypeId: 0,
                 }),
               )
-              .then(async (v) => {
+              .then(async () => {
                 // 写入用户文件表里
                 await this.userFilesEntity.insert(
                   UserFilesEntity.instance({

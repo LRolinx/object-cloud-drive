@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from 'src/entity/user.entity';
-import { InsertResult, Repository } from 'typeorm';
+import { FindOneOptions, InsertResult, Repository } from 'typeorm';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
 import MathTools from 'src/utils/MathTools';
 import { format } from 'date-fns';
@@ -72,7 +72,7 @@ export class UserService {
    */
   async queryUserByAccount(account: string): Promise<UserEntity> {
     const query = UserEntity.instance({ account });
-    return this.userEntity.findOne(query);
+    return this.userEntity.findOne(query as FindOneOptions<UserEntity>);
   }
   /**
    * 添加用户信息

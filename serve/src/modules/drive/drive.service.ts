@@ -7,9 +7,8 @@ import { FolderEntity } from 'src/entity/folder.entity';
 import { UserFilesEntity } from 'src/entity/user_files.entity';
 import DateUtils from 'src/utils/DateUtils';
 import MathTools from 'src/utils/MathTools';
-import { Repository } from 'typeorm';
+import { Repository, FindOneOptions } from 'typeorm';
 import conf from 'src/config/config';
-import {DataBaseConfig} from 'src/config/orm.config';
 import * as fs from 'fs';
 
 /*
@@ -56,7 +55,10 @@ export class DriveService {
       pId: folderId,
       del: false,
     });
-    const folders = await this.folderEntity.findOne(folder);
+
+    const folders = await this.folderEntity.findOne(
+      folder as FindOneOptions<FolderEntity>,
+    );
     if (folders == undefined) {
       //文件夹不存在
       const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
@@ -108,8 +110,12 @@ export class DriveService {
       del: false,
     });
 
-    const folders = await this.folderEntity.find(folder);
-    const files = await this.userFilesEntity.find(userfile);
+    const folders = await this.folderEntity.find(
+      folder as FindOneOptions<FolderEntity>,
+    );
+    const files = await this.userFilesEntity.find(
+      userfile as FindOneOptions<UserFilesEntity>,
+    );
     const result: UserFileAndFolder[] = [];
 
     if (folders !== null) {
@@ -148,7 +154,9 @@ export class DriveService {
       id,
       del: false,
     });
-    const files = await this.userFilesEntity.findOne(userfile);
+    const files = await this.userFilesEntity.findOne(
+      userfile as FindOneOptions<UserFilesEntity>,
+    );
     const path = `${conf.upload.path}${files.fileId}`;
     if (!fs.existsSync(path)) {
       //文件不存在

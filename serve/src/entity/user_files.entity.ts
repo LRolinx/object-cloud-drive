@@ -91,6 +91,7 @@ export class UserFilesEntity {
     for (const key in info) {
       file[key] = info[key];
     }
+
     return file;
   }
 }
