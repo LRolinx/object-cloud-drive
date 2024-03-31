@@ -9,6 +9,7 @@ import { examinefileapi, uploadstreamfileapi } from '@/api/update'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/store/models/app'
 import { useDriveStore } from '@/store/models/drive'
+import { PlaySquareTwoTone, CloudTwoTone,DatabaseTwoTone,StarTwoTone } from '@ant-design/icons-vue'
 
 export default defineComponent<HomeProps, HomeEmits>(
   (props, ctx) => {
@@ -39,19 +40,9 @@ export default defineComponent<HomeProps, HomeEmits>(
       router.push({ name: 'driveResourcePool' })
     }
 
-    const openIconList = () => {
-      //打开图标库
-      router.push({ name: 'iconList' })
-    }
-
     const openStreamingVideo = () => {
       //打开视频流DEMO
       router.push({ name: 'streamingVideo' })
-    }
-
-    const openInteractiveEffect = () => {
-      //打开交互效果DEMO
-      router.push({ name: 'interactiveEffect' })
     }
 
     const setTaskState = (item, stateCode, ano) => {
@@ -212,24 +203,19 @@ export default defineComponent<HomeProps, HomeEmits>(
 
                 <ul class="siderbarUl">
                   <li class={{ liOn: appStore.siderbarStr == 'drive' }} onClick={openDrive}>
-                    <i class="iconfont icon-drive"></i>
+                    {/* <i class="iconfont icon-drive"></i> */}
+                    <CloudTwoTone />
                     <p>我的云盘</p>
                   </li>
                   <li class={{ liOn: appStore.siderbarStr == 'driveResourcePool' }} onClick={openDriveResourcePool}>
-                    <i class="iconfont icon-cloud"></i>
+                    {/* <i class="iconfont icon-cloud"></i> */}
+                    <DatabaseTwoTone />
                     <p>资源池</p>
                   </li>
-                  <li class={{ liOn: appStore.siderbarStr == 'iconList' }} onClick={openIconList}>
-                    <i class="iconfont icon-play-drag"></i>
-                    <p>图标库</p>
-                  </li>
                   <li class={{ liOn: appStore.siderbarStr == 'streamingVideo' }} onClick={openStreamingVideo}>
-                    <i class="iconfont icon-video-play"></i>
+                    {/* <i class="iconfont icon-video-play"></i> */}
+                    <PlaySquareTwoTone />
                     <p>视频流DEMO</p>
-                  </li>
-                  <li class={{ liOn: appStore.siderbarStr == 'interactiveEffect' }} onClick={openInteractiveEffect}>
-                    <i class="iconfont icon-list"></i>
-                    <p>交互效果DEMO</p>
                   </li>
                 </ul>
 

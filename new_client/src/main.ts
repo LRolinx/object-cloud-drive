@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-
+import "@/assets/css/iconFont.css"
 import App from '@/App.vue'
 import Antd, { message } from 'ant-design-vue'
 import routers from '@/routers'

@@ -10,7 +10,7 @@ export const useGlobalDataStore = defineStore('globalData', () => {
   const rightMenuItem = ref(undefined)
 
   // 文件数据
-  const fileData = ref()
+  const fileData = ref([])
 
   //显示拖拽上传范围显示
   const isShowUpdateModel = ref(false)

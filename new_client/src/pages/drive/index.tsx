@@ -656,11 +656,12 @@ export default defineComponent<DriveProps, DriveEmits>(
     //渲染文件列表
     const RenderFileList = (view) => {
       const node = []
+	  console.log(view.fileData.length)
 
-      for (let i = 0; i < view.fileData; i++) {
+      for (let i = 0; i < view.fileData.length; i++) {
         const item = view.fileData[i]
         node.push(
-          <div class="fileBox" onDblclick={openFileOrFolder(item)} onMouseup={withModifiers((e) => fileBoxMouseup(e, item), ['stop'])} onContextmenu={withModifiers(null, ['prevent'])}>
+          <div class="fileBox" onDblclick={openFileOrFolder(item)} onMouseup={withModifiers((e) => fileBoxMouseup(e, item), ['stop'])} onContextmenu={withModifiers(()=>{}, ['prevent'])}>
             <div class="fileContentBox">
               <div class="fileContentImg">
                 {item.type == 'folder' && <img class="imagePreview" src="../static/img/folder.png" draggable="false" />}
@@ -736,7 +737,7 @@ export default defineComponent<DriveProps, DriveEmits>(
               >
                 <div
                   class="tip"
-                  //   onDragleave={withModifiers(null, ['prevent', 'stop'])}
+                    onDragleave={withModifiers(()=>{}, ['prevent', 'stop'])}
                 >
                   <p>拖拽文件到此即可上传到XXX</p>
                 </div>
@@ -766,17 +767,20 @@ export default defineComponent<DriveProps, DriveEmits>(
                 <p>这里啥也没有呢~</p>
               </div>
 
-              <div class="file-container" v-if="store.fileData.length != 0">
-                {/* <DynamicScroller items={getFileData()} minItemSize={54} class="scroller">
+              {store.fileData.length != 0 && (
+                <div class="file-container">
+                  {RenderFileList(store)}
+                  {/* <DynamicScroller items={getFileData()} minItemSize={54} class="scroller">
                   niaho
                 </DynamicScroller> */}
 
-                {/* <DynamicScroller items={getFileData()} class="scroller" min-item-size={1} key-field="key" v-slot="view">
+                  {/* <DynamicScroller items={getFileData()} class="scroller" min-item-size={1} key-field="key" v-slot="view">
           {{ view }}
 
           {RenderFileList(view)}
         </DynamicScroller> */}
-              </div>
+                </div>
+              )}
             </div>
 
             {store.isShowRightMenu && (

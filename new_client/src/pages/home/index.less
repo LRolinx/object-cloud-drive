@@ -100,6 +100,7 @@
   cursor: pointer;
   transition: ease-in 0.2s;
   border-radius: 0.1rem;
+  padding:0 10px
 }
 
 .siderbarUl .liOn {
@@ -129,6 +130,11 @@
   flex-grow: 1;
 }
 
+.anticon {
+	font-size: 20px;
+	margin-right: 4px;
+}
+
 @media (max-width: 750px) {
   .logo {
     display: none;
@@ -136,10 +142,19 @@
 
   .siderbar {
     min-width: inherit;
-    max-width: 0.8rem;
+    max-width: 0.6rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+
+  .anticon {
+	margin-right: 0;
+}
+
+  .siderbar li {
+	display: flex;
+	justify-content: center;
   }
 
   .siderbarUl li p {

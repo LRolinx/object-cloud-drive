@@ -5,7 +5,7 @@
  * @Description: app路由
  *
  */
-import { RouteRecordRaw, createRouter, createWebHistory, useRoute } from 'vue-router'
+import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router'
 // 还有 createWebHashHistory 和 createMemoryHistory
 
 // 引入组件
@@ -13,9 +13,7 @@ import loginAndRegistered from '@/pages/login_and_registered/index' //登录与�
 import home from '@/pages/home/' //主页
 import drive from '@/pages/drive/' //云盘
 import driveResourcePool from '@/pages/drive_resource_pool/index.vue' //资源池
-import iconList from '@/pages/icon_list/index.vue' //图标库
 import streamingVideo from '@/pages/streaming_video/index.vue' //视频流DEMO
-import interactiveEffect from '@/pages/interactive_effect/index.vue' //交互效果DEMO
 import error404 from '@/pages/error/404.vue' //404错误
 import { useUserStore } from '@/store/models/user'
 import { message } from 'ant-design-vue'
@@ -55,27 +53,11 @@ const routes = [
         },
       },
       {
-        path: '/home/iconList',
-        component: iconList,
-        name: 'iconList',
-        meta: {
-          title: '对象云盘-图标库',
-        },
-      },
-      {
         path: '/home/streamingVideo',
         component: streamingVideo,
         name: 'streamingVideo',
         meta: {
           title: '对象云盘-视频流DEMO',
-        },
-      },
-      {
-        path: '/home/interactiveEffect',
-        component: interactiveEffect,
-        name: 'interactiveEffect',
-        meta: {
-          title: '对象云盘-交互效果DEMO',
         },
       },
     ],
