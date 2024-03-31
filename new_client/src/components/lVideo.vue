@@ -64,7 +64,6 @@ export default {
       playEndTime: '00:00',//播放结束结束时间
       isFull: false,//是否全屏
       playSetTime: null,//播放防抖
-
       isShowFullControll: false,//是否隐藏全屏控制台
       fullSetTime: null,//全屏隐藏控制台计时器
     };

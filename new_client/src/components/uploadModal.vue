@@ -52,7 +52,7 @@
 export default {
   data() {
     return {
-      isMinimize: false,
+      isMinimize: true,
     };
   },
   props: {

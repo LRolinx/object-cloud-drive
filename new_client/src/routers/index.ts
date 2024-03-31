@@ -13,7 +13,7 @@ import loginAndRegistered from '@/pages/login_and_registered/index' //登录与�
 import home from '@/pages/home/' //主页
 import drive from '@/pages/drive/' //云盘
 import driveResourcePool from '@/pages/drive_resource_pool/index.vue' //资源池
-import streamingVideo from '@/pages/streaming_video/index.vue' //视频流DEMO
+import { StreamingVideo } from '@/pages/streaming_video' //视频流DEMO
 import error404 from '@/pages/error/404.vue' //404错误
 import { useUserStore } from '@/store/models/user'
 import { message } from 'ant-design-vue'
@@ -53,9 +53,9 @@ const routes = [
         },
       },
       {
-        path: '/home/streamingVideo',
-        component: streamingVideo,
-        name: 'streamingVideo',
+        path: '/home/StreamingVideo',
+        component: StreamingVideo,
+        name: 'StreamingVideo',
         meta: {
           title: '对象云盘-视频流DEMO',
         },

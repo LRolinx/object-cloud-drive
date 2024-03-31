@@ -42,11 +42,11 @@ export class VideoService {
    */
   async playVideoSteam(
     res: Response,
-    id: number,
+    fileId: string,
     range: string,
   ): Promise<Response> {
     const userFile = await this.userFilesEntity.findOne({
-      where: UserFilesEntity.instance({ id }),
+      where: UserFilesEntity.instance({ fileId }),
     });
     const filepath = path.join(conf.upload.path, userFile.fileId);
     const stat = fs.statSync(filepath);
@@ -92,9 +92,9 @@ export class VideoService {
    * @param id
    * @returns
    */
-  async getVideoSceenshots(id: number): Promise<StreamableFile> {
+  async getVideoSceenshots(fileId: string): Promise<StreamableFile> {
     const userFile = await this.userFilesEntity.findOne({
-      where: UserFilesEntity.instance({ id }),
+      where: UserFilesEntity.instance({ fileId }),
     });
     const path = `${conf.upload.path}${userFile.fileId}`;
     const videoshots = `${path}.png`;

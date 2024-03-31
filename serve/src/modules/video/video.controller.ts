@@ -1,6 +1,13 @@
-import { Response } from 'express';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
-import { Controller, Post, Body, Inject, Res, Header } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Inject,
+  Res,
+  Param,
+  Get,
+} from '@nestjs/common';
 import { StringUtils } from 'src/utils/StringUtils';
 import { VideoService } from './video.service';
 import MathTools from 'src/utils/MathTools';
@@ -42,7 +49,7 @@ export class VideoController {
     if (!StringUtils.hasText(id)) {
       return AjaxResult.fail('参数错误');
     }
-    const decryptId = id == '0' ? 0 : parseInt(MathTools.decryptForKey(id));
+    const decryptId = id == '0' ? 0 : id; // parseInt(MathTools.decryptForKey(id));
     return this.videoService.playVideoSteam(res, decryptId, range);
   }
 
@@ -55,7 +62,7 @@ export class VideoController {
     if (!StringUtils.hasText(id)) {
       return AjaxResult.fail('参数错误');
     }
-    const decryptId = id == '0' ? 0 : parseInt(MathTools.decryptForKey(id));
+    const decryptId = id == '0' ? '' : MathTools.decryptForKey(id);
     return this.videoService.getVideoSceenshots(decryptId);
   }
 }

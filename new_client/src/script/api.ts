@@ -23,5 +23,6 @@ export const API_LIST = {
   },
   VIDEO: {
     GET_VIDEOSCEENSHOTS: '/video/getVideoSceenshots',
+    PLAY_VIDEOSTEAM: '/video/playVideoSteam',
   },
 }

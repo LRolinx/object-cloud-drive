@@ -42,7 +42,7 @@ export default defineComponent<HomeProps, HomeEmits>(
 
     const openStreamingVideo = () => {
       //打开视频流DEMO
-      router.push({ name: 'streamingVideo' })
+      router.push({ name: 'StreamingVideo' })
     }
 
     const setTaskState = (item, stateCode, ano) => {
@@ -212,7 +212,7 @@ export default defineComponent<HomeProps, HomeEmits>(
                     <DatabaseTwoTone />
                     <p>资源池</p>
                   </li>
-                  <li class={{ liOn: appStore.siderbarStr == 'streamingVideo' }} onClick={openStreamingVideo}>
+                  <li class={{ liOn: appStore.siderbarStr == 'StreamingVideo' }} onClick={openStreamingVideo}>
                     {/* <i class="iconfont icon-video-play"></i> */}
                     <PlaySquareTwoTone />
                     <p>视频流DEMO</p>
