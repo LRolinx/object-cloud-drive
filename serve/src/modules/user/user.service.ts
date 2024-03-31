@@ -7,6 +7,9 @@ import MathTools from 'src/utils/MathTools';
 import { format } from 'date-fns';
 import DateUtils from 'src/utils/DateUtils';
 import { UserDefaultEntity } from 'src/customizeEntity/user_default.entity';
+import * as fs from 'fs';
+import conf from 'src/config/config';
+import { Response } from 'express';
 /**
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
  * ▓██   ▒ ██  ▓██▒▒██▀ ▀█   ██▄█▒      ██╔══██╗██║   ██║██╔════╝
@@ -32,13 +35,28 @@ export class UserService {
     private readonly userEntity: Repository<UserEntity>,
   ) {}
 
+  async getpublickey(res: Response) {
+    const path = `${conf.key.path}public.key`;
+    const fileinfo = fs.statSync(path);
+    const file = fs.createReadStream(path);
+    // AjaxResult.success(data.toString());
+
+    const head = {
+      'Accept-Ranges': 'bytes',
+      'Content-Length': fileinfo.size,
+    };
+    res.writeHead(200, head);
+
+    return file.pipe(res);
+  }
+
   async userRegistered({
     account,
     nickName,
     password,
   }: UserEntity): Promise<AjaxResult> {
     const user = await this.queryUserByAccount(account);
-    if (user === undefined) {
+    if (user === null || user === undefined) {
       //用户不存在可注册
       const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
 
@@ -71,8 +89,10 @@ export class UserService {
    * @return Promise<UserEntity>
    */
   async queryUserByAccount(account: string): Promise<UserEntity> {
-    const query = UserEntity.instance({ account });
-    return this.userEntity.findOne(query as FindOneOptions<UserEntity>);
+    const query: FindOneOptions<UserEntity> = {
+      where: UserEntity.instance({ account }),
+    };
+    return this.userEntity.findOne(query);
   }
   /**
    * 添加用户信息
@@ -95,11 +115,11 @@ export class UserService {
    * @return Promise<UserEntity>
    */
   async userLogin(account: string, password: string): Promise<AjaxResult> {
-    const user = await this.queryUserByAccount(account);
+    const user = await this.queryUserByAccount(account.trim());
     if (user == null) {
       return AjaxResult.fail('账号不存在');
     }
-    if (user.password !== MathTools.encryptForKey(password.trim())) {
+    if (MathTools.decryptForKey(user.password) !== password.trim()) {
       return AjaxResult.fail('密码错误');
     }
 

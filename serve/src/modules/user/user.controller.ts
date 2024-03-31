@@ -1,9 +1,17 @@
-import { Body, Controller, HttpStatus, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Inject,
+  Post,
+  Res,
+} from '@nestjs/common';
 import { UserEntity } from '../../entity/user.entity';
 import { AjaxResult } from '../../utils/ajax-result.classes';
 import { UserService } from './user.service';
 import { StringUtils } from '../../utils/StringUtils';
 import { HttpParameterException } from '../../exceptions/http-parameter.exception';
+import MathTools from 'src/utils/MathTools';
 
 /**
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -29,6 +37,12 @@ export class UserController {
     private readonly userService: UserService,
   ) {}
 
+  //   获取公钥
+  @Post('getpublickey')
+  async getpublickey(@Res({ passthrough: false }) res) {
+    return this.userService.getpublickey(res);
+  }
+
   /**
    * 用户注册实现
    * @param nickName 昵称
@@ -39,16 +53,18 @@ export class UserController {
    * @author Clover·You
    * @date 2021/11/09 11:29
    */
-  @Post('objectCloudDiskRegistered')
-  async userRegistered(
+  @Post('registered')
+  async registered(
     @Body() { nickName, account, password, registeredCode },
   ): Promise<AjaxResult> {
     if (registeredCode.toUpperCase() == 'OBJECT') {
+      const _account = MathTools.decryptForKey(account);
+      const _password = MathTools.decryptForKey(password);
       return this.userService.userRegistered(
         UserEntity.instance({
           nickName,
-          account,
-          password,
+          account: _account,
+          password: _password,
         }),
       );
     } else {
@@ -67,10 +83,8 @@ export class UserController {
    * @author Clover You
    * @date 2021/11/9 14:37
    */
-  @Post('objectCloudDiskLogin')
-  async userLogin(
-    @Body() { account, password }: UserEntity,
-  ): Promise<AjaxResult> {
+  @Post('login')
+  async login(@Body() { account, password }: UserEntity): Promise<AjaxResult> {
     if (!StringUtils.hasText(account)) {
       throw new HttpParameterException(
         '账号不能为空',
@@ -83,6 +97,10 @@ export class UserController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return this.userService.userLogin(account, password);
+
+    const _account = MathTools.decryptForKey(account);
+    const _password = MathTools.decryptForKey(password);
+
+    return this.userService.userLogin(_account, _password);
   }
 }

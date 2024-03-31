@@ -8,11 +8,9 @@ export default defineConfig({
   resolve: {
     extensions: ['.vue', '.json', '.js', 'ts'],
     alias: {
-      
-      '~': path.resolve(__dirname, './'),
-      '@': path.resolve(__dirname, './src'),
-      '$http': path.resolve(__dirname, './src/utils/axios.ts'),
-      '$tipMessge': path.resolve(__dirname, './src/components/tipMessge.ts'),
-    }
+      '@': path.resolve(__dirname, 'src'),
+      $http: path.resolve(__dirname, 'src/utils/axios.ts'),
+      $tipMessge: path.resolve(__dirname, 'src/components/tipMessge.ts'),
+    },
   },
 })

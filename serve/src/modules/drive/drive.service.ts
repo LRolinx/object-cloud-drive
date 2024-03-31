@@ -49,16 +49,17 @@ export class DriveService {
     name: string,
   ): Promise<AjaxResult> {
     //检查指定的folder_id文件夹里是否已有对应的name文件夹
-    const folder = FolderEntity.instance({
-      userId,
-      name,
-      pId: folderId,
-      del: false,
-    });
+    const folder: FindOneOptions<FolderEntity> = {
+      where: FolderEntity.instance({
+        userId,
+        name,
+        pId: folderId,
+        del: false,
+      }),
+    };
 
-    const folders = await this.folderEntity.findOne(
-      folder as FindOneOptions<FolderEntity>,
-    );
+    const folders = await this.folderEntity.findOne(folder);
+
     if (folders == undefined) {
       //文件夹不存在
       const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
@@ -98,24 +99,24 @@ export class DriveService {
     userId: number,
     folderId: number,
   ): Promise<AjaxResult> {
-    const folder = FolderEntity.instance({
-      userId,
-      pId: folderId,
-      del: false,
-    });
+    const folder: FindOneOptions<FolderEntity> = {
+      where: FolderEntity.instance({
+        userId,
+        pId: folderId,
+        del: false,
+      }),
+    };
 
-    const userfile = UserFilesEntity.instance({
-      userId,
-      folderId,
-      del: false,
-    });
+    const userfile: FindOneOptions<UserFilesEntity> = {
+      where: UserFilesEntity.instance({
+        userId,
+        folderId,
+        del: false,
+      }),
+    };
 
-    const folders = await this.folderEntity.find(
-      folder as FindOneOptions<FolderEntity>,
-    );
-    const files = await this.userFilesEntity.find(
-      userfile as FindOneOptions<UserFilesEntity>,
-    );
+    const folders = await this.folderEntity.find(folder);
+    const files = await this.userFilesEntity.find(userfile);
     const result: UserFileAndFolder[] = [];
 
     if (folders !== null) {
@@ -150,13 +151,13 @@ export class DriveService {
    * @param id
    */
   async getUserFileForFileId(id: number): Promise<StreamableFile> {
-    const userfile = UserFilesEntity.instance({
-      id,
-      del: false,
-    });
-    const files = await this.userFilesEntity.findOne(
-      userfile as FindOneOptions<UserFilesEntity>,
-    );
+    const userfile: FindOneOptions<UserFilesEntity> = {
+      where: UserFilesEntity.instance({
+        id,
+        del: false,
+      }),
+    };
+    const files = await this.userFilesEntity.findOne(userfile);
     const path = `${conf.upload.path}${files.fileId}`;
     if (!fs.existsSync(path)) {
       //文件不存在

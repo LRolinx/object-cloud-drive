@@ -1,0 +1,72 @@
+@font-face {
+  font-family: 'HarmonyOS';
+  src: './assets/fonts/HarmonyOS_Sans_Regular.ttf';
+}
+
+:root {
+  font-family: HarmonyOS, Inter, Avenir, Helvetica, Arial, sans-serif;
+  --primary-color: #6266f5;
+}
+
+/* chrome 和Safari隐藏滚动条 */
+*::-webkit-scrollbar {
+  width: 0 !important;
+}
+
+* {
+  /* IE 10+ 隐藏滚动条 */
+  -ms-overflow-style: none;
+  /* Firefox 隐藏滚动条 */
+  overflow: -moz-scrollbars-none;
+  /* 取消掉移动端的点击产生的蓝色背景 */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+/* 文字选择颜色 */
+*::selection {
+  background-color: #555;
+  color: #fff;
+}
+
+#app {
+  /* 开启硬件加速 */
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  transform: translateZ(0);
+//   flex: 1;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  max-width: none;
+}
+
+html {
+  font-size: 100px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #555;
+}
+
+a {
+  text-decoration: none;
+  text-decoration-color: #555;
+  color: #555;
+}
+
+p {
+  margin: 0;
+}
+
+li {
+  list-style: none;
+}

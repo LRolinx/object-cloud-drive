@@ -57,25 +57,25 @@ export class UploadService {
     fileext: string,
   ): Promise<AjaxResult> {
     const enres = { userFileExist: false, fileExist: false };
-    const file = await this.filesEntity.findOne(
-      FilesEntity.instance({ sha256: sha256Id }) as FindOneOptions<FilesEntity>,
-    );
-    const folder = await this.folderEntity.findOne(
-      FolderEntity.instance({
+    const file = await this.filesEntity.findOne({
+      where: FilesEntity.instance({ sha256: sha256Id }),
+    });
+    const folder = await this.folderEntity.findOne({
+      where: FolderEntity.instance({
         id: folderid,
         del: false,
-      }) as FindOneOptions<FolderEntity>,
-    );
+      }),
+    });
 
-    const userfile = await this.userFilesEntity.findOne(
-      UserFilesEntity.instance({
+    const userfile = await this.userFilesEntity.findOne({
+      where: UserFilesEntity.instance({
         userId: userid,
         folderId: folderid,
         fileName: filename,
         suffix: fileext,
         del: false,
-      }) as FindOneOptions<UserFilesEntity>,
-    );
+      }),
+    });
 
     if (file != undefined) {
       enres.fileExist = true;

@@ -1,0 +1,345 @@
+.drive_body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.toolbar {
+  margin: 0.3rem 0;
+  height: 0.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.5rem;
+  user-select: none;
+  position: relative;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  width: calc(100% - 1.2rem);
+}
+
+.toolbarTitle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.16rem;
+}
+
+.toolbarArrow {
+  font-size: 0.16rem;
+  margin: 0 0.05rem;
+}
+
+.toolbarOn {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.colorR {
+  color: #aaa;
+}
+
+.toolbarRight {
+  position: absolute;
+  right: 0.5rem;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 0 0 0 0.2rem;
+}
+
+.dropZone {
+  outline: none;
+  cursor: default;
+  flex: 1;
+  display: flex;
+  padding: 0 50px;
+  height: 100%;
+  /* overflow: auto; */
+}
+
+.draging {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(117, 139, 189, 0.14);
+  border: 1px solid rgb(117, 139, 189);
+  box-sizing: border-box;
+  display: block;
+  z-index: 99;
+  user-select: none;
+  /* transition: ease-in 0.2s; */
+  animation: ease-in forwards draging 0.2s;
+  opacity: 0;
+}
+
+@keyframes draging {
+  form {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.tip {
+  position: absolute;
+  z-index: 1;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 40px;
+  min-width: 280px;
+  background: var(--primary-color);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 0.1rem;
+  text-align: left;
+  color: #fff;
+  line-height: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.tip p {
+  font-size: 0.14rem;
+}
+
+.file-container {
+  position: relative;
+  flex: 1;
+  z-index: 0;
+  /* overflow: auto; */
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.fileBox {
+  overflow: hidden;
+  flex-shrink: 0;
+  flex-grow: 0;
+  border-radius: 0.2rem;
+  display: inline-flex;
+
+  user-select: none;
+  /* margin: 0.2rem; */
+  margin: 15px;
+  padding-top: 0.12rem;
+  letter-spacing: 0.01px;
+  transition: ease-in 0.2s;
+  height: 1.8rem;
+  width: 1.6rem;
+}
+
+.fileBox:hover {
+  background-color: rgba(117, 139, 189, 0.2);
+}
+
+.fileBoxOn {
+  background-color: #758bbd;
+}
+
+.fileContentBox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: center; */
+}
+
+.fileContentImg {
+  display: flex;
+}
+
+.fileContentText {
+  display: flex;
+  flex-direction: column;
+}
+
+.imgBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1rem;
+  height: 1rem;
+  position: relative;
+}
+
+.videoImg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  width: max-content;
+  transform: translateX(-50%);
+  width: 0.4rem;
+  height: 0.4rem;
+  color: white;
+  border-radius: 100rem;
+  background: rgba(30, 30, 30, 0.3);
+  padding: 0.08rem;
+  backdrop-filter: blur(2px);
+  padding-left: 0.1rem;
+}
+
+.imagePreview,
+.iconPreview {
+  height: max-content;
+  max-height: 1rem;
+  max-width: 1rem;
+}
+
+.iconPreview {
+  font-size: 100%;
+}
+
+.fileContentName {
+  font-size: 0.14rem;
+  color: #333;
+  line-height: 1.5;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.12rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  text-overflow: ellipsis;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+.fileContentDate {
+  text-align: center;
+  font-size: 0.12rem;
+  color: #999;
+  transform-origin: center;
+  line-height: 0.2rem;
+}
+
+.fileMenu {
+  display: block;
+  background: rgba(217, 224, 241, 0.6);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0.02rem 0.08rem 0 rgba(0, 0, 0, 0.1);
+  border-radius: 0.12rem;
+  position: fixed;
+  overflow: hidden;
+  top: 20px;
+  left: 50%;
+  z-index: 9999;
+
+  animation: ease-in forwards fileMenu 0.2s;
+  transform-origin: left top;
+}
+
+@keyframes fileMenu {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fileMenu ul {
+  margin: 0;
+  padding: 0.08rem 0;
+}
+
+.fileMenu li {
+  display: flex;
+  flex-direction: row;
+  height: 0.3rem;
+  align-items: center;
+  padding: 0 0.2rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fileMenu li:hover {
+  background-color: #758bbd;
+  color: #fff;
+}
+
+.fileMenu li i {
+  font-size: 0.16rem;
+}
+
+.fileMenu li p {
+  font-size: 0.12rem;
+  margin-left: 0.1rem;
+}
+
+.updateButton {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  background-color: #758bbd;
+  padding: 0.05rem 0.2rem;
+  border-radius: 0.2rem;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.updateButton i {
+  font-size: 0.18rem;
+}
+
+.updateButton p {
+  font-size: 0.14rem;
+}
+
+.emptyBox {
+  width: 100%;
+  height: calc(100vh - 90px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.emptyBox img {
+  width: 1.5rem;
+}
+
+.emptyBox p {
+  font-size: 0.12rem;
+}
+
+@media (max-width: 750px) {
+  /* .file-container {
+	  grid-template-columns: repeat(auto-fill, 100%);
+	  grid-template-rows: none;
+	} */
+
+  .updateButton {
+    display: flex;
+  }
+}
+
+.scroller .vue-recycle-scroller__item-wrapper .vue-recycle-scroller__item-view {
+  display: flex !important;
+}
+
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+}

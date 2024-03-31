@@ -1,0 +1,164 @@
+.homeBody {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  height: 0.4rem;
+  width: 100%;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 3.5rem;
+  background: var(--primary-color);
+  /* box-shadow: 0 0 0.04rem #758bbd; */
+  -webkit-app-region: drag;
+
+  font-size: 0.14rem;
+  color: #fff;
+}
+
+.logo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0.4rem 0.2rem;
+  /* height: 100%; */
+}
+
+.logo p {
+  font-size: 0.2rem;
+}
+
+.headBox {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(117, 139, 189, 0.2), #f5f5f5 80%);
+  /* border-top: 2px solid rgba(117, 139, 189,0.2); */
+}
+
+.headChildBox {
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  cursor: pointer;
+}
+
+.headBox img {
+  border-radius: 50%;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-right: 0.1rem;
+}
+
+.headBox p {
+  font-size: 0.12rem;
+  font-weight: bold;
+}
+
+.main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  /* width: 100%; */
+  /* background: #f1f2f3; */
+}
+
+.siderbar {
+  /* min-width: 2rem; */
+  width: 2.4rem;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  /* box-shadow: 0 0 0.06rem #758bbd; */
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.siderbarUl {
+  padding: 0 0.2rem 0.7rem;
+  margin: 0;
+  overflow: auto;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+.siderbarUl li {
+  margin: 0.1rem 0;
+  height: 0.4rem;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  cursor: pointer;
+  transition: ease-in 0.2s;
+  border-radius: 0.1rem;
+}
+
+.siderbarUl .liOn {
+  color: rgb(117, 139, 189);
+  background-color: rgba(117, 139, 189, 0.2);
+}
+
+.siderbarUl li:hover {
+  background-color: rgba(117, 139, 189, 0.2);
+  /* color: #fff; */
+}
+
+.siderbarUl li p {
+  font-size: 0.14rem;
+  margin: 0;
+  padding: 0;
+}
+
+.siderbarUl li i {
+  font-size: 0.24rem;
+  padding: 0 0.12rem;
+}
+
+.content {
+  display: flex;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+@media (max-width: 750px) {
+  .logo {
+    display: none;
+  }
+
+  .siderbar {
+    min-width: inherit;
+    max-width: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .siderbarUl li p {
+    font-size: 0.14rem;
+    margin: 0;
+    padding: 0;
+    display: none;
+  }
+
+  .headChildBox {
+    padding: 0.2rem 0;
+    justify-content: center;
+  }
+
+  .headChildBox img {
+    margin: 0;
+  }
+
+  .headChildBox p {
+    display: none;
+  }
+}

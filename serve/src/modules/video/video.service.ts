@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Injectable, StreamableFile } from '@nestjs/common';
 import { FilesEntity } from 'src/entity/files.entity';
-import { FindOneOptions, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { UserFilesEntity } from 'src/entity/user_files.entity';
 import conf from 'src/config/config';
 // import * as ffmpeg from 'ffmpeg';
@@ -45,9 +45,9 @@ export class VideoService {
     id: number,
     range: string,
   ): Promise<Response> {
-    const userFile = await this.userFilesEntity.findOne(
-      UserFilesEntity.instance({ id }) as FindOneOptions<UserFilesEntity>,
-    );
+    const userFile = await this.userFilesEntity.findOne({
+      where: UserFilesEntity.instance({ id }),
+    });
     const filepath = path.join(conf.upload.path, userFile.fileId);
     const stat = fs.statSync(filepath);
     const fileSize = stat.size;
@@ -93,9 +93,9 @@ export class VideoService {
    * @returns
    */
   async getVideoSceenshots(id: number): Promise<StreamableFile> {
-    const userFile = await this.userFilesEntity.findOne(
-      UserFilesEntity.instance({ id }) as FindOneOptions<UserFilesEntity>,
-    );
+    const userFile = await this.userFilesEntity.findOne({
+      where: UserFilesEntity.instance({ id }),
+    });
     const path = `${conf.upload.path}${userFile.fileId}`;
     const videoshots = `${path}.png`;
 

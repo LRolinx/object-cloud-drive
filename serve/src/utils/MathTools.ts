@@ -7,7 +7,6 @@
  */
 import * as NodeRSA from 'node-rsa';
 import * as fs from 'fs';
-import {DataBaseConfig} from 'src/config/orm.config';
 import conf from 'src/config/config';
 
 export default class MathTools {
@@ -43,24 +42,26 @@ export default class MathTools {
   }
 
   /**
-   * 使用密匙加密
+   * 使用公开密匙加密
    * @param value 需要加密的内容
    */
   public static encryptForKey(value: any): string {
     MathTools.generateKey();
 
-    const data = fs.readFileSync(`${conf.key.path}private.key`);
-    const key = new NodeRSA(data);
-    return key.encryptPrivate(value, 'base64');
+    const data = fs.readFileSync(`${conf.key.path}public.key`);
+    const decrypt = new NodeRSA(data);
+    decrypt.setOptions({ encryptionScheme: 'pkcs1' });
+    return decrypt.encrypt(value, 'base64');
   }
 
   /**
-   * 使用密匙解密
+   * 使用私有密匙解密
    * @param value 需要解密的内容
    */
   public static decryptForKey(encrypt: any): string {
-    const data = fs.readFileSync(`${conf.key.path}public.key`);
-    const key = new NodeRSA(data);
-    return key.decryptPublic(encrypt, 'utf8');
+    const data = fs.readFileSync(`${conf.key.path}private.key`);
+    const decrypt = new NodeRSA(data);
+    decrypt.setOptions({ encryptionScheme: 'pkcs1' });
+    return decrypt.decrypt(encrypt, 'utf8');
   }
 }
