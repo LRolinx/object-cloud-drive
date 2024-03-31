@@ -182,16 +182,12 @@ export default defineComponent<HomeProps, HomeEmits>(
     //初始化
     onMounted(() => {})
 
-    watch(
-      () => route,
-      (toRouter) => {
-        console.log(toRouter)
-        // //设置最后路由
-        appStore.siderbarStr = toRouter.name.toString()
-        // sessionStorage.setItem("siderbarStr", toRouter.name);
-        appStore.siderbarStr = toRouter.name.toString() //重置最后路由
-      }
-    )
+    watch(route, (toRouter) => {
+      // //设置最后路由
+      appStore.siderbarStr = toRouter.name.toString()
+      // sessionStorage.setItem("siderbarStr", toRouter.name);
+      appStore.siderbarStr = toRouter.name.toString() //重置最后路由
+    })
 
     userStore.$subscribe((m, s) => {
       //监听文件变化
