@@ -2,9 +2,11 @@ import { Button, FloatButton, Popconfirm, Tour, TourProps } from 'ant-design-vue
 import { createVNode, defineComponent, ref } from 'vue'
 import './index.less'
 import { CloudUploadOutlined } from '@ant-design/icons-vue'
+import { useDriveStore } from '@/store/models/drive'
 
 export const UploadModal = defineComponent(
   (props, ctx) => {
+	const driveStore = useDriveStore()
     const ref1 = ref()
     const open = ref(false)
 
@@ -31,7 +33,7 @@ export const UploadModal = defineComponent(
               
             </Popconfirm> */}
 
-            <FloatButton onClick={handleOpen} ref={ref1} badge={{ count: 5 }} description={<CloudUploadOutlined />}></FloatButton>
+            <FloatButton onClick={handleOpen} ref={ref1} badge={{ count: driveStore.uploadBufferPool.length }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
         </>
       )

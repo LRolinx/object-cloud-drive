@@ -48,8 +48,5 @@ export const deluserfileorfolderapi = (id: string, type: string): Promise<Resp> 
       id,
       type,
     },
-    {
-      responseType: 'blob',
-    }
   )
 }

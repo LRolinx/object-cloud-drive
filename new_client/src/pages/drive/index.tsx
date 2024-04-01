@@ -1,10 +1,10 @@
-import { defineComponent, onMounted, toRaw, watch, withModifiers } from 'vue'
+import { defineComponent, onBeforeMount, onMounted, toRaw, watch, withModifiers } from 'vue'
 import { DriveEmits, DriveProps } from './type'
 import { useAppStore } from '@/store/models/app'
 import { useUserStore } from '@/store/models/user'
 import { useRoute, useRouter } from 'vue-router'
 import { adduserfolderapi, deluserfileorfolderapi, getuserfileandfolderapi, getuserfileforfileidapi } from '@/api/drive'
-import { Modal, message } from 'ant-design-vue'
+import { Button, Modal, message } from 'ant-design-vue'
 import { getvideosceenshotsapi } from '@/api/video'
 import { FileAndFloderType } from '@/types/FileAndFloderType'
 import './index.less'
@@ -12,6 +12,8 @@ import { useGlobalDataStore } from './store/global_data'
 import { NewFolder } from '@/components/new_folder'
 import { DynamicScroller } from 'vue-virtual-scroller'
 import { useDriveStore } from '@/store/models/drive'
+import { Throttle } from '@/utils/date'
+import MyWorker from '@/utils/worker.js?worker'
 
 export default defineComponent<DriveProps, DriveEmits>(
   (props, ctx) => {
@@ -21,6 +23,9 @@ export default defineComponent<DriveProps, DriveEmits>(
     const store = useGlobalDataStore()
     const route = useRoute()
     const router = useRouter()
+    const throttle = Throttle(3000)
+    const worker = new MyWorker()
+
     /**
      * 获取路由的文件夹id
      */
@@ -38,7 +43,9 @@ export default defineComponent<DriveProps, DriveEmits>(
      * 获取用户的文件夹与文件
      * @param value
      */
-    const getUserFileAndFolder = (value: string) => {
+
+    const getUserFileAndFolder = async (value: string) => {
+      await throttle()
       getuserfileandfolderapi(userStore.id, value)
         .then((resp) => {
           const { code: code, message: msg, data: data } = resp.data
@@ -176,15 +183,13 @@ export default defineComponent<DriveProps, DriveEmits>(
       if (item.type == 'folder') {
         //给导航添加
         driveStore.navigation.push({ text: item.name, id: item.id })
-        // props.currentFolder.push({ text: item.name, id: item.id });
-
         //将进入的文件夹的id赋值给全局变量
         driveStore.currenFolderId = item.id
         //将路由跳转
         router.push({ name: 'drive', params: { folderId: item.id } })
       } else {
         //打开文件
-        // $tipMessge.open("哦吼,文件预览还不能用");
+        message.warn('哦吼,文件预览还不能用')
       }
     }
 
@@ -265,18 +270,26 @@ export default defineComponent<DriveProps, DriveEmits>(
         })
       } else {
         //检测到文件夹
-        let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
+        // let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
 
-        let reader = entry.createReader()
-        reader.readEntries((entries) => {
-          for (let i = 0, len = entries.length; i < len; i++) {
-            getFileFromEntryRecursively(createfolderres.data.data, entries[i])
-          }
-
-          // entries.forEach(entry => getFileFromEntryRecursively(entry));
+        // 发送给子线程执行
+        worker.postMessage({
+          func: 'adduserfolderapi',
+          userid: userStore.id,
+          folderid: folderId == '0' ? getFolderId() : folderId,
+          name: entry.name,
         })
-        //刷新
-        getUserFileAndFolder(getFolderId())
+
+        // let reader = entry.createReader()
+        // reader.readEntries((entries) => {
+        //   for (let i = 0, len = entries.length; i < len; i++) {
+        //     getFileFromEntryRecursively(createfolderres.data.data, entries[i])
+        //   }
+
+        //   // entries.forEach(entry => getFileFromEntryRecursively(entry));
+        // })
+        // //刷新
+        // getUserFileAndFolder(getFolderId())
       }
     }
     const openNewFolderModel = () => {
@@ -315,17 +328,14 @@ export default defineComponent<DriveProps, DriveEmits>(
     }
     const delFileOrFolder = () => {
       //删除文件或文件夹
-      deluserfileorfolderapi(store.rightMenuItem.id, store.rightMenuItem.type)
-        .then((res) => {
-          if (res.data.code == 200) {
-            //刷新
-            getUserFileAndFolder(getFolderId())
-          }
-          // $tipMessge.open(res.data.message);
-        })
-        .catch((err) => {
-          // $tipMessge.open(err.data.message);
-        })
+      deluserfileorfolderapi(store.rightMenuItem.id, store.rightMenuItem.type).then((resp) => {
+        const { code, message: msg } = resp.data
+        if (code !== 200) {
+          return message.error(msg)
+        }
+        message.success(msg)
+        getUserFileAndFolder(getFolderId())
+      })
     }
     const ImageToblobUrl = (i) => {
       //获取图片数据并返回Blob地址
@@ -656,20 +666,29 @@ export default defineComponent<DriveProps, DriveEmits>(
     //渲染文件列表
     const RenderFileList = (view) => {
       const node = []
-	  console.log(view.fileData.length)
 
       for (let i = 0; i < view.fileData.length; i++) {
         const item = view.fileData[i]
         node.push(
-          <div class="fileBox" onDblclick={openFileOrFolder(item)} onMouseup={withModifiers((e) => fileBoxMouseup(e, item), ['stop'])} onContextmenu={withModifiers(()=>{}, ['prevent'])}>
+          <div
+            class="fileBox"
+            onDblclick={() => {
+              openFileOrFolder(item)
+            }}
+            onMouseup={withModifiers((e) => fileBoxMouseup(e, item), ['stop'])}
+            onContextmenu={withModifiers(() => {}, ['prevent'])}
+          >
             <div class="fileContentBox">
               <div class="fileContentImg">
-                {item.type == 'folder' && <img class="imagePreview" src="../static/img/folder.png" draggable="false" />}
+                {item.type == 'folder' && <img class="imagePreview" src="/src/assets/img/folder.png" draggable="false" />}
 
-                <div class="imgBox" v-if="item.type == 'file' && item.blob != null">
-                  <img class="imagePreview" ref="img" src={item.blob} draggable="false" onLoad={destroyBlobUrl(item.blob)} />
-                  <i class="iconfont icon-or-play videoImg" v-if="checkType(item).type == 'video'"></i>
-                </div>
+                {item.type == 'file' && item.blob != null && (
+                  <div class="imgBox">
+                    <img class="imagePreview" ref="img" src={item.blob} draggable="false" onLoad={destroyBlobUrl(item.blob)} />
+                    <i class="iconfont icon-or-play videoImg" v-if="checkType(item).type == 'video'"></i>
+                  </div>
+                )}
+
                 {/* {item.type == 'file' && item.blob == null && <i class={{iconfont:true,iconPreview:true, checkType(item).iconStr}}></i>} */}
               </div>
               <div class="fileContentText">
@@ -685,31 +704,26 @@ export default defineComponent<DriveProps, DriveEmits>(
     }
 
     /**
-     * 启动
+     * 初始化
      */
-    onMounted(() => {
+    onBeforeMount(() => {
       getUserFileAndFolder(getFolderId())
     })
 
-    watch(
-      () => '$route',
-      () => {
-        //监听路由变化
-        // console.log(to,from);
-        // console.log(driveStore.currenFolderId,getFolderId())
-        getUserFileAndFolder(getFolderId())
-        let currentFolderList = toRaw(driveStore.navigation)
+    watch(route, () => {
+      //监听路由变化
+      getUserFileAndFolder(getFolderId())
+      const currentFolderList = driveStore.navigation
 
-        //倒序删除导航
-        for (let i = currentFolderList.length; i > 0; i--) {
-          if (getFolderId() != currentFolderList[currentFolderList.length - 1].id) {
-            currentFolderList.splice(i - 1, 1)
-          } else {
-            break
-          }
+      //倒序删除导航
+      for (let i = currentFolderList.length; i > 0; i--) {
+        if (getFolderId() != currentFolderList[currentFolderList.length - 1].id) {
+          currentFolderList.splice(i - 1, 1)
+        } else {
+          break
         }
       }
-    )
+    })
 
     return () => {
       return (
@@ -735,10 +749,7 @@ export default defineComponent<DriveProps, DriveEmits>(
                 onDragleave={withModifiers(dragleave, ['prevent', 'stop'])}
                 onDrop={withModifiers(drop, ['prevent', 'stop'])}
               >
-                <div
-                  class="tip"
-                    onDragleave={withModifiers(()=>{}, ['prevent', 'stop'])}
-                >
+                <div class="tip" onDragleave={withModifiers(() => {}, ['prevent', 'stop'])}>
                   <p>拖拽文件到此即可上传到XXX</p>
                 </div>
               </div>
@@ -746,6 +757,11 @@ export default defineComponent<DriveProps, DriveEmits>(
 
             <div class="toolbar">
               <div class="toolbarLeft">
+                <Button
+                  onClick={() => {
+                    worker.postMessage('start')
+                  }}
+                ></Button>
                 <p class={{ toolbarTitle: true, colorR: driveStore.navigation.length >= 1 }}>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</p>
                 {/* <div v-for="(item, index) in driveStore.navigation" :key="item.id" style="display: inline-flex" :class="{ toolbarOn: index != driveStore.navigation.length - 1 }">
           <P class="toolbarArrow colorR">›</P>
@@ -762,10 +778,12 @@ export default defineComponent<DriveProps, DriveEmits>(
               </div>
             </div>
             <div class="dropZone" ref="recycleScroller">
-              <div v-if="store.fileData.length == 0" class="emptyBox">
-                <img src="/src/assets/img/empty.png" draggable="false" />
-                <p>这里啥也没有呢~</p>
-              </div>
+              {store.fileData.length == 0 && (
+                <div class="emptyBox">
+                  <img src="/src/assets/img/empty.png" draggable="false" />
+                  <p>这里啥也没有呢~</p>
+                </div>
+              )}
 
               {store.fileData.length != 0 && (
                 <div class="file-container">
