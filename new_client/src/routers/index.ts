@@ -14,7 +14,7 @@ import home from '@/pages/home/' //主页
 import drive from '@/pages/drive/' //云盘
 import driveResourcePool from '@/pages/drive_resource_pool/index.vue' //资源池
 import { StreamingVideo } from '@/pages/streaming_video' //视频流DEMO
-import error404 from '@/pages/error/404.vue' //404错误
+import error404 from '@/pages/error/404' //404错误
 import { useUserStore } from '@/store/models/user'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/store/models/app'

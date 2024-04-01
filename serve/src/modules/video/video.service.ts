@@ -37,7 +37,7 @@ export class VideoService {
   ) {}
 
   /**
-   * 播放视频流
+   * 播放用户视频流
    * @param id
    */
   async playVideoSteam(
@@ -49,6 +49,54 @@ export class VideoService {
       where: UserFilesEntity.instance({ fileId }),
     });
     const filepath = path.join(conf.upload.path, userFile.fileId);
+    const stat = fs.statSync(filepath);
+    const fileSize = stat.size;
+
+    if (range != undefined) {
+      //有range头才使用206状态码
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      let end = parts[1] ? parseInt(parts[1], 10) : start + 999999;
+      // end 在最后取值为 fileSize - 1
+      end = end > fileSize - 1 ? fileSize - 1 : end;
+      const chunksize = end - start + 1;
+      const file = fs.createReadStream(filepath, { start, end });
+
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        // 'Content-Type': 'video/mp4',
+      };
+
+      res.writeHead(206, head);
+
+      // return new StreamableFile(file);
+      return file.pipe(res);
+    } else {
+      const file = fs.createReadStream(filepath);
+      const head = {
+        'Accept-Ranges': 'bytes',
+        'Content-Length': fileSize,
+        // 'Content-Type': 'video/mp4',
+      };
+      res.writeHead(200, head);
+
+      return file.pipe(res);
+      // return new StreamableFile(file);
+    }
+  }
+
+  /**
+   * 播放本地视频流
+   * @param id
+   */
+  async playLocalVideoSteam(
+    res: Response,
+    fileName: string,
+    range: string,
+  ): Promise<Response> {
+    const filepath = path.join(conf.upload.path, fileName);
     const stat = fs.statSync(filepath);
     const fileSize = stat.size;
 

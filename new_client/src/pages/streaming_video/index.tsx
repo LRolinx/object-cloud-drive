@@ -1,12 +1,14 @@
+import { StreamingImage } from '@/components/streaming_image'
 import { StreamingVideoPlayer } from '@/components/streaming_video_player'
-import { Button } from 'ant-design-vue'
+import { Button, Space } from 'ant-design-vue'
 import { defineComponent, ref } from 'vue'
 
 export const StreamingVideo = defineComponent(
   () => {
     const openVideoModal = ref(false)
+    const openImageModal = ref(false)
+    const openAudioModal = ref(false)
     const videoList = ref([])
-    const lsSrc = ref('')
 
     const showVideoModal = () => {
       openVideoModal.value = true
@@ -15,18 +17,25 @@ export const StreamingVideo = defineComponent(
       )
     }
 
-    const destroyBlobUrl = (blob) => {
-      //销毁blob地址
-      window.URL.revokeObjectURL(blob)
+    const showImageModal = () => {
+      openImageModal.value = true
+    }
+
+    const showAudioModal = () => {
+      openAudioModal.value = true
     }
 
     return () => {
       return (
         <>
           <div>
-            <Button onClick={showVideoModal}>显示视频模态窗</Button>
-
             <StreamingVideoPlayer v-model:open={openVideoModal.value} data={videoList.value}></StreamingVideoPlayer>
+            <StreamingImage v-model:open={openImageModal.value}></StreamingImage>
+            <Space>
+              <Button onClick={showVideoModal}>显示流视频模态窗</Button>
+              <Button onClick={showImageModal}>显示流图片模态窗</Button>
+              <Button onClick={showAudioModal}>显示流音频模态窗</Button>
+            </Space>
           </div>
         </>
       )

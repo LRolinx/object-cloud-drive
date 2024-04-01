@@ -7,6 +7,7 @@ import {
   Res,
   Param,
   Get,
+  Query,
 } from '@nestjs/common';
 import { StringUtils } from 'src/utils/StringUtils';
 import { VideoService } from './video.service';
@@ -51,6 +52,20 @@ export class VideoController {
     }
     const decryptId = id == '0' ? 0 : id; // parseInt(MathTools.decryptForKey(id));
     return this.videoService.playVideoSteam(res, decryptId, range);
+  }
+
+  /**
+   * 播放本地视频流
+   * @param fileName
+   * @returns
+   */
+  @Get('playLocalVideoSteam')
+  async playLocalVideoSteam(
+    @Res({ passthrough: false }) res,
+    // @Body() { , range },
+    @Query() { fileName },
+  ) {
+    return this.videoService.playLocalVideoSteam(res, fileName, undefined);
   }
 
   /**

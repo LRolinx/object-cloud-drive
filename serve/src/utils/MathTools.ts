@@ -10,15 +10,6 @@ import * as fs from 'fs';
 import conf from 'src/config/config';
 
 export default class MathTools {
-  // 生成一个1024长度的密钥对
-  private static key = new NodeRSA({ b: 1024 });
-
-  // 导出私钥
-  private static privateKey = MathTools.key.exportKey('private');
-
-  // 导出公钥
-  private static publicKey = MathTools.key.exportKey('public');
-
   /**
    * 在本地生成加密密匙
    */
@@ -30,14 +21,22 @@ export default class MathTools {
       });
     }
 
+    // 生成一个1024长度的密钥对
+    const decrypt = new NodeRSA({ b: 1024 });
+
+    //设置加密方式
+    decrypt.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' });
+
     if (!fs.existsSync(`${conf.key.path}private.key`)) {
-      //文件不存在
-      fs.writeFileSync(`${conf.key.path}private.key`, MathTools.privateKey);
+      //私钥文件不存在
+      const privateKey = decrypt.exportKey('private');
+      fs.writeFileSync(`${conf.key.path}private.key`, privateKey);
     }
 
     if (!fs.existsSync(`${conf.key.path}public.key`)) {
-      //文件不存在
-      fs.writeFileSync(`${conf.key.path}public.key`, MathTools.publicKey);
+      //公钥文件不存在
+      const publicKey = decrypt.exportKey('public');
+      fs.writeFileSync(`${conf.key.path}public.key`, publicKey);
     }
   }
 
@@ -50,7 +49,7 @@ export default class MathTools {
 
     const data = fs.readFileSync(`${conf.key.path}public.key`);
     const decrypt = new NodeRSA(data);
-    decrypt.setOptions({ encryptionScheme: 'pkcs1' });
+    decrypt.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' });
     return decrypt.encrypt(value, 'base64');
   }
 
@@ -61,7 +60,7 @@ export default class MathTools {
   public static decryptForKey(encrypt: any): string {
     const data = fs.readFileSync(`${conf.key.path}private.key`);
     const decrypt = new NodeRSA(data);
-    decrypt.setOptions({ encryptionScheme: 'pkcs1' });
+    decrypt.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' });
     return decrypt.decrypt(encrypt, 'utf8');
   }
 }

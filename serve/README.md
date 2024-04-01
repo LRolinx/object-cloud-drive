@@ -32,7 +32,7 @@
 ## Installation
 
 ```bash
-$ npm install
+$ npm install & pnpm i
 ```
 
 ## Running the app
