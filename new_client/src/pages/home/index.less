@@ -1,10 +1,10 @@
-.homeBody {
+.home {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
-.topbar {
+.home .topbar {
   height: 0.4rem;
   width: 100%;
   position: relative;
@@ -21,7 +21,7 @@
   color: #fff;
 }
 
-.logo {
+.home .logo {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -29,11 +29,11 @@
   /* height: 100%; */
 }
 
-.logo p {
+.home .logo p {
   font-size: 0.2rem;
 }
 
-.headBox {
+.home .headBox {
   width: 100%;
   position: absolute;
   bottom: 0;
@@ -41,7 +41,7 @@
   /* border-top: 2px solid rgba(117, 139, 189,0.2); */
 }
 
-.headChildBox {
+.home .headChildBox {
   padding: 0.2rem;
   display: flex;
   align-items: center;
@@ -49,19 +49,19 @@
   cursor: pointer;
 }
 
-.headBox img {
+.home .headBox img {
   border-radius: 50%;
   width: 0.3rem;
   height: 0.3rem;
   margin-right: 0.1rem;
 }
 
-.headBox p {
+.home .headBox p {
   font-size: 0.12rem;
   font-weight: bold;
 }
 
-.main {
+.home .main {
   position: relative;
   display: flex;
   flex: 1;
@@ -70,7 +70,7 @@
   /* background: #f1f2f3; */
 }
 
-.siderbar {
+.home .siderbar {
   /* min-width: 2rem; */
   width: 2.4rem;
   background: #f5f5f5;
@@ -83,7 +83,7 @@
   overflow: hidden;
 }
 
-.siderbarUl {
+.home .siderbarUl {
   padding: 0 0.2rem 0.7rem;
   margin: 0;
   overflow: auto;
@@ -91,7 +91,7 @@
   flex-grow: 1;
 }
 
-.siderbarUl li {
+.home .siderbarUl li {
   margin: 0.1rem 0;
   height: 0.4rem;
   display: flex;
@@ -103,44 +103,46 @@
   padding: 0 10px;
 }
 
-.siderbarUl .liOn {
+.home .siderbarUl .liOn {
   color: rgb(117, 139, 189);
   background-color: rgba(117, 139, 189, 0.2);
 }
 
-.siderbarUl li:hover {
+.home .siderbarUl li:hover {
   background-color: rgba(117, 139, 189, 0.2);
   /* color: #fff; */
 }
 
-.siderbarUl li p {
+.home .siderbarUl li p {
   font-size: 0.14rem;
   margin: 0;
   padding: 0;
 }
 
-.siderbarUl li i {
+.home .siderbarUl li i {
   font-size: 0.24rem;
   padding: 0 0.12rem;
 }
 
-.content {
+.home .siderbarUl .anticon {
+	font-size: 20px;
+	margin-right: 4px;
+  }
+
+.home .content {
   display: flex;
   flex-shrink: 1;
   flex-grow: 1;
 }
 
-.anticon {
-  font-size: 20px;
-  margin-right: 4px;
-}
+
 
 @media (max-width: 750px) {
-  .logo {
+	.home .logo {
     display: none;
   }
 
-  .siderbar {
+  .home .siderbar {
     min-width: inherit;
     max-width: 0.6rem;
     display: flex;
@@ -148,32 +150,32 @@
     align-items: center;
   }
 
-  .anticon {
+  .home .anticon {
     margin-right: 0;
   }
 
-  .siderbar li {
+  .home .siderbar li {
     display: flex;
     justify-content: center;
   }
 
-  .siderbarUl li p {
+  .home .siderbarUl li p {
     font-size: 0.14rem;
     margin: 0;
     padding: 0;
     display: none;
   }
 
-  .headChildBox {
+  .home .headChildBox {
     padding: 0.2rem 0;
     justify-content: center;
   }
 
-  .headChildBox img {
+  .home .headChildBox img {
     margin: 0;
   }
 
-  .headChildBox p {
+  .home .headChildBox p {
     display: none;
   }
 }

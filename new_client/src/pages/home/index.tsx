@@ -190,7 +190,7 @@ export default defineComponent<HomeProps, HomeEmits>(
     return () => {
       return (
         <>
-          <div class="homeBody">
+          <div class="home">
             <div class="topbar" v-if="false">
               <p>网盘2.0 全新升级~</p>
             </div>

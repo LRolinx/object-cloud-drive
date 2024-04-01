@@ -1,15 +1,38 @@
-import { FloatButton } from 'ant-design-vue'
-import { defineComponent } from 'vue'
+import { Button, FloatButton, Popconfirm, Tour, TourProps } from 'ant-design-vue'
+import { createVNode, defineComponent, ref } from 'vue'
 import './index.less'
+import { CloudUploadOutlined } from '@ant-design/icons-vue'
 
 export const UploadModal = defineComponent(
   (props, ctx) => {
+    const ref1 = ref()
+    const open = ref(false)
+
+    const handleOpen = () => {
+      open.value = !open.value
+    }
+
+    const steps: TourProps['steps'] = [
+      {
+        // title: 'Upload File',
+        // description: <div>你好2</div>,
+        cover: <div>你好</div>,
+        target: () => ref1.value && ref1.value.$el,
+      },
+    ]
+
     return () => {
       return (
         <>
           <div class="upload_modal">
-		  <FloatButton badge={{ count: 5 }} tooltip={<div>无上传任务</div>}></FloatButton>
-		  </div>
+            <Tour class="myTour" placement="topRight" open={open.value} mask={false} steps={steps} onClose={handleOpen} />
+
+            {/* <Popconfirm placement="topRight" ok-text="Yes" cancel-text="No">
+              
+            </Popconfirm> */}
+
+            <FloatButton onClick={handleOpen} ref={ref1} badge={{ count: 5 }} description={<CloudUploadOutlined />}></FloatButton>
+          </div>
         </>
       )
     }
