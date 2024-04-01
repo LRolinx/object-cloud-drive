@@ -1,4 +1,4 @@
-.codeInput {
+.verification_code_input .codeInput {
   /* width: 0;
 	height: 0; */
   border: none;
@@ -7,13 +7,13 @@
   /* color: rgba(0, 0, 0, 0); */
 }
 
-.verificationCodeInputBox {
+.verification_code_input .verificationCodeInputBox {
   display: flex;
   flex-direction: row;
   position: relative;
 }
 
-.inputItem {
+.verification_code_input .inputItem {
   width: 0.4rem;
   height: 0.4rem;
   background-color: #f2f6ff;
@@ -28,12 +28,12 @@
   font-weight: bold;
 }
 
-.focus {
+.verification_code_input .focus {
   box-shadow: 0 0 0.1rem #758bbd;
   position: relative;
 }
 
-.focus::before {
+.verification_code_input .focus::before {
   content: '';
   position: absolute;
   left: 50%;
@@ -58,7 +58,7 @@
 }
 
 @media (max-width: 750px) {
-  .codeInput {
+	.verification_code_input .codeInput {
     position: inherit;
     left: inherit;
     min-width: 300px;
@@ -72,7 +72,7 @@
     border: none;
   }
 
-  .inputItem {
+  .verification_code_input .inputItem {
     display: none;
   }
 }

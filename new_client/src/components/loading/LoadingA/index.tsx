@@ -1,6 +1,5 @@
 import { defineComponent } from 'vue'
 import { LoadingAEmits, LoadingAProps } from './type'
-import './index.less'
 
 export const LoadingA = defineComponent<LoadingAProps, LoadingAEmits>(
   (props) => {
@@ -8,8 +7,8 @@ export const LoadingA = defineComponent<LoadingAProps, LoadingAEmits>(
       return (
         <>
           {props.open && (
-            <div class="loadingmask">
-              <div class="spinner">
+            <div class="loading">
+              <div class="loadingspinner">
                 <div class="rect1"></div>
                 <div class="rect2"></div>
                 <div class="rect3"></div>
@@ -25,5 +24,5 @@ export const LoadingA = defineComponent<LoadingAProps, LoadingAEmits>(
   {
     props: ['open'],
     emits: ['update:open'],
-  },
+  }
 )

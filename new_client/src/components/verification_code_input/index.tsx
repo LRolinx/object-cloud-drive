@@ -60,7 +60,7 @@ export const VerificationCodeInput = defineComponent<VerificationCodeInputProps,
     return () => {
       return (
         <>
-          <div class="componentBody">
+          <div class="verification_code_input">
             <div class="verificationCodeInputBox">
               <input
                 class="codeInput"

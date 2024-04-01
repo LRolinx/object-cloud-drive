@@ -1,11 +1,11 @@
-.login_container {
+.login_and_registered {
   position: relative;
   min-height: 100vh;
   width: 100%;
   overflow: hidden;
 }
 
-.login_container::before {
+.login_and_registered::before {
   content: ' ';
   position: absolute;
   width: 2000px;
@@ -19,11 +19,11 @@
   transform: translateY(-50%);
 }
 
-.login_container.sign_up_mode::before {
+.login_and_registered.sign_up_mode::before {
   transform: translate(100%, -50%);
 }
 
-.form-warp {
+.login_and_registered .form-warp {
   width: 50%;
   position: absolute;
   z-index: 5;
@@ -36,7 +36,7 @@
   transition: 1s 0.7s ease-in-out;
 }
 
-.form-warp form {
+.login_and_registered .form-warp form {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,32 +50,31 @@
   z-index: 4;
 }
 
-.form-title {
+.login_and_registered .form-title {
   font-size: 24px;
   color: #6266f5;
 }
 
-.form-warp .sign-up-form {
+.login_and_registered .form-warp .sign-up-form {
   opacity: 0;
   z-index: 3;
 }
 
-.login_container.sign_up_mode .form-warp {
+.login_and_registered.sign_up_mode .form-warp {
   left: 25%;
 }
 
-.login_container.sign_up_mode .sign-in-form {
+.login_and_registered.sign_up_mode .sign-in-form {
   opacity: 0;
   z-index: 3;
 }
 
-.login_container.sign_up_mode .sign-up-form {
+.login_and_registered.sign_up_mode .sign-up-form {
   opacity: 1;
   z-index: 4;
 }
 
-input,
-.submit-btn {
+.login_and_registered input,.login_and_registered .submit-btn {
   min-width: 300px;
   outline: none;
   padding: 12px 30px;
@@ -87,11 +86,11 @@ input,
   border: none;
 }
 
-input::placeholder {
+.login_and_registered input::placeholder {
   color: #cccc;
 }
 
-.submit-btn {
+.login_and_registered .submit-btn {
   background-color: #6266f5;
   color: #fff;
   text-align: center;
@@ -102,7 +101,7 @@ input::placeholder {
   cursor: pointer;
 }
 
-.desc-warp {
+.login_and_registered .desc-warp {
   width: 100%;
 //   height: 100%;
   position: absolute;
@@ -113,7 +112,7 @@ input::placeholder {
   user-select: none;
 }
 
-.desc-warp-item {
+.login_and_registered .desc-warp-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -123,48 +122,48 @@ input::placeholder {
   z-index: 6;
 }
 
-.login_content {
+.login_and_registered .login_content {
 	display: flex;
 	flex-shrink: 1;
 	// flex-grow: 1;
   }
 
 /* 事件穿透 BEGIN */
-.sign-in-desc {
+.login_and_registered .sign-in-desc {
   pointer-events: none;
 }
 
-.sign_up_mode .sign-in-desc {
+.login_and_registered.sign_up_mode .sign-in-desc {
   pointer-events: all;
 }
 
-.sign_up_mode .sign-up-desc {
+.login_and_registered.sign_up_mode .sign-up-desc {
   pointer-events: none;
 }
 
 /* 事件穿透 END */
-.content {
+.login_and_registered .content {
   width: 100%;
   transition: transform 0.9s ease-in-out;
   transition-delay: 0.6s;
 }
 
-.sign-in-desc img,
-.sign-in-desc .content {
+.login_and_registered .sign-in-desc img,
+.login_and_registered .sign-in-desc .content {
   transform: translateX(900px);
 }
 
-.sign_up_mode .sign-in-desc img,
-.sign_up_mode .sign-in-desc .content {
+.login_and_registered.sign_up_mode .sign-in-desc img,
+.login_and_registered.sign_up_mode .sign-in-desc .content {
   transform: translateX(0);
 }
 
-.sign_up_mode .sign-up-desc img,
-.sign_up_mode .sign-up-desc .content {
+.login_and_registered.sign_up_mode .sign-up-desc img,
+.login_and_registered.sign_up_mode .sign-up-desc .content {
   transform: translateX(-800px);
 }
 
-button {
+.login_and_registered button {
   outline: none;
   padding: 6px 8px;
   min-width: 100px;
@@ -177,11 +176,11 @@ button {
   transition: all 0.3s ease;
 }
 
-button:active {
+.login_and_registered button:active {
   background: rgba(255, 255, 255, 0.1);
 }
 
-img {
+.login_and_registered img {
   width: 100%;
   display: block;
   transition: transform 0.9s ease-in-out;
@@ -189,18 +188,18 @@ img {
 }
 
 /* 开关 */
-.rememberMeBox {
+.login_and_registered .rememberMeBox {
   display: flex;
   align-items: center;
   margin: 0 0.2rem 0.2rem;
 }
 
-.rememberMeBoxLabel {
+.login_and_registered .rememberMeBoxLabel {
   font-size: 0.14rem;
   margin-right: 0.2rem;
 }
 
-.switchBox {
+.login_and_registered .switchBox {
   border-radius: 20px;
   border: 2px solid #6266f5;
   width: 40px;
@@ -213,11 +212,11 @@ img {
   box-sizing: content-box;
 }
 
-.switchBoxOn {
+.login_and_registered .switchBoxOn {
   background-color: #6266f5 !important;
 }
 
-.switch {
+.login_and_registered .switch {
   position: absolute;
   left: 0;
   top: 0;
@@ -230,26 +229,26 @@ img {
   transition: ease-in 0.2s;
 }
 
-.switchOn {
+.login_and_registered .switchOn {
   transform: translateX(100%) !important;
 }
 
-.verificationCodeInputBox {
-  display: flex;
-  flex-direction: column;
-  margin: 0 0.2rem 0.2rem;
-}
+// .login_and_registered .verificationCodeInputBox {
+//   display: flex;
+//   flex-direction: column;
+//   margin: 0 0.2rem 0.2rem;
+// }
 
-.verificationCodeInputBox label {
-  font-size: 0.14rem;
-  flex-shrink: 0;
-  flex-grow: 0;
-  padding: 0 0 0.2rem 0;
-}
+// .login_and_registered .verificationCodeInputBox label {
+//   font-size: 0.14rem;
+//   flex-shrink: 0;
+//   flex-grow: 0;
+//   padding: 0 0 0.2rem 0;
+// }
 
 /* 响应式 */
 @media screen and (max-width: 870px) {
-  .login_container::before {
+  .login_and_registered::before {
     width: 1500px;
     height: 1500px;
     transform: translateX(-50%);
@@ -260,13 +259,13 @@ img {
     transition: 2s ease-in-out;
   }
 
-  .login_container.sign_up_mode::before {
+  .login_and_registered.sign_up_mode::before {
     transform: translate(-50%, 100%);
     bottom: 24%;
     right: initial;
   }
 
-  .form-warp {
+  .login_and_registered .form-warp {
     width: 100%;
     top: 90%;
     left: 50%;
@@ -274,19 +273,19 @@ img {
     transition: 1s 0.8s ease-in-out;
   }
 
-  .login_container.sign_up_mode .form-warp {
+  .login_and_registered.sign_up_mode .form-warp {
     top: 15%;
     left: 50%;
     transform: translate(-50%, 0);
   }
 
-  img {
+  .login_and_registered img {
     width: 200px;
     transition: transform 0.9s ease-in-out;
     transition-delay: 0.7s;
   }
 
-  .desc-warp {
+  .login_and_registered .desc-warp {
 	width: 100vw;
 	bottom: 0;
 	left: 0;
@@ -295,7 +294,7 @@ img {
     grid-template-rows: 1fr 2fr 1fr;
   }
 
-  .desc-warp-item {
+  .login_and_registered .desc-warp-item {
 	
     flex-direction: row;
     justify-content: space-around;
@@ -304,33 +303,33 @@ img {
     grid-column: 1 / 2;
   }
 
-  .sign-in-desc {
+  .login_and_registered .sign-in-desc {
     grid-row: 3 / 4;
   }
 
-  .sign-in-desc img,
-  .sign-in-desc .content {
+  .login_and_registered .sign-in-desc img,
+  .login_and_registered .sign-in-desc .content {
     transform: translateY(800px);
   }
 
-  .sign_up_mode .sign-in-desc img,
-  .sign_up_mode .sign-in-desc .content {
+  .login_and_registered.sign_up_mode .sign-in-desc img,
+  .login_and_registered.sign_up_mode .sign-in-desc .content {
     transform: translateY(0);
   }
 
-  .sign_up_mode .sign-up-desc img,
-  .sign_up_mode .sign-up-desc .content {
+  .login_and_registered.sign_up_mode .sign-up-desc img,
+  .login_and_registered.sign_up_mode .sign-up-desc .content {
     transform: translateY(-800px);
   }
 }
 
 @media screen and (max-width: 570px) {
-  .login_container::before {
+  .login_and_registered::before {
     bottom: 72%;
     left: 50%;
   }
 
-  img {
+  .login_and_registered img {
     display: none;
   }
 }

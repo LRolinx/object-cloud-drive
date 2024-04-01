@@ -177,7 +177,7 @@ export default defineComponent(
     return () => {
       return (
         <>
-          <div class={{ login_container: true, sign_up_mode: isRegistered.value }}>
+          <div class={{ login_and_registered: true, sign_up_mode: isRegistered.value }}>
             <div class="form-warp" onKeydown={keydown}>
               <form class="sign-in-form">
                 <h6 class="form-title">登录</h6>
