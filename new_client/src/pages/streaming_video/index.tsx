@@ -1,5 +1,6 @@
-import { StreamingImage } from '@/components/streaming_image'
-import { StreamingVideoPlayer } from '@/components/streaming_video_player'
+// import { StreamingImage } from '@/components/streaming_image'
+// import { StreamingVideoPlayer } from '@/components/streaming_video_player'
+import { StreamingAudio } from '@/components/streaming_audio'
 import { Button, Space } from 'ant-design-vue'
 import { defineComponent, ref } from 'vue'
 
@@ -29,8 +30,9 @@ export const StreamingVideo = defineComponent(
       return (
         <>
           <div>
-            <StreamingVideoPlayer v-model:open={openVideoModal.value} data={videoList.value}></StreamingVideoPlayer>
-            <StreamingImage v-model:open={openImageModal.value}></StreamingImage>
+            {/* <StreamingVideoPlayer v-model:open={openVideoModal.value} data={videoList.value}></StreamingVideoPlayer>
+            <StreamingImage v-model:open={openImageModal.value}></StreamingImage> */}
+            <StreamingAudio v-model:open={openAudioModal.value}></StreamingAudio>
             <Space>
               <Button onClick={showVideoModal}>显示流视频模态窗</Button>
               <Button onClick={showImageModal}>显示流图片模态窗</Button>

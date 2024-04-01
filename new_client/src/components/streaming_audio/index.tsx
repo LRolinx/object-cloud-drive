@@ -1,9 +1,9 @@
 import { defineComponent, nextTick, onBeforeMount, watch } from 'vue'
-import { StreamingVideoPlayerEmits, StreamingVideoPlayerProps } from './type'
+import { StreamingAudioEmits, StreamingAudioProps } from './type'
 import { Modal } from 'ant-design-vue'
 import './index.less'
 
-export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, StreamingVideoPlayerEmits>(
+export const StreamingAudio = defineComponent<StreamingAudioProps, StreamingAudioEmits>(
   (props, ctx) => {
     //返回
     const onCancel = () => {
@@ -13,7 +13,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
     const init = () => {
       nextTick(() => {
         const container = document.querySelector('.container'),
-          mainVideo = container.querySelector('video'),
+          mainVideo = container.querySelector('audio'),
           videoTimeline = container.querySelector('.video-timeline'),
           progressBar = container.querySelector('.progress-bar'),
           volumeBtn = container.querySelector('.volume i'),
@@ -25,22 +25,22 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
           playPauseBtn = container.querySelector('.play-pause i'),
           speedBtn = container.querySelector('.playback-speed span'),
           speedOptions = container.querySelector('.speed-options'),
-          pipBtn = container.querySelector('.pic-in-pic span'),
+        //   pipBtn = container.querySelector('.pic-in-pic span'),
           fullScreenBtn = container.querySelector('.fullscreen i')
 
-        fetch('http://192.168.2.231:3000/video/playLocalVideoSteam?fileName=2K_60_6040.mp4').then((resp) => {
-          resp.blob().then((blob) => {
-            mainVideo.src = URL.createObjectURL(blob)
-          })
-        })
+        // fetch('http://music.163.com/song/media/outer/url?id=447925558.mp3').then((resp) => {
+        //   resp.blob().then((blob) => {
+        //     mainVideo.src = URL.createObjectURL(blob)
+        //   })
+        // })
 
         let timer
 
         const hideControls = () => {
           if (mainVideo.paused) return
-          timer = setTimeout(() => {
-            container.classList.remove('show-controls')
-          }, 3000)
+          //   timer = setTimeout(() => {
+          //     container.classList.remove('show-controls')
+          //   }, 3000)
         }
         hideControls()
 
@@ -142,7 +142,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
         })
 
         speedBtn.addEventListener('click', () => speedOptions.classList.toggle('show'))
-        pipBtn.addEventListener('click', () => mainVideo.requestPictureInPicture())
+        // pipBtn.addEventListener('click', () => mainVideo.requestPictureInPicture())
         skipBackward.addEventListener('click', () => (mainVideo.currentTime -= 5))
         skipForward.addEventListener('click', () => (mainVideo.currentTime += 5))
         mainVideo.addEventListener('play', () => playPauseBtn.classList.replace('fa-play', 'fa-pause'))
@@ -160,8 +160,8 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
           init()
         } else {
           const container = document.querySelector('.container'),
-            mainVideo = container.querySelector('video')
-          // mainVideo.pause()
+            mainVideo = container.querySelector('audio')
+        //   mainVideo.pause()
           URL.revokeObjectURL(mainVideo.src)
         }
       }
@@ -175,7 +175,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
       return (
         <>
           <div class="streaming_video_player">
-            <Modal onCancel={onCancel} style="width:80vw" v-model:open={props.open} title="流视频" footer={<></>}>
+            <Modal onCancel={onCancel} style="width:80vw" v-model:open={props.open} title="流音频" footer={<></>}>
               <div class="container show-controls">
                 <div class="wrapper">
                   <div class="video-timeline">
@@ -222,16 +222,16 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
                           <li data-speed="0.5">0.5x</li>
                         </ul>
                       </div>
-                      <button class="pic-in-pic">
+                      {/* <button class="pic-in-pic">
                         <span class="material-icons">picture_in_picture_alt</span>
-                      </button>
+                      </button> */}
                       <button class="fullscreen">
                         <i class="fa-solid fa-expand"></i>
                       </button>
                     </li>
                   </ul>
                 </div>
-                <video autoplay loop></video>
+                <audio autoplay loop src="http://music.163.com/song/media/outer/url?id=447925558.mp3"></audio>
               </div>
             </Modal>
           </div>
@@ -240,7 +240,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
     }
   },
   {
-    name: 'StreamingVideoPlayer',
+    name: 'StreamingAudio',
     props: ['open', 'data'],
     emits: ['update:open'],
   }
