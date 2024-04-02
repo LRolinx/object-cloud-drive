@@ -42,7 +42,7 @@ export const UploadFloatButtonGroup = defineComponent(
               </Space>
             </FloatButtonGroup>
 
-            <FloatButton onClick={handleOpen} badge={{ count: driveStore.uploadBufferPool.length }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
+            <FloatButton onClick={handleOpen} badge={{ count: driveStore.uploadTaskList.length }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
         </>
       )

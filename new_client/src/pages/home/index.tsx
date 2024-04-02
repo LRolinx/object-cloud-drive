@@ -2,7 +2,6 @@ import { defineComponent, onMounted, ref, watch } from 'vue'
 import './index.less'
 import { useUserStore } from '@/store/models/user'
 import { HomeEmits, HomeProps } from './type'
-import { UploadModal } from '@/components/upload_modal'
 import { useRoute, useRouter } from 'vue-router'
 import { sha256 } from 'js-sha256'
 import { examinefileapi, uploadstreamfileapi } from '@/api/update'
@@ -32,11 +31,11 @@ export default defineComponent<HomeProps, HomeEmits>(
 
     //分配任务
     const distributionTask = () => {
-      for (let i = 0, len = driveStore.uploadBufferPool.length; i < len; i++) {
-        if (driveStore.uploadBufferPool[i].uploadType == 0) {
+      for (let i = 0, len = driveStore.uploadTaskList.length; i < len; i++) {
+        if (driveStore.uploadTaskList[i].uploadType == 0) {
           //有空闲线程先异步执行
-          setTaskState(driveStore.uploadBufferPool[i], 0, 1)
-          upLoadFun(driveStore.uploadBufferPool[i])
+          setTaskState(driveStore.uploadTaskList[i], 0, 1)
+          upLoadFun(driveStore.uploadTaskList[i])
         }
       }
     }
@@ -191,12 +190,21 @@ export default defineComponent<HomeProps, HomeEmits>(
       appStore.siderbarStr = toRouter.name.toString() //重置最后路由
     })
 
-    userStore.$subscribe((m, s) => {
-      //监听文件变化
-      // uploadBufferPool = s.drive.uploadBufferPool;
-      distributionTask()
-      // console.log(s);
-    })
+    watch(
+      () => driveStore.uploadTaskList,
+      () => {
+        //监听文件上传任务 进行分配上传
+        distributionTask()
+      },
+      { deep: true }
+    )
+
+    // driveStore.$subscribe((m, s) => {
+    //   //监听文件变化
+    //   // uploadTaskList = s.drive.uploadTaskList;
+
+    //   // console.log(s);
+    // })
 
     return () => {
       return (
@@ -244,7 +252,7 @@ export default defineComponent<HomeProps, HomeEmits>(
               </div>
             </div>
             <UploadFloatButtonGroup></UploadFloatButtonGroup>
-            {/* <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadBufferPool={props.uploadBufferPool} uploadRemainingTask={props.uploadRemainingTask}></UploadModal> */}
+            {/* <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadTaskList={props.uploadTaskList} uploadRemainingTask={props.uploadRemainingTask}></UploadModal> */}
           </div>
         </>
       )

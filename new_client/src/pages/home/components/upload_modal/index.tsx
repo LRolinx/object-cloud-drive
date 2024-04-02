@@ -1,5 +1,5 @@
 import { Progress, Space } from 'ant-design-vue'
-import { defineComponent, reactive, ref, nextTick, watch } from 'vue'
+import { defineComponent, reactive, ref, nextTick, watch, onBeforeMount } from 'vue'
 import './index.less'
 import { CloudUploadOutlined, DashboardTwoTone } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
@@ -60,13 +60,9 @@ export const UploadModal = defineComponent(
               return (
                 <Space>
                   <DashboardTwoTone style={{ fontSize: '24px' }} />
-                  {/* <Space size={0} direction="vertical" style={{padding:'10px 0'}}>
-                    <div>hello.word</div>
-                    <div>500MB</div>
-                  </Space> */}
                   <div>
-                    <div style={{ fontSize: '14px' }}>hello.word</div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>500MB</div>
+                    <div style={{ fontSize: '14px' }}>{`${row['fname']}.${row['fext']}`}</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>{row['fileSize']}</div>
                   </div>
                 </Space>
               )
@@ -76,10 +72,10 @@ export const UploadModal = defineComponent(
         {
           title: '进度',
           //   width: 120,
-          field: 'percent',
+          field: 'uploadCurrentChunkNum',
           slots: {
             default: ({ row }) => {
-              return <Progress percent={row['percent']} style={{ margin: '0' }}></Progress>
+              return <Progress percent={row['uploadCurrentChunkNum']} style={{ margin: '0' }}></Progress>
             },
           },
         },
@@ -87,11 +83,13 @@ export const UploadModal = defineComponent(
       data: [],
     })
 
+    //初始化
     const init = () => {
       nextTick(() => {
         const grid = vxeGridRef.value
         if (grid == void 0) return
-        vxeGridProps.data = driveStore.uploadBufferPool
+        console.log(driveStore.uploadTaskList)
+        vxeGridProps.data = [...driveStore.uploadTaskList,...driveStore.uploadTaskSuccessList]
         // grid.getTableData().fullData = driveStore.uploadBufferPool
 
         // console.log(driveStore.uploadBufferPool)
@@ -115,7 +113,7 @@ export const UploadModal = defineComponent(
       }
     )
 
-    // onBeforeMount(() => nextTick(() => init()))
+    onBeforeMount(() => nextTick(() => init()))
 
     return () => {
       return (

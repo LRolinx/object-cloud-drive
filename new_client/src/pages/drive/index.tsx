@@ -217,7 +217,7 @@ export default defineComponent<DriveProps, DriveEmits>(
       }
       // console.log(fileInfoOBJ);
 
-      driveStore.uploadBufferPool.push(fileInfoOBJ) //将任务写入数据
+      driveStore.uploadTaskList.push(fileInfoOBJ) //将任务写入数据
     }
 
     /**
@@ -265,7 +265,7 @@ export default defineComponent<DriveProps, DriveEmits>(
             // currentChunkList: []
           }
           // console.log(fileInfoOBJ);
-          driveStore.uploadBufferPool.push(fileInfoOBJ) //将任务写入数据
+          driveStore.uploadTaskList.push(fileInfoOBJ) //将任务写入数据
         })
       } else {
         //检测到文件夹
@@ -568,7 +568,7 @@ export default defineComponent<DriveProps, DriveEmits>(
                   )}
 
                   {(store.showRightMenuType == 'file' || store.showRightMenuType == 'folder') && (
-                    <li onClick={deleteFileOrFolder}  class="del">
+                    <li onClick={deleteFileOrFolder} class="del">
                       <i class="iconfont iconfont icon-delete"></i>
                       <p>删除</p>
                     </li>
