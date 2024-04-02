@@ -5,7 +5,6 @@ export type DriveProps = {
   height: number
   isShowlVideo: boolean
   videoList: []
-  isShowNewFileModel: boolean
   isShowRightMenu: boolean
   showRightMenuType: string
   rightMenuItem: { type: string; id: string }

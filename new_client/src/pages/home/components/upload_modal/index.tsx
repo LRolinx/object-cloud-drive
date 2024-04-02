@@ -1,0 +1,137 @@
+import { Progress, Space } from 'ant-design-vue'
+import { defineComponent, reactive, ref, nextTick, watch } from 'vue'
+import './index.less'
+import { CloudUploadOutlined, DashboardTwoTone } from '@ant-design/icons-vue'
+import { useDriveStore } from '@/store/models/drive'
+import { VXETable, VxeGrid, VxeGridInstance, VxeGridProps } from 'vxe-table'
+
+export const UploadModal = defineComponent(
+  (props, _) => {
+    const driveStore = useDriveStore()
+
+    //空表格渲染
+    VXETable.renderer.add('NotData', {
+      // 空内容模板
+      renderEmpty() {
+        return (
+          <Space direction="vertical">
+            <CloudUploadOutlined style={{ fontSize: '36px' }} />
+            <p>没有上传任务</p>
+          </Space>
+        )
+      },
+    })
+
+    const vxeGridRef = ref<VxeGridInstance>() as any
+    const vxeGridProps = reactive<VxeGridProps>({
+      size: 'small',
+      showHeader: false,
+      showFooter: false,
+      showOverflow: true,
+      showHeaderOverflow: true,
+      round: true,
+      emptyRender: { name: 'NotData' },
+      minHeight: '300px',
+      maxHeight: '300px',
+      // 横向虚拟滚动
+      scrollX: {
+        enabled: true,
+      },
+      // 纵向虚拟滚动
+      scrollY: {
+        enabled: true,
+      },
+      columnConfig: {
+        isCurrent: true,
+        resizable: false,
+      },
+      rowConfig: {
+        height: 50,
+        isCurrent: true,
+        isHover: true,
+      },
+      columns: [
+        {
+          title: '文件名',
+          //   width: 120,
+          field: 'uploadTask',
+          slots: {
+            default: ({ row }) => {
+              return (
+                <Space>
+                  <DashboardTwoTone style={{ fontSize: '24px' }} />
+                  {/* <Space size={0} direction="vertical" style={{padding:'10px 0'}}>
+                    <div>hello.word</div>
+                    <div>500MB</div>
+                  </Space> */}
+                  <div>
+                    <div style={{ fontSize: '14px' }}>hello.word</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>500MB</div>
+                  </div>
+                </Space>
+              )
+            },
+          },
+        },
+        {
+          title: '进度',
+          //   width: 120,
+          field: 'percent',
+          slots: {
+            default: ({ row }) => {
+              return <Progress percent={row['percent']} style={{ margin: '0' }}></Progress>
+            },
+          },
+        },
+      ],
+      data: [],
+    })
+
+    const init = () => {
+      nextTick(() => {
+        const grid = vxeGridRef.value
+        if (grid == void 0) return
+        vxeGridProps.data = driveStore.uploadBufferPool
+        // grid.getTableData().fullData = driveStore.uploadBufferPool
+
+        // console.log(driveStore.uploadBufferPool)
+      })
+    }
+
+    watch(
+      () => props.open,
+      () => {
+        if (props.open) {
+          nextTick(() => init())
+        }
+      }
+    )
+
+    watch(
+      () => driveStore.uploadBufferPool,
+      () => nextTick(() => init()),
+      {
+        deep: true,
+      }
+    )
+
+    // onBeforeMount(() => nextTick(() => init()))
+
+    return () => {
+      return (
+        <>
+          {props.open && (
+            <div class="upload_modal">
+              <VxeGrid ref={vxeGridRef} {...vxeGridProps}></VxeGrid>
+            </div>
+          )}
+        </>
+      )
+    }
+  },
+  {
+    name: 'UploadModal',
+    props: ['open'],
+    emits: [],
+  }
+)

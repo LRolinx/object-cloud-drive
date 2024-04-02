@@ -10,6 +10,7 @@ import { message } from 'ant-design-vue'
 import { useAppStore } from '@/store/models/app'
 import { useDriveStore } from '@/store/models/drive'
 import { PlaySquareTwoTone, CloudTwoTone, DatabaseTwoTone } from '@ant-design/icons-vue'
+import { UploadFloatButtonGroup } from './components/upload_floatbuttongroup'
 
 export default defineComponent<HomeProps, HomeEmits>(
   (props, ctx) => {
@@ -24,9 +25,9 @@ export default defineComponent<HomeProps, HomeEmits>(
     //打开新建文件夹
     const onOpenNewFolderModel = () => {
       console.log(childRouter.value)
-	//   childRouter.value.openNewFolderModel()
-    //   childRouter.value.$props.openNewFolderModel()
-    //   childRouter.value.openNewFolderModel()
+      //   childRouter.value.openNewFolderModel()
+      //   childRouter.value.$props.openNewFolderModel()
+      //   childRouter.value.openNewFolderModel()
     }
 
     //分配任务
@@ -242,7 +243,8 @@ export default defineComponent<HomeProps, HomeEmits>(
                 <router-view ref={childRouter}></router-view>
               </div>
             </div>
-            <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadBufferPool={props.uploadBufferPool} uploadRemainingTask={props.uploadRemainingTask}></UploadModal>
+            <UploadFloatButtonGroup></UploadFloatButtonGroup>
+            {/* <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadBufferPool={props.uploadBufferPool} uploadRemainingTask={props.uploadRemainingTask}></UploadModal> */}
           </div>
         </>
       )

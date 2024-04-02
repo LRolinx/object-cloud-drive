@@ -74,7 +74,7 @@ export default defineComponent<DriveProps, DriveEmits>(
     }
 
     /**
-     * 添加用户文件夹
+     * 新建文件夹完成
      * @param value
      */
     const newFolderSubmit = (value: string) => {
@@ -154,7 +154,7 @@ export default defineComponent<DriveProps, DriveEmits>(
     }
 
     /**
-     *
+     * 文件盒子松开鼠标按键
      * @param e
      * @param item
      */
@@ -288,11 +288,6 @@ export default defineComponent<DriveProps, DriveEmits>(
       // 显示新建文件夹模态窗
       store.isShowRightMenu = false
       store.showNewFolderModel = true
-    }
-
-    const openNewFileModel = () => {
-      //显示新建文件模态窗
-      props.isShowNewFileModel = true
     }
 
     //删除文件或文件夹
@@ -481,7 +476,7 @@ export default defineComponent<DriveProps, DriveEmits>(
             )}
 
             <div class="toolbar">
-              <div class="toolbarLeft">
+              <div class="toolbar_item">
                 <p class={{ toolbarTitle: true, colorR: driveStore.navigation.length >= 1 }}>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</p>
                 {/* <div v-for="(item, index) in driveStore.navigation" :key="item.id" style="display: inline-flex" :class="{ toolbarOn: index != driveStore.navigation.length - 1 }">
           <P class="toolbarArrow colorR">›</P>
@@ -489,12 +484,6 @@ export default defineComponent<DriveProps, DriveEmits>(
             {{ item.text }}<span v-if="index == driveStore.navigation.length - 1">({{ store.fileData.length }})</span>
           </p>
         </div> */}
-              </div>
-              <div class="toolbarRight">
-                <div class="updateButton" onClick={openNewFileModel}>
-                  <i class="iconfont icon-add"></i>
-                  <p>新建</p>
-                </div>
               </div>
             </div>
             <div class="dropZone" ref="recycleScroller">
@@ -579,7 +568,7 @@ export default defineComponent<DriveProps, DriveEmits>(
                   )}
 
                   {(store.showRightMenuType == 'file' || store.showRightMenuType == 'folder') && (
-                    <li onClick={deleteFileOrFolder}>
+                    <li onClick={deleteFileOrFolder}  class="del">
                       <i class="iconfont iconfont icon-delete"></i>
                       <p>删除</p>
                     </li>
@@ -594,7 +583,7 @@ export default defineComponent<DriveProps, DriveEmits>(
   },
   {
     name: '_drive',
-    props: ['width', 'height', 'isShowlVideo', 'videoList', 'isShowNewFileModel', 'isShowRightMenu', 'showRightMenuType', 'rightMenuItem', 'fileData'],
+    props: ['width', 'height', 'isShowlVideo', 'videoList', 'isShowRightMenu', 'showRightMenuType', 'rightMenuItem', 'fileData'],
     emits: [],
   }
 )

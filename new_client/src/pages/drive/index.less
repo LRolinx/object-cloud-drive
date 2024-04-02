@@ -8,7 +8,7 @@
 
 .toolbar {
   margin: 0.3rem 0;
-  height: 0.4rem;
+  min-height: 0.4rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -17,7 +17,8 @@
   position: relative;
 }
 
-.toolbarLeft {
+.toolbar_item {
+  flex: 1;
   display: flex;
   align-items: center;
   width: calc(100% - 1.2rem);
@@ -45,14 +46,6 @@
   color: #aaa;
 }
 
-.toolbarRight {
-  position: absolute;
-  right: 0.5rem;
-  flex-shrink: 0;
-  background: #fff;
-  padding: 0 0 0 0.2rem;
-}
-
 .dropZone {
   outline: none;
   cursor: default;
@@ -60,7 +53,7 @@
   display: flex;
   padding: 0 50px;
   height: 100%;
-  /* overflow: auto; */
+  overflow: auto;
 }
 
 .draging {
@@ -133,13 +126,13 @@
   margin: 15px;
   padding-top: 0.12rem;
   letter-spacing: 0.01px;
-  transition: ease-in 0.2s;
+  transition: ease 0.2s;
   height: 1.8rem;
   width: 1.6rem;
 }
 
 .fileBox:hover {
-  background-color: rgba(117, 139, 189, 0.2);
+  background-color: var(--primary-color02);// rgba(117, 139, 189, 0.2);
 }
 
 .fileBoxOn {
@@ -231,7 +224,7 @@
 
 .fileMenu {
   display: block;
-  background: rgba(217, 224, 241, 0.6);
+  background: var(--primary-color02);// rgba(217, 224, 241, 0.6);
   backdrop-filter: blur(10px);
   box-shadow: 0 0.02rem 0.08rem 0 rgba(0, 0, 0, 0.1);
   border-radius: 0.12rem;
@@ -243,6 +236,10 @@
 
   animation: ease-in forwards fileMenu 0.2s;
   transform-origin: left top;
+}
+
+.fileMenu .del {
+	color: var(--error-color)
 }
 
 @keyframes fileMenu {
@@ -273,7 +270,7 @@
 }
 
 .fileMenu li:hover {
-  background-color: #758bbd;
+  background-color: var(--primary-color);
   color: #fff;
 }
 
@@ -284,26 +281,6 @@
 .fileMenu li p {
   font-size: 0.12rem;
   margin-left: 0.1rem;
-}
-
-.updateButton {
-  display: none;
-  flex-direction: row;
-  align-items: center;
-  background-color: var(--primary-color);
-  padding: 0.05rem 0.2rem;
-  border-radius: 0.2rem;
-  color: #fff;
-  cursor: pointer;
-  user-select: none;
-}
-
-.updateButton i {
-  font-size: 0.18rem;
-}
-
-.updateButton p {
-  font-size: 0.14rem;
 }
 
 .emptyBox {
@@ -322,17 +299,6 @@
 
 .emptyBox p {
   font-size: 0.12rem;
-}
-
-@media (max-width: 750px) {
-  /* .file-container {
-	  grid-template-columns: repeat(auto-fill, 100%);
-	  grid-template-rows: none;
-	} */
-
-  .updateButton {
-    display: flex;
-  }
 }
 
 .scroller .vue-recycle-scroller__item-wrapper .vue-recycle-scroller__item-view {

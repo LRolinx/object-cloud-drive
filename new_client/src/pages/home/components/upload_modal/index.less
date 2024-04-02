@@ -1,0 +1,34 @@
+.upload_modal {
+  width: 520px;
+  position: fixed;
+  right: 24px;
+  bottom: 100px;
+  // background: var;
+
+  background: white;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0.02rem 0.08rem 0 rgba(0, 0, 0, 0.1);
+  border-radius: 0.12rem;
+  overflow: hidden;
+  z-index: 0;
+  animation: ease-in forwards upload_modal 0.2s;
+  transform-origin: right bottom;
+}
+
+@keyframes upload_modal {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 750px) {
+  .upload_modal {
+    width: 300px;
+  }
+}
