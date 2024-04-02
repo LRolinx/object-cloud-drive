@@ -7,11 +7,14 @@ import { getpublickeyapi } from '@/api/user'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import VueVirtualScroller from 'vue-virtual-scroller'
 import { useAppStore } from './store/models/app'
+import VXETable from 'vxe-table'
+import 'vxe-table/lib/style.css'
 const app = createApp(App)
 app.use(pinia)
 app.use(Antd)
 app.use(routers)
 app.use(VueVirtualScroller)
+app.use(VXETable)
 app.mount('#app')
 const appStore = useAppStore()
 

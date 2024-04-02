@@ -9,9 +9,7 @@ import { examinefileapi, uploadstreamfileapi } from '@/api/update'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/store/models/app'
 import { useDriveStore } from '@/store/models/drive'
-import { PlaySquareTwoTone, CloudTwoTone, DatabaseTwoTone, StarTwoTone } from '@ant-design/icons-vue'
-import { NewFolder } from './components/new_folder'
-import { adduserfolderapi } from '@/api/drive'
+import { PlaySquareTwoTone, CloudTwoTone, DatabaseTwoTone } from '@ant-design/icons-vue'
 
 export default defineComponent<HomeProps, HomeEmits>(
   (props, ctx) => {
@@ -21,32 +19,15 @@ export default defineComponent<HomeProps, HomeEmits>(
     const route = useRoute()
     const router = useRouter()
 
-    const showNewFolderModel = ref(false)
-
     const childRouter = ref()
 
     //打开新建文件夹
     const onOpenNewFolderModel = () => {
       console.log(childRouter.value)
-	  childRouter.value.openNewFolderModel()
+	//   childRouter.value.openNewFolderModel()
     //   childRouter.value.$props.openNewFolderModel()
     //   childRouter.value.openNewFolderModel()
     }
-
-    /**
-     * 添加用户文件夹
-     * @param value
-     */
-    // const newFolderSubmit = (value: string) => {
-    // 	showNewFolderModel.value = false
-    // 	adduserfolderapi(userStore.id, getFolderId(), value).then((resp) => {
-    // 	  const { code, message: msg } = resp.data
-    // 	  if (code !== 200) {
-    // 		return message.error(msg)
-    // 	  }
-    // 	  getUserFileAndFolder(getFolderId())
-    // 	})
-    //   }
 
     //分配任务
     const distributionTask = () => {

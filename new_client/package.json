@@ -21,7 +21,8 @@
     "pinia-plugin-persistedstate": "^3.2.1",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
-    "vue-virtual-scroller": "2.0.0-beta.8"
+    "vue-virtual-scroller": "2.0.0-beta.8",
+    "vxe-table": "^4.5.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

@@ -13,7 +13,7 @@ import { NewFolder } from '@/pages/home/components/new_folder'
 import { DynamicScroller } from 'vue-virtual-scroller'
 import { useDriveStore } from '@/store/models/drive'
 import { Throttle } from '@/utils/date'
-
+import { GetFileTypeInItem } from '@/utils/FileType'
 
 export default defineComponent<DriveProps, DriveEmits>(
   (props, ctx) => {
@@ -24,7 +24,6 @@ export default defineComponent<DriveProps, DriveEmits>(
     const route = useRoute()
     const router = useRouter()
     const throttle = Throttle(3000)
-
 
     /**
      * 获取路由的文件夹id
@@ -61,10 +60,10 @@ export default defineComponent<DriveProps, DriveEmits>(
           store.fileData = data
 
           for (let i = 0; i < store.fileData.length; i++) {
-            if (store.fileData[i].type == 'file' && checkType(store.fileData[i]).type == 'image') {
+            if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'image') {
               ImageToblobUrl(i)
             }
-            if (store.fileData[i].type == 'file' && checkType(store.fileData[i]).type == 'video') {
+            if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'video') {
               VideoImageToblobUrl(i)
             }
           }
@@ -272,14 +271,6 @@ export default defineComponent<DriveProps, DriveEmits>(
         //检测到文件夹
         let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
 
-        // 发送给子线程执行
-        // worker.postMessage({
-        //   func: 'adduserfolderapi',
-        //   userid: userStore.id,
-        //   folderid: folderId == '0' ? getFolderId() : folderId,
-        //   name: entry.name,
-        // })
-
         let reader = entry.createReader()
         reader.readEntries((entries) => {
           for (let i = 0, len = entries.length; i < len; i++) {
@@ -292,7 +283,6 @@ export default defineComponent<DriveProps, DriveEmits>(
         getUserFileAndFolder(getFolderId())
       }
     }
-
 
     const openNewFolderModel = () => {
       // 显示新建文件夹模态窗
@@ -371,272 +361,6 @@ export default defineComponent<DriveProps, DriveEmits>(
       window.URL.revokeObjectURL(blob)
     }
 
-    const checkType = (item: any) => {
-      let typeStr = {
-        type: '',
-        iconStr: 'icon-unknown',
-      }
-      if (item.fileType == null) {
-        //使用后缀判断
-        if (item.suffix != null) {
-          switch (item.suffix.toLowerCase()) {
-            // 图片
-            case 'png': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'jpg': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'jpeg': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'gif': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'eps': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'exr': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'svg': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'tga': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'bmp': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-            case 'tiff': {
-              typeStr.type = 'image'
-              typeStr.iconStr = 'icon-pic'
-              break
-            }
-
-            // 视频
-            case 'mp4': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'avi': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'wmv': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'm4v': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'mov': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'asf': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'flv': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'f4v': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'rmvb': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'rm': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case '3gp': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-            case 'vob': {
-              typeStr.type = 'video'
-              typeStr.iconStr = 'icon-video'
-              break
-            }
-
-            // 音频
-            case 'mp3': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'aac': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'wav': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'ogg': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'alac': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'flac': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-            case 'ape': {
-              typeStr.type = 'audio'
-              typeStr.iconStr = 'icon-music'
-              break
-            }
-
-            // 文本
-            case 'txt': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-txt'
-              break
-            }
-            case 'html': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-html'
-              break
-            }
-            case 'css': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-css'
-              break
-            }
-            case 'xlsx': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-excel'
-              break
-            }
-            case 'doc': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-word'
-              break
-            }
-            case 'docx': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-word'
-              break
-            }
-            case 'pdf': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-pdf'
-              break
-            }
-            case 'ppt': {
-              typeStr.type = 'text'
-              typeStr.iconStr = 'icon-ppt'
-              break
-            }
-
-            //压缩
-            case 'zip': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-zip'
-              break
-            }
-            case 'jar': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-zip'
-              break
-            }
-            case '7z': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-zip'
-              break
-            }
-            case 'rar': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-zip'
-              break
-            }
-
-            //其他文件
-            case 'psd': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-unknown'
-              break
-            }
-            case 'xmind': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-xmind'
-              break
-            }
-            case 'bt': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-bt'
-              break
-            }
-            case 'exe': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-windows'
-              break
-            }
-            case 'msi': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-windows'
-              break
-            }
-            case 'apk': {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-Android-hover'
-              break
-            }
-
-            default: {
-              typeStr.type = '*'
-              typeStr.iconStr = 'icon-unknown'
-            }
-          }
-        }
-      }
-      return typeStr
-    }
-
     const getFileData = () => {
       //根据屏幕宽度计算可以显示多少个为一行
       const colNum = Number(Math.abs(appStore.width / 190))
@@ -687,11 +411,11 @@ export default defineComponent<DriveProps, DriveEmits>(
                 {item.type == 'file' && item.blob != null && (
                   <div class="imgBox">
                     <img class="imagePreview" ref="img" src={item.blob} draggable="false" onLoad={destroyBlobUrl(item.blob)} />
-                    <i class="iconfont icon-or-play videoImg" v-if="checkType(item).type == 'video'"></i>
+                    <i class="iconfont icon-or-play videoImg" v-if="GetFileTypeInItem(item).type == 'video'"></i>
                   </div>
                 )}
 
-                {/* {item.type == 'file' && item.blob == null && <i class={{iconfont:true,iconPreview:true, checkType(item).iconStr}}></i>} */}
+                {/* {item.type == 'file' && item.blob == null && <i class={{iconfont:true,iconPreview:true, GetFileTypeInItem(item).iconStr}}></i>} */}
               </div>
               <div class="fileContentText">
                 <p class="fileContentName">{`${item.name}  ${item.suffix == null ? '' : `.${item.suffix}`}`}</p>
@@ -727,9 +451,9 @@ export default defineComponent<DriveProps, DriveEmits>(
       }
     })
 
-	ctx.expose({
-		openNewFolderModel
-	})
+    ctx.expose({
+      openNewFolderModel,
+    })
 
     return () => {
       return (
@@ -741,12 +465,7 @@ export default defineComponent<DriveProps, DriveEmits>(
             onMouseup={withModifiers((e) => fileBoxMouseup(e, null), ['stop'])}
             onContextmenu={withModifiers(() => {}, ['prevent'])}
           >
-            <newFile onOneFile={oneFile} v-model:isShowNewFileModel={props.isShowNewFileModel}></newFile>
-
             <NewFolder v-model:open={store.showNewFolderModel} onSubmit={newFolderSubmit}></NewFolder>
-
-            <lVideo videoList={props.videoList} v-model:isShow={props.isShowlVideo}></lVideo>
-            <lPicture isShow={false}></lPicture>
 
             {store.isShowUpdateModel && (
               <div
