@@ -80,7 +80,6 @@ export default defineComponent(
       if (!loginCheck()) return
       const rsaaccount = MathTools.encryptForKey(account.value)
       const rsapass = MathTools.encryptForKey(password.value)
-
       loginapi(rsaaccount, rsapass).then((resp) => {
         const { code, message: msg, data } = resp.data
         if (code !== 200) {

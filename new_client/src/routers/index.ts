@@ -5,7 +5,7 @@
  * @Description: app路由
  *
  */
-import { RouteRecordRaw, createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 // 还有 createWebHashHistory 和 createMemoryHistory
 
 // 引入组件
@@ -16,8 +16,6 @@ import driveResourcePool from '@/pages/drive_resource_pool/index.vue' //资源�
 import { StreamingVideo } from '@/pages/streaming_video' //视频流DEMO
 import error404 from '@/pages/error/404' //404错误
 import { useUserStore } from '@/store/models/user'
-import { message } from 'ant-design-vue'
-import { useAppStore } from '@/store/models/app'
 
 const routes = [
   {
@@ -37,7 +35,7 @@ const routes = [
     },
     children: [
       {
-        path: '/home/drive/:folderId(.*)*',
+        path: 'drive/:folderId(.*)*',
         component: drive,
         name: 'drive',
         meta: {
@@ -45,7 +43,7 @@ const routes = [
         },
       },
       {
-        path: '/home/driveResourcePool',
+        path: 'driveResourcePool',
         component: driveResourcePool,
         name: 'driveResourcePool',
         meta: {
@@ -53,7 +51,7 @@ const routes = [
         },
       },
       {
-        path: '/home/StreamingVideo',
+        path: 'StreamingVideo',
         component: StreamingVideo,
         name: 'StreamingVideo',
         meta: {
@@ -67,16 +65,6 @@ const routes = [
     component: error404,
     name: '404',
   },
-  //   {
-  //     // 重定向到登录
-  //     path: '/',
-  //     redirect: '/login',
-  //   },
-  //   {
-  //     // 没这个路径
-  //     path: '/:pathMatch(.*)*',
-  //     redirect: '/404', //重定向到404
-  //   },
 ]
 
 const router = createRouter({
@@ -84,56 +72,29 @@ const router = createRouter({
   routes: routes,
 })
 
-// var router = new VueRouter({
-//     mode: 'history', //去掉url中的#
-//     routes
-// })
-
-const NotFoundRouter: RouteRecordRaw = {
-  path: '/:pathMatch(.*)*',
-  redirect: '/404',
-}
-
-/**
- * 首次加载
- */
-const firstHandle = async () => {
-  //   const permissionStore = usePermissionStore()
-
-  //   const routes = await permissionStore.setSiderbarRouters()
-  //   addRoutes(routes ?? [])
-  router.addRoute(NotFoundRouter)
-}
-
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach(async (to, _from) => {
   /* 路由发生变化修改页面title */
   const userStore = useUserStore()
-  const appStore = useAppStore()
   if (to.meta.title) {
     document.title = to.meta.title as string
   }
 
-  if (to.path !== '/login' && to.path !== '/404') {
-    if (!userStore.isLogin) {
-      return next('/login?callback=' + to.path)
-    } else {
-      // 是否首次加载，载入路由
-      if (!appStore.initState) {
-        const cancelLoad = message.loading({ content: '正在载入路由...', duration: 60 })
-        await firstHandle()
+//   console.log(userStore.isLogin, to.name, to.path)
 
-        setTimeout(() => {
-          appStore.initState = true
-          cancelLoad()
-        }, 1000)
-        appStore.initState = true
-        return next({ ...to })
-      }
-    }
-  } else if (userStore.isLogin && to.path == '/login') {
-    return next('/home')
+  if (!userStore.isLogin && to.name !== 'login') {
+    //用户未登录 重定向到登录页面，并且避免无限重定向
+    return { name: 'login' }
   }
 
-  next()
+  if (userStore.isLogin && (to.path === '/' || to.name === 'home' || to.name === 'login')) {
+    //用户已登录 去到根页面或home或login跳到drive
+    return { name: 'drive' }
+  }
+
+  if (userStore.isLogin && to.name === undefined) {
+    //用户已登录 去到不存在的页面
+    return { name: '404' }
+  }
+
 })
 export default router

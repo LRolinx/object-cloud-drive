@@ -7,13 +7,13 @@ import { getpublickeyapi } from '@/api/user'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import VueVirtualScroller from 'vue-virtual-scroller'
 import { useAppStore } from './store/models/app'
-
 const app = createApp(App)
 app.use(pinia)
 app.use(Antd)
 app.use(routers)
 app.use(VueVirtualScroller)
 app.mount('#app')
+const appStore = useAppStore()
 
 // 程序运行获取公开密钥 用于后面登录验证
 getpublickeyapi().then(async (resp) => {
@@ -21,5 +21,6 @@ getpublickeyapi().then(async (resp) => {
   if (data.status !== 200) {
     return message.error('获取公钥失败')
   }
-  useAppStore().publickey = data.data
+  appStore.publickey = data.data
+  console.log(appStore.publickey)
 })

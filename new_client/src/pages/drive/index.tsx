@@ -9,7 +9,7 @@ import { getvideosceenshotsapi } from '@/api/video'
 import { FileAndFloderType } from '@/types/FileAndFloderType'
 import './index.less'
 import { useGlobalDataStore } from './store/global_data'
-import { NewFolder } from '@/components/new_folder'
+import { NewFolder } from '@/pages/home/components/new_folder'
 import { DynamicScroller } from 'vue-virtual-scroller'
 import { useDriveStore } from '@/store/models/drive'
 import { Throttle } from '@/utils/date'
@@ -724,6 +724,10 @@ export default defineComponent<DriveProps, DriveEmits>(
         }
       }
     })
+
+	ctx.expose({
+		openNewFolderModel
+	})
 
     return () => {
       return (

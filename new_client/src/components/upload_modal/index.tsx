@@ -1,14 +1,17 @@
-import { Button, FloatButton, Popconfirm, Tour, TourProps } from 'ant-design-vue'
+import { Button, FloatButton, FloatButtonGroup, Popconfirm, Space, Tooltip, Tour, TourProps, Upload } from 'ant-design-vue'
 import { createVNode, defineComponent, ref } from 'vue'
 import './index.less'
-import { CloudUploadOutlined } from '@ant-design/icons-vue'
+import { CloudUploadOutlined, FileAddTwoTone, FolderAddTwoTone, PlusCircleOutlined } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
 
 export const UploadModal = defineComponent(
   (props, ctx) => {
-	const driveStore = useDriveStore()
+    const driveStore = useDriveStore()
     const ref1 = ref()
     const open = ref(false)
+	
+    //新建文件夹
+    const openNewFolderModel = () => ctx.emit('openNewFolderModel')
 
     const handleOpen = () => {
       open.value = !open.value
@@ -29,9 +32,23 @@ export const UploadModal = defineComponent(
           <div class="upload_modal">
             <Tour class="myTour" placement="topRight" open={open.value} mask={false} steps={steps} onClose={handleOpen} />
 
-            {/* <Popconfirm placement="topRight" ok-text="Yes" cancel-text="No">
-              
-            </Popconfirm> */}
+            <FloatButtonGroup trigger="hover" style={{ right: '84px' }}>
+              <Space direction="vertical">
+                <Upload multiple={true}>
+                  <Tooltip placement="left" title="上传文件">
+                    <Button size="large" shape="circle">
+                      <FileAddTwoTone />
+                    </Button>
+                  </Tooltip>
+                </Upload>
+
+                <Tooltip placement="left" title="新建文件夹">
+                  <Button size="large" shape="circle" onClick={openNewFolderModel}>
+                    <FolderAddTwoTone />
+                  </Button>
+                </Tooltip>
+              </Space>
+            </FloatButtonGroup>
 
             <FloatButton onClick={handleOpen} ref={ref1} badge={{ count: driveStore.uploadBufferPool.length }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
@@ -42,6 +59,6 @@ export const UploadModal = defineComponent(
   {
     name: 'UploadModal',
     props: [],
-    emits: [],
+    emits: ['openNewFolderModel'],
   }
 )

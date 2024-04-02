@@ -1,15 +1,17 @@
-import { defineComponent, onMounted, watch } from 'vue'
+import { defineComponent, onMounted, ref, watch } from 'vue'
 import './index.less'
 import { useUserStore } from '@/store/models/user'
 import { HomeEmits, HomeProps } from './type'
-import {UploadModal} from '@/components/upload_modal'
+import { UploadModal } from '@/components/upload_modal'
 import { useRoute, useRouter } from 'vue-router'
 import { sha256 } from 'js-sha256'
 import { examinefileapi, uploadstreamfileapi } from '@/api/update'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/store/models/app'
 import { useDriveStore } from '@/store/models/drive'
-import { PlaySquareTwoTone, CloudTwoTone,DatabaseTwoTone,StarTwoTone } from '@ant-design/icons-vue'
+import { PlaySquareTwoTone, CloudTwoTone, DatabaseTwoTone, StarTwoTone } from '@ant-design/icons-vue'
+import { NewFolder } from './components/new_folder'
+import { adduserfolderapi } from '@/api/drive'
 
 export default defineComponent<HomeProps, HomeEmits>(
   (props, ctx) => {
@@ -18,6 +20,33 @@ export default defineComponent<HomeProps, HomeEmits>(
     const driveStore = useDriveStore()
     const route = useRoute()
     const router = useRouter()
+
+    const showNewFolderModel = ref(false)
+
+    const childRouter = ref()
+
+    //打开新建文件夹
+    const onOpenNewFolderModel = () => {
+      console.log(childRouter.value)
+	  childRouter.value.openNewFolderModel()
+    //   childRouter.value.$props.openNewFolderModel()
+    //   childRouter.value.openNewFolderModel()
+    }
+
+    /**
+     * 添加用户文件夹
+     * @param value
+     */
+    // const newFolderSubmit = (value: string) => {
+    // 	showNewFolderModel.value = false
+    // 	adduserfolderapi(userStore.id, getFolderId(), value).then((resp) => {
+    // 	  const { code, message: msg } = resp.data
+    // 	  if (code !== 200) {
+    // 		return message.error(msg)
+    // 	  }
+    // 	  getUserFileAndFolder(getFolderId())
+    // 	})
+    //   }
 
     //分配任务
     const distributionTask = () => {
@@ -191,6 +220,8 @@ export default defineComponent<HomeProps, HomeEmits>(
       return (
         <>
           <div class="home">
+            {/* <NewFolder v-model:open={showNewFolderModel.value} onSubmit={newFolderSubmit}></NewFolder> */}
+
             <div class="topbar" v-if="false">
               <p>网盘2.0 全新升级~</p>
             </div>
@@ -227,11 +258,10 @@ export default defineComponent<HomeProps, HomeEmits>(
                 </div>
               </div>
               <div class="content">
-                <keep-alive>{route.meta.keepAlive && <router-view ref="childRouter"></router-view>}</keep-alive>
-                {!route.meta.keepAlive && <router-view ref="childRouter"></router-view>}
+                <router-view ref={childRouter}></router-view>
               </div>
             </div>
-            <UploadModal uploadBufferPool={props.uploadBufferPool} uploadRemainingTask={props.uploadRemainingTask}></UploadModal>
+            <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadBufferPool={props.uploadBufferPool} uploadRemainingTask={props.uploadRemainingTask}></UploadModal>
           </div>
         </>
       )
