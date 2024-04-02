@@ -328,7 +328,7 @@ export default defineComponent<DriveProps, DriveEmits>(
       //获取图片数据并返回Blob地址
       getuserfileforfileidapi(store.fileData[i].id)
         .then((res) => {
-          let bloburl = window.URL.createObjectURL(res.data)
+          let bloburl = URL.createObjectURL(res.data)
           store.fileData[i].blob = bloburl
           // $set(, "blob", bloburl);
         })
@@ -341,7 +341,7 @@ export default defineComponent<DriveProps, DriveEmits>(
       getvideosceenshotsapi(store.fileData[i].id)
         .then((res) => {
           if (res.data != null) {
-            let bloburl = window.URL.createObjectURL(res.data)
+            let bloburl = URL.createObjectURL(res.data)
             store.fileData[i].blob = bloburl
             // $set(, "blob", );
           }
@@ -387,7 +387,6 @@ export default defineComponent<DriveProps, DriveEmits>(
     //渲染文件列表
     const RenderFileList = (view) => {
       const node = []
-
       for (let i = 0; i < view.fileData.length; i++) {
         const item = view.fileData[i]
         node.push(
