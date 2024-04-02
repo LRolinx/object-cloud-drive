@@ -13,7 +13,7 @@ import { NewFolder } from '@/pages/home/components/new_folder'
 import { DynamicScroller } from 'vue-virtual-scroller'
 import { useDriveStore } from '@/store/models/drive'
 import { Throttle } from '@/utils/date'
-import MyWorker from '@/utils/worker.js?worker'
+
 
 export default defineComponent<DriveProps, DriveEmits>(
   (props, ctx) => {
@@ -24,7 +24,7 @@ export default defineComponent<DriveProps, DriveEmits>(
     const route = useRoute()
     const router = useRouter()
     const throttle = Throttle(3000)
-    const worker = new MyWorker()
+
 
     /**
      * 获取路由的文件夹id
@@ -270,28 +270,30 @@ export default defineComponent<DriveProps, DriveEmits>(
         })
       } else {
         //检测到文件夹
-        // let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
+        let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
 
         // 发送给子线程执行
-        worker.postMessage({
-          func: 'adduserfolderapi',
-          userid: userStore.id,
-          folderid: folderId == '0' ? getFolderId() : folderId,
-          name: entry.name,
-        })
-
-        // let reader = entry.createReader()
-        // reader.readEntries((entries) => {
-        //   for (let i = 0, len = entries.length; i < len; i++) {
-        //     getFileFromEntryRecursively(createfolderres.data.data, entries[i])
-        //   }
-
-        //   // entries.forEach(entry => getFileFromEntryRecursively(entry));
+        // worker.postMessage({
+        //   func: 'adduserfolderapi',
+        //   userid: userStore.id,
+        //   folderid: folderId == '0' ? getFolderId() : folderId,
+        //   name: entry.name,
         // })
-        // //刷新
-        // getUserFileAndFolder(getFolderId())
+
+        let reader = entry.createReader()
+        reader.readEntries((entries) => {
+          for (let i = 0, len = entries.length; i < len; i++) {
+            getFileFromEntryRecursively(createfolderres.data.data, entries[i])
+          }
+
+          // entries.forEach(entry => getFileFromEntryRecursively(entry));
+        })
+        //刷新
+        getUserFileAndFolder(getFolderId())
       }
     }
+
+
     const openNewFolderModel = () => {
       // 显示新建文件夹模态窗
       store.isShowRightMenu = false
@@ -761,11 +763,6 @@ export default defineComponent<DriveProps, DriveEmits>(
 
             <div class="toolbar">
               <div class="toolbarLeft">
-                <Button
-                  onClick={() => {
-                    worker.postMessage('start')
-                  }}
-                ></Button>
                 <p class={{ toolbarTitle: true, colorR: driveStore.navigation.length >= 1 }}>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</p>
                 {/* <div v-for="(item, index) in driveStore.navigation" :key="item.id" style="display: inline-flex" :class="{ toolbarOn: index != driveStore.navigation.length - 1 }">
           <P class="toolbarArrow colorR">›</P>
