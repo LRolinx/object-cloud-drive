@@ -4,6 +4,7 @@ import './index.less'
 import { CloudUploadOutlined, DashboardTwoTone } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
 import { VXETable, VxeGrid, VxeGridInstance, VxeGridProps } from 'vxe-table'
+import { UploadType } from '@/types/UploadType'
 
 export const UploadModal = defineComponent(
   (props, _) => {
@@ -72,10 +73,40 @@ export const UploadModal = defineComponent(
         {
           title: '进度',
           //   width: 120,
+          align: 'right',
           field: 'uploadCurrentChunkNum',
           slots: {
             default: ({ row }) => {
-              return <Progress percent={row['uploadCurrentChunkNum']} style={{ margin: '0' }}></Progress>
+              if (row['uploadType'] == UploadType.Waiting) {
+                return '等待中'
+              }
+
+              if (row['uploadType'] == UploadType.Prepare) {
+                return '准备中'
+              }
+
+              if (row['uploadType'] == UploadType.Exist) {
+                return '文件已存在'
+              }
+
+              if (row['uploadType'] == UploadType.Small) {
+                return '文件太小'
+              }
+
+              if (row['uploadType'] == UploadType.Big) {
+                return '文件太大'
+              }
+
+              if (row['uploadType'] == UploadType.Error) {
+                return '上传错误'
+              }
+
+              // 5秒传 6上传中 7完成
+              if (row['uploadType'] == UploadType.Fast || row['uploadType'] == UploadType.Conduct || row['uploadType'] == UploadType.Success) {
+                return <Progress percent={calculateTaskPercent(row)} style={{ margin: '0' }}></Progress>
+              }
+
+              return
             },
           },
         },
@@ -83,13 +114,18 @@ export const UploadModal = defineComponent(
       data: [],
     })
 
+    // 计算任务进度
+    const calculateTaskPercent = (row) => {
+      const percent = (100 / row['currentChunkMax']) * row['uploadCurrentChunkNum']
+      return parseInt(percent.toString())
+    }
+
     //初始化
     const init = () => {
       nextTick(() => {
         const grid = vxeGridRef.value
         if (grid == void 0) return
-        console.log(driveStore.uploadTaskList)
-        vxeGridProps.data = [...driveStore.uploadTaskList,...driveStore.uploadTaskSuccessList]
+        grid.loadData(driveStore.uploadTaskList)
         // grid.getTableData().fullData = driveStore.uploadBufferPool
 
         // console.log(driveStore.uploadBufferPool)
@@ -106,7 +142,7 @@ export const UploadModal = defineComponent(
     )
 
     watch(
-      () => driveStore.uploadBufferPool,
+      () => driveStore.uploadTaskList,
       () => nextTick(() => init()),
       {
         deep: true,

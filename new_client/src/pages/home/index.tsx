@@ -10,6 +10,7 @@ import { useAppStore } from '@/store/models/app'
 import { useDriveStore } from '@/store/models/drive'
 import { PlaySquareTwoTone, CloudTwoTone, DatabaseTwoTone } from '@ant-design/icons-vue'
 import { UploadFloatButtonGroup } from './components/upload_floatbuttongroup'
+import { UploadType } from '@/types/UploadType'
 
 export default defineComponent<HomeProps, HomeEmits>(
   (props, ctx) => {
@@ -31,10 +32,10 @@ export default defineComponent<HomeProps, HomeEmits>(
 
     //分配任务
     const distributionTask = () => {
+      console.log('分配人物')
       for (let i = 0, len = driveStore.uploadTaskList.length; i < len; i++) {
         if (driveStore.uploadTaskList[i].uploadType == 0) {
           //有空闲线程先异步执行
-          setTaskState(driveStore.uploadTaskList[i], 0, 1)
           upLoadFun(driveStore.uploadTaskList[i])
         }
       }
@@ -55,114 +56,51 @@ export default defineComponent<HomeProps, HomeEmits>(
       router.push({ name: 'StreamingVideo' })
     }
 
-    const setTaskState = (item, stateCode, ano) => {
-      //设置任务状态
-      //0等待中 1准备中 2上传中 3上传暂停 4上传完成 5秒传 6文件太小 7文件太大 8文件已存在 404上传错误
-      item.uploadType = stateCode
-
-      if (ano == 0) {
-        --driveStore.uploadRemainingTask
-      } else if (ano == 1) {
-        ++driveStore.uploadRemainingTask
-      }
-    }
-
+    // 片段上传
     const upLoadFun = (item) => {
-      if (item.file.size <= 0) {
-        //文件太小,无法上传
-        setTaskState(item, 6, 0)
-        return
-      }
-      setTaskState(item, 1, 3)
-      //拿到sha256
-      const fr = new FileReader()
-      fr.readAsArrayBuffer(item.file)
-      fr.onload = (data) => {
-        const sha256Id = sha256(data.target.result)
-        item.fileSha256 = sha256Id
+      const blobSlice = File.prototype.slice
 
-        examinefileapi(userStore.id, item.folderId, sha256Id, item.fname, item.fext).then((resp) => {
-          const { code, message: msg, data } = resp.data
+      // 指定文件分块大小 1024的2次方
+      const chunkSize = calculateSliceSize(item.file.size) * 1024 ** 2
+      // 计算文件分块总数
+      const chunks = Math.ceil(item.file.size / chunkSize)
+      //设置总片段数量
+      item.currentChunkMax = chunks
+
+      //设置状态为上传中
+      setUploadType(item, UploadType.Conduct)
+
+      for (let i = 0, len = chunks; i < len; i++) {
+        // 计算开始读取的位置
+        const start = i * chunkSize
+        // 计算结束读取的位置
+        const end = start + chunkSize >= item.file.size ? item.file.size : start + chunkSize
+
+        // 简化流程
+        const fileslice = blobSlice.call(item.file, start, end)
+
+        //片段流上传
+        const params = new FormData() //创建form对象
+        params.append('file', fileslice)
+
+        uploadstreamfileapi(params, userStore.id, item.folderId, item.fname, item.filePath, item.fext, item.fileSha256, chunks, i).then((resp) => {
+          console.log(resp)
+          const { code: code, message: msg, data: data } = resp.data
           if (code !== 200) {
             //上传失败
-            setTaskState(item, 404, 0)
-            console.log(msg)
+            setUploadType(item, UploadType.Error)
             return message.error(msg)
           }
-          const blobSlice = File.prototype.slice
 
-          // 指定文件分块大小 1024的2次方
-          const chunkSize = calculateSliceSize(item.file.size) * 1024 ** 2
-          // 计算文件分块总数
-          const chunks = Math.ceil(item.file.size / chunkSize)
-          //设置总片段数量
-          item.currentChunkMax = chunks
+          item.uploadCurrentChunkNum = item.uploadCurrentChunkNum + 1
+          if (item.uploadCurrentChunkNum >= item.currentChunkMax) {
+            // console.log(childRouter);
+            // $refs.childRouter.getUserFileAndFolder(
+            //   $refs.childRouter.getFolderId()
+            // );
 
-          if (!data.userFileExist) {
-            if (!data.fileExist) {
-              //设置该任务的状态
-              setTaskState(item, 2, 3)
-              for (let i = 0, len = chunks; i < len; i++) {
-                // 计算开始读取的位置
-                const start = i * chunkSize
-                // 计算结束读取的位置
-                const end = start + chunkSize >= item.file.size ? item.file.size : start + chunkSize
-
-                // 简化流程
-                const fileslice = blobSlice.call(item.file, start, end)
-
-                //片段流上传
-
-                uploadstreamfileapi(fileslice, userStore.id, item.folderId, item.fname, item.filePath, item.fext, item.fileSha256, chunks, i).then((resp2) => {
-                  const { code: code2, message: msg2, data: data2 } = resp2.data
-                  if (code !== 200) {
-                    //上传失败
-                    setTaskState(item, 404, 0)
-                    console.log('上传出错')
-                    return message.error(msg2)
-                  }
-
-                  item.uploadCurrentChunkNum = item.uploadCurrentChunkNum + 1
-                  if (item.uploadCurrentChunkNum >= item.currentChunkMax) {
-                    // console.log(childRouter);
-                    // $refs.childRouter.getUserFileAndFolder(
-                    //   $refs.childRouter.getFolderId()
-                    // );
-
-                    //设置任务上传完成
-                    setTaskState(item, 4, 0)
-                  }
-                })
-              }
-            } else {
-              //秒传文件
-              //   $http
-              //     .post(`${userStore.serve.serveUrl}upload/uploadSecondPass`, {
-              //       userid: userStore.id,
-              //       folderid: item.folderId,
-              //       fileName: item.fname,
-              //       filePath: item.filePath,
-              //       fileExt: item.fext,
-              //       fileSha256: item.fileSha256,
-              //     })
-              //     .then((SecondPass) => {
-              //       if (SecondPass.data.code == 200) {
-              //         // childRouter.value.getUserFileAndFolder(
-              //         //   childRouter.value.getFolderId()
-              //         // );
-              //         // console.log(childRouter);
-              //         //设置任务为秒传
-              //         setTaskState(item, 5, 0)
-              //       } else {
-              //         //秒传失败
-              //         setTaskState(item, 404, 0)
-              //         console.log(SecondPass.data.message)
-              //       }
-              //     })
-            }
-          } else {
-            //文件已存在
-            setTaskState(item, 8, 0)
+            //设置任务上传完成
+            setUploadType(item, UploadType.Success)
           }
         })
       }
@@ -180,8 +118,10 @@ export default defineComponent<HomeProps, HomeEmits>(
       }
     }
 
-    //初始化
-    onMounted(() => {})
+    //设置上传状态
+    const setUploadType = (item: any, type: UploadType) => {
+      item['uploadType'] = type
+    }
 
     watch(route, (toRouter) => {
       // //设置最后路由
@@ -190,21 +130,100 @@ export default defineComponent<HomeProps, HomeEmits>(
       appStore.siderbarStr = toRouter.name.toString() //重置最后路由
     })
 
-    watch(
-      () => driveStore.uploadTaskList,
-      () => {
-        //监听文件上传任务 进行分配上传
-        distributionTask()
-      },
-      { deep: true }
-    )
+    // watch(
+    //   () => driveStore.uploadTaskList,
+    //   () => {
+    //     //监听文件上传任务 进行分配上传
+    //     distributionTask()
+    //   },
+    //   { deep: true }
+    // )
 
-    // driveStore.$subscribe((m, s) => {
-    //   //监听文件变化
-    //   // uploadTaskList = s.drive.uploadTaskList;
+    driveStore.$subscribe((m, s) => {
+      //监听任务列表变化
+      //   console.log(m.events['type'])
+      if (m.events['type'] === 'add') {
+        // 监听到添加任务 开始分配任务
+        const item = m.events['newValue']
+        if (typeof item != 'object') return
+        //检查文件是否过小或过大或者文件是否存在
+        if (item['file']['size'] <= 0) {
+          //文件太小,无法上传
+          setUploadType(item, UploadType.Small)
+          return
+        }
+        if (item['file']['size'] >= 1024 * 1024 * 1024 * 10) {
+          //文件太大,无法上传
+          setUploadType(item, UploadType.Big)
+          return
+        }
 
-    //   // console.log(s);
-    // })
+        const fr = new FileReader()
+        fr.readAsArrayBuffer(item['file'])
+        fr.onload = (data) => {
+          const sha256Id = sha256(data.target.result)
+          item['fileSha256'] = sha256Id
+
+          examinefileapi(userStore.id, item.folderId, sha256Id, item.fname, item.fext).then((resp) => {
+            const { code, message: msg, data } = resp.data
+            if (code !== 200) {
+              //上传失败
+              setUploadType(item, UploadType.Error)
+              return message.error(msg)
+            }
+
+            if (!data.userFileExist) {
+              //用户文件不存在
+              if (!data.fileExist) {
+                //文件不存在 开始上传
+                setUploadType(item, UploadType.Prepare)
+
+                upLoadFun(item)
+              } else {
+                //秒传文件
+                setUploadType(item, UploadType.Fast)
+                //   $http
+                //     .post(`${userStore.serve.serveUrl}upload/uploadSecondPass`, {
+                //       userid: userStore.id,
+                //       folderid: item.folderId,
+                //       fileName: item.fname,
+                //       filePath: item.filePath,
+                //       fileExt: item.fext,
+                //       fileSha256: item.fileSha256,
+                //     })
+                //     .then((SecondPass) => {
+                //       if (SecondPass.data.code == 200) {
+                //         // childRouter.value.getUserFileAndFolder(
+                //         //   childRouter.value.getFolderId()
+                //         // );
+                //         // console.log(childRouter);
+                //         //设置任务为秒传
+                //         setTaskState(item, 5, 0)
+                //       } else {
+                //         //秒传失败
+                //         setTaskState(item, 404, 0)
+                //         console.log(SecondPass.data.message)
+                //       }
+                //     })
+              }
+            } else {
+              //用户文件已存在
+              setUploadType(item, UploadType.Exist)
+            }
+          })
+        }
+
+        // distributionTask()
+      }
+      //   console.log(m, s)
+      //   if (!bool) {
+      //     bool = true
+      //     driveStore.uploadTaskList.splice(driveStore.uploadTaskList.length - 1, 1)
+      //   }
+      //   driveStore.uploadTaskList = s.drive.uploadTaskList;
+
+      // console.log(s);
+    })
 
     return () => {
       return (

@@ -6,7 +6,6 @@
  * @create 2024-03-31 13:26
  */
 import $http from '$http'
-import { AxiosResponse } from 'axios'
 import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
@@ -34,8 +33,8 @@ export const uploadstreamfileapi = (
   currentChunkIndex: number
 ): Promise<Resp> => {
   return $http.put(API_LIST.UPDATE.UPLOAD_STREAMFILE, fileslice, {
-    params: {
-      fileslice,
+	params: {
+    //   fileslice,
       userid,
       folderid,
       fileName,
@@ -45,8 +44,8 @@ export const uploadstreamfileapi = (
       currentChunkMax,
       currentChunkIndex,
     },
-    headers: {
-      'Content-Type': 'image/png',
-    },
+    // headers: {
+    //   'Content-Type': 'multipart/form-data;charset=utf-8',
+    // },
   })
 }

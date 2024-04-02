@@ -2,7 +2,7 @@ import Axios from 'axios'
 import { App } from 'vue';
 
 const axios = Axios.create({
-	baseURL: "http://192.168.2.231:3000",
+	baseURL: "http://192.168.3.15:3000",
 })
 
 axios.interceptors.request.use(config => {

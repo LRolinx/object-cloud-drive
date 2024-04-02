@@ -31,6 +31,9 @@ export interface Resp<T = any> {
    * 耗时
    */
   executeTime: number
+
+  // 操作状态
+  state: true
 }
 
 /**

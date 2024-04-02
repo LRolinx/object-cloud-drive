@@ -1,5 +1,4 @@
 import { FolderEntity } from 'src/entity/folder.entity';
-import { Request } from 'express';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
 import { Injectable } from '@nestjs/common';
 import conf from 'src/config/config';
@@ -7,7 +6,7 @@ import * as fs from 'fs';
 import { UserFilesEntity } from 'src/entity/user_files.entity';
 import { FilesEntity } from 'src/entity/files.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import DateUtils from 'src/utils/DateUtils';
 import { format } from 'date-fns';
 import * as path from 'path';
@@ -105,7 +104,7 @@ export class UploadService {
    * @returns
    */
   uploadStreamFile(
-    req: Request,
+    file: object,
     userid: number,
     folderid: number,
     fileName: string,
@@ -119,7 +118,7 @@ export class UploadService {
       try {
         const sha256Path = `${conf.upload.temp}${fileSha256}/`;
         const uploadPath = `${conf.upload.path}${fileSha256}`;
-        const buffers: Buffer[] = [];
+        // const buffers: Buffer[] = [];
 
         if (!fs.existsSync(conf.upload.temp)) {
           //创建对应的临时文件夹
@@ -140,70 +139,71 @@ export class UploadService {
         //   fs.unlinkSync(`${dPath}${ctx.request.files.file.name}`)
         // }
 
-        req
-          .on('data', (trunk) => {
-            console.log('data');
-            buffers.push(trunk);
+        // const buffer = Buffer.concat(file['buffer']);
+
+        fs.writeFileSync(`${sha256Path}${currentChunkIndex}`, file['buffer']);
+        //连接关闭
+        const files = fs.readdirSync(sha256Path);
+        if (files.length != currentChunkMax) {
+          resolve(AjaxResult.success(null, '传输进行中'));
+          return;
+        }
+
+        //开始合并片段文件
+        for (let i = 0, len = files.length; i < len; i++) {
+          const content = fs.readFileSync(path.join(sha256Path, i.toString()));
+          fs.appendFileSync(uploadPath, content);
+        }
+
+        const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
+        //写入文件表里
+        const sqlurl = uploadPath.replace(/\\/g, '\\\\');
+
+        this.filesEntity
+          .save(
+            FilesEntity.instance({
+              sha256: fileSha256,
+              url: sqlurl,
+              statusId: 0,
+              fileTypeId: 0,
+            }),
+          )
+          .then(async () => {
+            // 写入用户文件表里
+            await this.userFilesEntity.insert(
+              UserFilesEntity.instance({
+                userId: userid,
+                folderId: folderid,
+                fileId: fileSha256,
+                fileName: fileName,
+                createTime: date,
+                suffix: fileExt,
+              }),
+            );
+            resolve(AjaxResult.success(null, '传输完成'));
           })
-          .on('end', () => {
-            console.log('结束');
-            const buffer = Buffer.concat(buffers);
-            fs.writeFileSync(`${sha256Path}${currentChunkIndex}`, buffer);
-            //连接关闭
-            const files = fs.readdirSync(sha256Path);
-            if (files.length != currentChunkMax) {
-              resolve(AjaxResult.success(null, '传输进行中'));
-              return;
-            }
-
-            //开始合并片段文件
-            for (let i = 0, len = files.length; i < len; i++) {
-              const content = fs.readFileSync(
-                path.join(sha256Path, i.toString()),
-              );
-              fs.appendFileSync(uploadPath, content);
-            }
-
-            const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
-            //写入文件表里
-            const sqlurl = uploadPath.replace(/\\/g, '\\\\');
-
-            this.filesEntity
-              .save(
-                FilesEntity.instance({
-                  sha256: fileSha256,
-                  url: sqlurl,
-                  statusId: 0,
-                  fileTypeId: 0,
-                }),
-              )
-              .then(async () => {
-                // 写入用户文件表里
-                await this.userFilesEntity.insert(
-                  UserFilesEntity.instance({
-                    userId: userid,
-                    folderId: folderid,
-                    fileId: fileSha256,
-                    fileName: fileName,
-                    createTime: date,
-                    suffix: fileExt,
-                  }),
-                );
-                resolve(AjaxResult.success(null, '传输完成'));
-              })
-              .catch((e) => {
-                console.log(e);
-                resolve(AjaxResult.fail('传输出错'));
-              });
-          })
-          // .on('close', () => {
-          //   console.log('close');
-          //
-          // })
-          .on('error', () => {
+          .catch((e) => {
+            console.log(e);
             resolve(AjaxResult.fail('传输出错'));
-            console.log('error');
           });
+
+        // req
+        //   .on('data', (trunk) => {
+        //     buffers.push(trunk);
+        //   })
+        //   .on('end', () => {
+        //     console.log('结束');
+        //     const buffer = Buffer.concat(buffers);
+
+        //   })
+        //   // .on('close', () => {
+        //   //   console.log('close');
+        //   //
+        //   // })
+        //   .on('error', () => {
+        //     resolve(AjaxResult.fail('传输出错'));
+        //     console.log('error');
+        //   });
       } catch (e) {
         console.log(e);
         resolve(AjaxResult.fail('传输出错'));

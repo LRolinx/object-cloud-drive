@@ -9,9 +9,12 @@ import {
   Put,
   Query,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UploadService } from './upload.service';
 import { StringUtils } from 'src/utils/StringUtils';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -84,8 +87,11 @@ export class UploadController {
    * @param currentChunkIndex
    * @returns
    */
+
   @Put('uploadStreamFile')
+  @UseInterceptors(FileInterceptor('file'))
   async uploadStreamFile(
+    @UploadedFile() file,
     @Req() req: Request,
     @Query()
     {
@@ -115,7 +121,7 @@ export class UploadController {
     const decryptFolderid =
       folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
     const ajaxResult = await this.uploadService.uploadStreamFile(
-      req,
+      file,
       decryptUserid,
       decryptFolderid,
       fileName,

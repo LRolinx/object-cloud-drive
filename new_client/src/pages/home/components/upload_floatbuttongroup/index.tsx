@@ -4,11 +4,12 @@ import './index.less'
 import { CloudUploadOutlined, FileAddTwoTone, FolderAddTwoTone } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
 import { UploadModal } from '../upload_modal'
+import { UploadType } from '@/types/UploadType'
 
 export const UploadFloatButtonGroup = defineComponent(
   (_, ctx) => {
     const driveStore = useDriveStore()
-    const openUploadModal = ref(false)
+    const openUploadModal = ref(true)
 
     //新建文件夹
     const openNewFolderModel = () => ctx.emit('openNewFolderModel')
@@ -16,6 +17,13 @@ export const UploadFloatButtonGroup = defineComponent(
     //打开上传模态窗切换
     const handleOpen = () => {
       openUploadModal.value = !openUploadModal.value
+    }
+
+    //计算正在进行的任务数量
+    const calculateTaskNum = () => {
+		console.log("数量触发")
+      const taskArr = driveStore.uploadTaskList.filter((x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Conduct)
+      return taskArr.length
     }
 
     return () => {
@@ -42,7 +50,7 @@ export const UploadFloatButtonGroup = defineComponent(
               </Space>
             </FloatButtonGroup>
 
-            <FloatButton onClick={handleOpen} badge={{ count: driveStore.uploadTaskList.length }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
+            <FloatButton onClick={handleOpen} badge={{ count: calculateTaskNum() }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
         </>
       )
