@@ -20,34 +20,50 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 @Entity('t_files')
 export class FilesEntity {
   /**
-   * 文件id
+   * 文件SHA256
    */
-  @PrimaryColumn({ type: 'varchar', length: 512, comment: '文件id' })
+  @PrimaryColumn({
+    type: 'varchar',
+    length: 512,
+    comment: '文件SHA256',
+    name: 'file_sha256',
+  })
   sha256?: string;
 
   /**
    * 文件路径
    */
-  @Column({ type: 'varchar', length: 255, comment: '文件路径' })
+  @Column({
+    type: 'varchar',
+    length: 512,
+    comment: '文件路径',
+    name: 'url',
+  })
   url?: string;
 
   /**
-   * 文件状态id
+   * 是否禁止,违规文件
    */
-  @Column({ type: 'int', comment: '文件状态id' })
-  statusId?: number;
+  @Column({
+    type: 'bit',
+    length: 1,
+    comment: '是否禁止,违规文件',
+    default: false,
+    name: 'disable',
+  })
+  disable?: boolean;
 
   /**
-   * 文件类型id
+   * 是否禁止,违规文件
    */
-  @Column({ type: 'int', comment: '文件类型id' })
-  fileTypeId?: number;
-
-  /**
-   * 是否已检查违规情况
-   */
-  @Column({ type: 'bit', comment: '是否已检查违规情况', default: false })
-  checked?: boolean;
+  @Column({
+    type: 'varchar',
+    length: 20,
+    comment: '禁止时间',
+    name: 'disable_time',
+    nullable: true,
+  })
+  disableTime?: string;
 
   /**
    * 创建一个FilesEntity实例

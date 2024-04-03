@@ -20,51 +20,72 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity('t_folder')
 export class FolderEntity {
   /**
-   * 文件夹id
+   * 文件夹ID
    */
-  @PrimaryGeneratedColumn({ type: 'int', comment: '文件夹id' })
+  @PrimaryGeneratedColumn({ type: 'int', comment: '文件夹ID', name: 'id' })
   id?: number;
+
+  /**
+   * 文件夹UUID
+   */
+  @Column({
+    type: 'varchar',
+    length: 36,
+    comment: '文件夹UUID',
+    name: 'folder_uuid',
+  })
+  folderUuid?: string;
+
+  /**
+   * 父UUID
+   */
+  @Column({
+    type: 'varchar',
+    length: 36,
+    comment: '父UUID',
+    name: 'p_uuid',
+  })
+  pUuid?: string;
+
+  /**
+   * 用户UUID
+   */
+  @Column({
+    type: 'varchar',
+    length: 36,
+    comment: '用户UUID',
+    name: 'user_uuid',
+  })
+  userUuid?: string;
 
   /**
    * 文件夹名称
    */
-  @Column({ type: 'varchar', length: 64, comment: '文件夹名称' })
+  @Column({ type: 'varchar', length: 256, comment: '文件夹名称', name: 'name' })
   name?: string;
-
-  /**
-   * 用户id
-   */
-  @Column({ type: 'int', comment: '用户id' })
-  userId?: number;
-
-  /**
-   * 父文件夹id
-   */
-  @Column({ type: 'int', name: 'p_id', comment: '父文件夹' })
-  pId?: number;
 
   /**
    * 文件夹大小
    */
-  @Column({ type: 'double' })
+  @Column({ type: 'double', comment: '文件夹大小', name: 'size' })
   size?: number;
 
   /**
    * 创建时间
    */
-  @Column({ type: 'char', length: 19 })
+  @Column({ type: 'varchar', length: 20, name: 'create_time' })
   createTime?: string;
 
   /**
    * 是否删除
    */
-  @Column({ type: 'bit', default: false })
+  @Column({ type: 'bit', default: false, name: 'del' })
   del?: boolean;
 
   /**
    * 删除时间
    */
-  @Column({ type: 'char', length: 19, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'del_time' })
   delTime?: string;
 
   /**

@@ -20,60 +20,112 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 @Entity('t_user')
 export class UserEntity {
   /**
-   * 用户id
+   * 用户ID
    */
   @PrimaryGeneratedColumn({
     type: 'int',
+    comment: '用户ID',
   })
   id?: number;
 
   /**
+   * 用户UUID
+   */
+  @Column({
+    type: 'varchar',
+    length: 36,
+    comment: '用户UUID',
+    name: 'user_uuid',
+  })
+  userUUID?: number;
+
+  /**
    * 用户昵称
    */
-  @Column({ type: 'varchar', length: 32, name: 'nickname' })
+  @Column({
+    type: 'varchar',
+    length: 32,
+    comment: '用户昵称',
+    name: 'nickname',
+  })
   nickName?: string;
 
   /**
    * 头像
    */
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 256, comment: '头像', name: 'photo' })
   photo?: string;
-
-  /**
-   * 密码
-   */
-  @Column({ type: 'varchar', length: 256 })
-  password?: string;
 
   /**
    * 账号
    */
-  @Column({ type: 'varchar', length: '20' })
+  @Column({ type: 'varchar', length: 20, comment: '账号', name: 'account' })
   account?: string;
 
   /**
-   * 是否停用
+   * 密码
    */
-  @Column({ type: 'bit', default: false })
-  isDisable?: boolean;
+  @Column({ type: 'varchar', length: 256, comment: '密码', name: 'password' })
+  password?: string;
+
+  /**
+   * 是否禁用
+   */
+  @Column({
+    type: 'bit',
+    length: 1,
+    default: false,
+    comment: '是否禁用',
+    name: 'disable',
+  })
+  disable?: boolean;
+
+  /**
+   * 禁用时间
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    comment: '禁用时间',
+    name: 'disable_time',
+  })
+  disableTime?: string;
 
   /**
    * 创建时间
    */
-  @Column({ type: 'char', length: 19, name: 'createtime' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    comment: '创建时间',
+    name: 'createtime',
+  })
   createTime?: string;
 
   /**
    * 是否删除
    */
-  @Column({ type: 'bit', default: false })
+  @Column({
+    type: 'bit',
+    length: 1,
+    default: false,
+    comment: '是否删除',
+    name: 'del',
+  })
   del?: boolean;
 
   /**
    * 删除时间
    */
-  @Column({ type: 'char', length: 19, nullable: true })
-  deltime?: string;
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    comment: '删除时间',
+    name: 'del_time',
+  })
+  delTime?: string;
 
   /**
    * 创建一个UserEntity实例
