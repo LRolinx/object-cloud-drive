@@ -10,7 +10,6 @@ import { Repository } from 'typeorm';
 import DateUtils from 'src/utils/DateUtils';
 import { format } from 'date-fns';
 import * as path from 'path';
-import { time } from 'console';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -42,35 +41,35 @@ export class UploadService {
 
   /**
    * 检查文件
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @param sha256Id
    * @param filename
    * @param fileext
    * @returns
    */
   async examineFile(
-    userid: number,
-    folderid: number,
-    sha256Id: string,
+    userUuid: string,
+    folderUuid: string,
+    fileSha256: string,
     filename: string,
     fileext: string,
   ): Promise<AjaxResult> {
     const enres = { userFileExist: false, fileExist: false };
     const file = await this.filesEntity.findOne({
-      where: FilesEntity.instance({ sha256: sha256Id }),
+      where: FilesEntity.instance({ sha256: fileSha256 }),
     });
     const folder = await this.folderEntity.findOne({
       where: FolderEntity.instance({
-        id: folderid,
+        folderUuid,
         del: false,
       }),
     });
 
     const userfile = await this.userFilesEntity.findOne({
       where: UserFilesEntity.instance({
-        userId: userid,
-        folderId: folderid,
+        userUuid,
+        folderUuid,
         fileName: filename,
         suffix: fileext,
         del: false,
@@ -94,8 +93,8 @@ export class UploadService {
   /**
    * 上传文件
    * @param req
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @param fileName
    * @param filePath
    * @param fileExt
@@ -106,8 +105,8 @@ export class UploadService {
    */
   uploadStreamFile(
     file: object,
-    userid: number,
-    folderid: number,
+    userUuid: string,
+    folderUuid: string,
     fileName: string,
     filePath: string,
     fileExt: string,
@@ -167,17 +166,15 @@ export class UploadService {
             FilesEntity.instance({
               sha256: fileSha256,
               url: sqlurl,
-              statusId: 0,
-              fileTypeId: 0,
             }),
           )
           .then(async () => {
             // 写入用户文件表里
             await this.userFilesEntity.insert(
               UserFilesEntity.instance({
-                userId: userid,
-                folderId: folderid,
-                fileId: fileSha256,
+                userUuid,
+                folderUuid,
+                fileSha256,
                 fileName: fileName,
                 createTime: date,
                 suffix: fileExt,
@@ -213,8 +210,8 @@ export class UploadService {
    * @returns
    */
   async uploadSecondPass(
-    userid: number,
-    folderid: number,
+    userUuid: string,
+    folderUuid: string,
     fileName: string,
     filePath: string,
     fileExt: string,
@@ -222,9 +219,9 @@ export class UploadService {
   ): Promise<AjaxResult> {
     const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
     const userfile = UserFilesEntity.instance({
-      userId: userid,
-      folderId: folderid,
-      fileId: fileSha256,
+      userUuid,
+      folderUuid,
+      fileSha256,
       fileName: fileName,
       createTime: date,
       suffix: fileExt,

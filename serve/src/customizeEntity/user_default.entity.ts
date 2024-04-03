@@ -20,12 +20,12 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 @Entity('t_user_default')
 export class UserDefaultEntity {
   /**
-   * 加密用户ID
+   * 用户UUID
    */
   @PrimaryColumn({
     type: 'varchar',
   })
-  id?: string;
+  userUuid?: string;
 
   /**
    * 用户昵称

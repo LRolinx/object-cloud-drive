@@ -42,13 +42,13 @@ export class VideoService {
    */
   async playVideoSteam(
     res: Response,
-    fileId: string,
+    fileSha256: string,
     range: string,
   ): Promise<Response> {
     const userFile = await this.userFilesEntity.findOne({
-      where: UserFilesEntity.instance({ fileId }),
+      where: UserFilesEntity.instance({ fileSha256 }),
     });
-    const filepath = path.join(conf.upload.path, userFile.fileId);
+    const filepath = path.join(conf.upload.path, userFile.fileSha256);
     const stat = fs.statSync(filepath);
     const fileSize = stat.size;
 
@@ -140,11 +140,11 @@ export class VideoService {
    * @param id
    * @returns
    */
-  async getVideoSceenshots(fileId: string): Promise<StreamableFile> {
+  async getVideoSceenshots(fileSha256: string): Promise<StreamableFile> {
     const userFile = await this.userFilesEntity.findOne({
-      where: UserFilesEntity.instance({ fileId }),
+      where: UserFilesEntity.instance({ fileSha256 }),
     });
-    const path = `${conf.upload.path}${userFile.fileId}`;
+    const path = `${conf.upload.path}${userFile.fileSha256}`;
     const videoshots = `${path}.png`;
 
     if (fs.existsSync(path)) {

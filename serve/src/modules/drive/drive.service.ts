@@ -40,21 +40,21 @@ export class DriveService {
   ) {}
   /**
    * 创建文件夹
-   * @param userId 用户id
+   * @param userId 用户UUID
+   * @param pUuid 父级文件夹UUID
    * @param name 文件夹名称
-   * @param folderId 父级文件夹id
    */
   async addFolder(
-    userId: number,
-    folderId: number,
+    userUuid: string,
+    pUuid: string,
     name: string,
   ): Promise<AjaxResult> {
     //检查指定的folder_id文件夹里是否已有对应的name文件夹
     const folder: FindOneOptions<FolderEntity> = {
       where: FolderEntity.instance({
-        userId,
+        userUuid,
+        pUuid,
         name,
-        pId: folderId,
         del: false,
       }),
     };
@@ -65,8 +65,8 @@ export class DriveService {
       //文件夹不存在
       const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
       const folderDB = FolderEntity.instance({
-        userId,
-        pId: folderId,
+        userUuid,
+        pUuid,
         name,
         size: 0,
         createTime: date,
@@ -94,12 +94,12 @@ export class DriveService {
   /**
    * 检查文件夹是否存在
    */
-  async checkFolder(userId, name, folderId): Promise<boolean> {
+  async checkFolder(userUuid, name, pUuid): Promise<boolean> {
     const folder: FindOneOptions<FolderEntity> = {
       where: FolderEntity.instance({
-        userId,
+        userUuid,
         name,
-        pId: folderId,
+        pUuid,
         del: false,
       }),
     };
@@ -114,21 +114,21 @@ export class DriveService {
 
   /**
    * 批量添加文件夹
-   * @param userId 用户id
+   * @param userUuid 用户id
    * @param data 数据
    */
   async batchAddFolder(
-    userId: number,
+    userUuid: string,
     data: AddBatchUserFolderType[],
   ): Promise<AjaxResult> {
     for (let i = 0; i < data.length; i++) {
-      const folderId = data[i].folderId;
+      //   const folderId = data[i].folderId;
       const name = data[i].folderName;
 
       //检查指定的folder_id文件夹里是否已有对应的name文件夹
       const folder: FindOneOptions<FolderEntity> = {
         where: FolderEntity.instance({
-          userId,
+          userUuid,
           name,
           //   pId: folderId,
           del: false,
@@ -141,7 +141,7 @@ export class DriveService {
         //文件夹不存在
         const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
         const folderDB = FolderEntity.instance({
-          userId,
+          userUuid,
           //   pId: folderId,
           name,
           size: 0,
@@ -170,25 +170,25 @@ export class DriveService {
 
   /**
    * 获取用户文件和文件夹
-   * @param userId
-   * @param folderId
+   * @param userUuid
+   * @param pUuid
    */
   async getUserFileAndFolder(
-    userId: number,
-    folderId: number,
+    userUuid: string,
+    pUuid: string,
   ): Promise<AjaxResult> {
     const folder: FindOneOptions<FolderEntity> = {
       where: FolderEntity.instance({
-        userId,
-        pId: folderId,
+        userUuid,
+        pUuid,
         del: false,
       }),
     };
 
     const userfile: FindOneOptions<UserFilesEntity> = {
       where: UserFilesEntity.instance({
-        userId,
-        folderId,
+        userUuid,
+        folderUuid: pUuid,
         del: false,
       }),
     };
@@ -240,7 +240,7 @@ export class DriveService {
       }),
     };
     const files = await this.userFilesEntity.findOne(userfile);
-    const path = `${conf.upload.path}${files.fileId}`;
+    const path = `${conf.upload.path}${files.fileSha256}`;
     if (!fs.existsSync(path)) {
       //文件不存在
       return null;

@@ -1,4 +1,3 @@
-import MathTools from 'src/utils/MathTools';
 import { Request } from 'express';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
 import {
@@ -42,32 +41,32 @@ export class UploadController {
 
   /**
    * 上传前检查文件
-   * @param userid
-   * @param folderid
-   * @param sha256Id
+   * @param userUuid
+   * @param folderUuid
+   * @param fileSha256
    * @param filename
    * @param fileext
    * @returns
    */
   @Post('examineFile')
   async examineFile(
-    @Body() { userid, folderid, sha256Id, filename, fileext },
+    @Body() { userUuid, folderUuid, fileSha256, filename, fileext },
   ): Promise<AjaxResult> {
     if (
-      !StringUtils.hasText(userid) ||
-      !StringUtils.hasText(folderid) ||
-      !StringUtils.hasText(sha256Id) ||
+      !StringUtils.hasText(userUuid) ||
+      !StringUtils.hasText(folderUuid) ||
+      !StringUtils.hasText(fileSha256) ||
       (!StringUtils.hasText(filename) && !StringUtils.hasText(fileext))
     ) {
       return AjaxResult.fail('参数错误');
     } else {
-      const decryptUserid = parseInt(MathTools.decryptForKey(userid));
-      const decryptFolderid =
-        folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
+      //   const decryptUserid = parseInt(MathTools.decryptForKey(userid));
+      //   const decryptFolderid =
+      //     folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
       return this.uploadService.examineFile(
-        decryptUserid,
-        decryptFolderid,
-        sha256Id,
+        userUuid,
+        folderUuid,
+        fileSha256,
         filename,
         fileext,
       );
@@ -77,8 +76,8 @@ export class UploadController {
   /**
    * 上传流文件
    * @param req
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @param fileName
    * @param filePath
    * @param fileExt
@@ -95,8 +94,8 @@ export class UploadController {
     @Req() req: Request,
     @Query()
     {
-      userid,
-      folderid,
+      userUuid,
+      folderUuid,
       fileName,
       filePath,
       fileExt,
@@ -106,8 +105,8 @@ export class UploadController {
     },
   ): Promise<AjaxResult> {
     if (
-      !StringUtils.hasText(userid) ||
-      !StringUtils.hasText(folderid) ||
+      !StringUtils.hasText(userUuid) ||
+      !StringUtils.hasText(folderUuid) ||
       !StringUtils.hasText(filePath) ||
       !StringUtils.hasText(fileSha256) ||
       !StringUtils.hasText(currentChunkMax) ||
@@ -117,13 +116,13 @@ export class UploadController {
       return AjaxResult.fail('参数错误');
     }
 
-    const decryptUserid = parseInt(MathTools.decryptForKey(userid));
-    const decryptFolderid =
-      folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
+    // const decryptUserid = parseInt(MathTools.decryptForKey(userid));
+    // const decryptFolderid =
+    //   folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
     const ajaxResult = await this.uploadService.uploadStreamFile(
       file,
-      decryptUserid,
-      decryptFolderid,
+      userUuid,
+      folderUuid,
       fileName,
       filePath,
       fileExt,
@@ -137,8 +136,8 @@ export class UploadController {
 
   /**
    * 秒传文件
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @param fileName
    * @param filePath
    * @param fileExt
@@ -147,11 +146,11 @@ export class UploadController {
   @Post('uploadSecondPass')
   async uploadSecondPass(
     @Body()
-    { userid, folderid, fileName, filePath, fileExt, fileSha256 },
+    { userUuid, folderUuid, fileName, filePath, fileExt, fileSha256 },
   ): Promise<AjaxResult> {
     if (
-      !StringUtils.hasText(userid) ||
-      !StringUtils.hasText(folderid) ||
+      !StringUtils.hasText(userUuid) ||
+      !StringUtils.hasText(folderUuid) ||
       !StringUtils.hasText(fileName) ||
       !StringUtils.hasText(filePath) ||
       !StringUtils.hasText(fileExt) ||
@@ -160,13 +159,13 @@ export class UploadController {
       return AjaxResult.fail('参数错误');
     }
 
-    const decryptUserid = parseInt(MathTools.decryptForKey(userid));
-    const decryptFolderid =
-      folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
+    // const decryptUserid = parseInt(MathTools.decryptForKey(userid));
+    // const decryptFolderid =
+    //   folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
 
     return this.uploadService.uploadSecondPass(
-      decryptUserid,
-      decryptFolderid,
+      userUuid,
+      folderUuid,
       fileName,
       filePath,
       fileExt,

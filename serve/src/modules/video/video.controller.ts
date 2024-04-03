@@ -5,13 +5,11 @@ import {
   Body,
   Inject,
   Res,
-  Param,
   Get,
   Query,
 } from '@nestjs/common';
 import { StringUtils } from 'src/utils/StringUtils';
 import { VideoService } from './video.service';
-import MathTools from 'src/utils/MathTools';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -73,11 +71,11 @@ export class VideoController {
    * @param id
    */
   @Post('getVideoSceenshots')
-  async getVideoSceenshots(@Body() { id }) {
-    if (!StringUtils.hasText(id)) {
+  async getVideoSceenshots(@Body() { fileSha256 }) {
+    if (!StringUtils.hasText(fileSha256)) {
       return AjaxResult.fail('参数错误');
     }
-    const decryptId = id == '0' ? '' : MathTools.decryptForKey(id);
-    return this.videoService.getVideoSceenshots(decryptId);
+    // const decryptId = id == '0' ? '' : MathTools.decryptForKey(id);
+    return this.videoService.getVideoSceenshots(fileSha256);
   }
 }

@@ -95,7 +95,7 @@ export default defineComponent(
         }
 
         userStore.isLogin = true
-        userStore.id = data.id
+        userStore.id = data.userUuid
         userStore.photo = data.photo
         userStore.nickname = data.nickName
         proxy.$router.push({ name: 'drive' })

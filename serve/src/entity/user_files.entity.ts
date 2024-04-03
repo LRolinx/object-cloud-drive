@@ -67,7 +67,7 @@ export class UserFilesEntity {
     comment: '文件名',
     name: 'file_name',
   })
-  fileName?: number;
+  fileName?: string;
 
   /**
    * 后缀名
@@ -80,7 +80,6 @@ export class UserFilesEntity {
    */
   @Column({
     type: 'bit',
-    length: 1,
     default: false,
     comment: '是否共享',
     name: 'open',
@@ -103,7 +102,6 @@ export class UserFilesEntity {
    */
   @Column({
     type: 'bit',
-    length: 1,
     default: false,
     comment: '是否删除',
     name: 'del',
@@ -114,7 +112,7 @@ export class UserFilesEntity {
    * 删除时间
    */
   @Column({
-    type: 'char',
+    type: 'varchar',
     length: 20,
     nullable: true,
     comment: '删除时间',

@@ -58,8 +58,8 @@ export class UserController {
     @Body() { nickName, account, password, registeredCode },
   ): Promise<AjaxResult> {
     if (registeredCode.toUpperCase() == 'OBJECT') {
-      const _account = MathTools.decryptForKey(account);
-      const _password = MathTools.decryptForKey(password);
+      const _account = MathTools.decryptForKey(account) as string;
+      const _password = MathTools.decryptForKey(password) as string;
       return this.userService.userRegistered(
         UserEntity.instance({
           nickName,
@@ -98,8 +98,8 @@ export class UserController {
       );
     }
 
-    const _account = MathTools.decryptForKey(account);
-    const _password = MathTools.decryptForKey(password);
+    const _account = MathTools.decryptForKey(account) as string;
+    const _password = MathTools.decryptForKey(password) as string;
 
     return this.userService.userLogin(_account, _password);
   }

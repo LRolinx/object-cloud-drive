@@ -12,26 +12,26 @@ import { API_LIST } from '../script/api'
 import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType'
 
 // 获取用户的文件夹与文件
-export const getuserfileandfolderapi = (userid: string, folderid: string): Promise<Resp> => {
+export const getuserfileandfolderapi = (userUuid: string, folderUuid: string): Promise<Resp> => {
   return $http.post(API_LIST.DRIVE.GET_USERFILEANDFOLDER, {
-    userid,
-    folderid,
+    userUuid,
+    folderUuid,
   })
 }
 
 //添加用户文件夹
-export const adduserfolderapi = (userid: string, folderid: string, name: string): Promise<Resp> => {
+export const adduserfolderapi = (userUuid: string, folderUuid: string, name: string): Promise<Resp> => {
   return $http.post(API_LIST.DRIVE.ADD_USERFOLDER, {
-    userid,
-    folderid,
+    userUuid,
+    folderUuid,
     name,
   })
 }
 
 //批量添加用户文件夹
-export const batchAddUserFolder = (userid: string, data: BatchAddUserFolderType[]): Promise<Resp> => {
+export const batchAddUserFolder = (userUuid: string, data: BatchAddUserFolderType[]): Promise<Resp> => {
   return $http.post(API_LIST.DRIVE.BATCHADD_USERFOLDER, {
-    userid,
+    userUuid,
     data
   })
 }

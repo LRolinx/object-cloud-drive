@@ -46,7 +46,6 @@ export class FilesEntity {
    */
   @Column({
     type: 'bit',
-    length: 1,
     comment: '是否禁止,违规文件',
     default: false,
     name: 'disable',

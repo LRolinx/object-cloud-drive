@@ -37,7 +37,7 @@ export class UserEntity {
     comment: '用户UUID',
     name: 'user_uuid',
   })
-  userUUID?: number;
+  userUUID?: string;
 
   /**
    * 用户昵称
@@ -73,7 +73,6 @@ export class UserEntity {
    */
   @Column({
     type: 'bit',
-    length: 1,
     default: false,
     comment: '是否禁用',
     name: 'disable',
@@ -108,7 +107,6 @@ export class UserEntity {
    */
   @Column({
     type: 'bit',
-    length: 1,
     default: false,
     comment: '是否删除',
     name: 'del',

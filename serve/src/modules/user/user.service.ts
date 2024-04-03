@@ -20,12 +20,12 @@ import { Response } from 'express';
  * ░     ░░▒░ ░ ░   ░  ▒   ░ ░▒ ▒░
  * ░ ░    ░░░ ░ ░ ░        ░ ░░ ░
  * ░     ░ ░      ░  ░
- * Copyright 2021 Clover.
+ * Copyright 2024 LRolinx.
  * <p>
  *  用户Service
  * </p>
- * @author Clover
- * @create 2021-11-08 15:23
+ * @author LRolinx
+ * @create 2024-04-03 15:23
  */
 
 @Injectable()
@@ -61,12 +61,14 @@ export class UserService {
       const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
 
       const user = UserEntity.instance({
+        userUUID: MathTools.UUID(),
         nickName,
         photo:
           'https://storage.live.com/users/0xf2a82bac8d704404/myprofile/expressionprofile/profilephoto:UserTileStatic/p?ck=1&ex=720&sid=0CF8A907DF236BE1005BB80EDE136A1C&fofoff=1',
-        createTime: date,
-        password: MathTools.encryptForKey(password),
+
         account,
+        password: MathTools.encryptForKey(password),
+        createTime: date,
       });
 
       const insertResult = await this.addUser(user);
@@ -124,7 +126,7 @@ export class UserService {
     }
 
     const userdef = new UserDefaultEntity();
-    userdef.id = MathTools.encryptForKey(user.id);
+    userdef.userUuid = user.userUUID;
     userdef.nickName = user.nickName;
     userdef.photo = user.photo;
 

@@ -31,23 +31,25 @@ export class DriveController {
 
   /**
    * 添加用户文件夹
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @param name
    * @returns
    */
   @Post('addUserFolder')
-  async addUserFolder(@Body() { userid, folderid, name }): Promise<AjaxResult> {
+  async addUserFolder(
+    @Body() { userUuid, folderUuid, name },
+  ): Promise<AjaxResult> {
     if (
-      !StringUtils.hasText(userid) ||
-      !StringUtils.hasText(folderid) ||
+      !StringUtils.hasText(userUuid) ||
+      !StringUtils.hasText(folderUuid) ||
       !StringUtils.hasText(name)
     ) {
       return AjaxResult.fail('参数错误');
     }
 
-    const decryptUserid = parseInt(MathTools.decryptForKey(userid) as string);
-    const decryptFolderid = folderid;
+    const decryptUserid = MathTools.decryptForKey(userUuid) as string;
+    const decryptFolderid = folderUuid;
 
     return this.driveService.addFolder(decryptUserid, decryptFolderid, name);
   }
@@ -61,38 +63,35 @@ export class DriveController {
   @Post('batchAddUserFolder')
   async batchAddUserFolder(
     @Body()
-    { userId, data }: { userId: string; data: AddBatchUserFolderType[] },
+    { userUuid, data }: { userUuid: string; data: AddBatchUserFolderType[] },
   ): Promise<AjaxResult> {
-    if (!StringUtils.hasText(userId) || data == undefined) {
+    if (!StringUtils.hasText(userUuid) || data == undefined) {
       return AjaxResult.fail('参数错误');
     }
 
-    const decryptUserid = parseInt(MathTools.decryptForKey(userId) as string);
+    // const decryptUserid = parseInt(MathTools.decryptForKey(userId) as string);
 
-    return this.driveService.batchAddFolder(decryptUserid, data);
+    return this.driveService.batchAddFolder(userUuid, data);
   }
 
   /**
    * 获取用户当前文件夹内的文件以及文件夹
-   * @param userid
-   * @param folderid
+   * @param userUuid
+   * @param folderUuid
    * @returns
    */
   @Post('getUserFileAndFolder')
   async getUserFileAndFolder(
-    @Body() { userid, folderid },
+    @Body() { userUuid, folderUuid },
   ): Promise<AjaxResult> {
-    if (!StringUtils.hasText(userid) || !StringUtils.hasText(folderid)) {
+    if (!StringUtils.hasText(userUuid) || !StringUtils.hasText(folderUuid)) {
       return AjaxResult.fail('参数错误');
     } else {
-      const decryptUserid = parseInt(MathTools.decryptForKey(userid) as string);
-      const decryptFolderid = folderid;
+      //   const decryptUserid = parseInt(MathTools.decryptForKey(userid) as string);
+      //   const decryptFolderid = folderid;
 
       //获取用户当前目录下的所有文件夹以及文件
-      return this.driveService.getUserFileAndFolder(
-        decryptUserid,
-        decryptFolderid,
-      );
+      return this.driveService.getUserFileAndFolder(userUuid, folderUuid);
     }
   }
 

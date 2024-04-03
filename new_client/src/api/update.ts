@@ -10,11 +10,11 @@ import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
 // 检查文件
-export const examinefileapi = (userid: string, folderid: string, sha256Id: string, filename: string, fileext: string): Promise<Resp> => {
+export const examinefileapi = (userUuid: string, folderUuid: string, fileSha256: string, filename: string, fileext: string): Promise<Resp> => {
   return $http.post(API_LIST.UPDATE.EXAMINE_FILE, {
-    userid,
-    folderid,
-    sha256Id,
+    userUuid,
+    folderUuid,
+    fileSha256,
     filename,
     fileext,
   })
@@ -23,8 +23,8 @@ export const examinefileapi = (userid: string, folderid: string, sha256Id: strin
 // 片段流上传
 export const uploadstreamfileapi = (
   fileslice: any,
-  userid: string,
-  folderid: string,
+  userUuid: string,
+  folderUuid: string,
   fileName: string,
   filePath: string,
   fileExt: string,
@@ -35,8 +35,8 @@ export const uploadstreamfileapi = (
   return $http.put(API_LIST.UPDATE.UPLOAD_STREAMFILE, fileslice, {
 	params: {
     //   fileslice,
-      userid,
-      folderid,
+      userUuid,
+      folderUuid,
       fileName,
       filePath,
       fileExt,
