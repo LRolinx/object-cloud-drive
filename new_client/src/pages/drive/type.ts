@@ -1,4 +1,4 @@
-import { FileAndFloderType } from "@/types/FileAndFloderType"
+import { FileAndFloderType } from "@/types/FileAndFolderType"
 
 export type DriveProps = {
   width: number

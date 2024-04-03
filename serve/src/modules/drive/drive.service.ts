@@ -10,6 +10,7 @@ import MathTools from 'src/utils/MathTools';
 import { Repository, FindOneOptions } from 'typeorm';
 import conf from 'src/config/config';
 import * as fs from 'fs';
+import { AddBatchUserFolderType } from 'src/types/AddBatchUserFolderType';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -91,6 +92,83 @@ export class DriveService {
   }
 
   /**
+   * 检查文件夹是否存在
+   */
+  async checkFolder(userId, name, folderId): Promise<boolean> {
+    const folder: FindOneOptions<FolderEntity> = {
+      where: FolderEntity.instance({
+        userId,
+        name,
+        pId: folderId,
+        del: false,
+      }),
+    };
+
+    const folders = await this.folderEntity.findOne(folder);
+
+    if (folders == undefined) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * 批量添加文件夹
+   * @param userId 用户id
+   * @param data 数据
+   */
+  async batchAddFolder(
+    userId: number,
+    data: AddBatchUserFolderType[],
+  ): Promise<AjaxResult> {
+    for (let i = 0; i < data.length; i++) {
+      const folderId = data[i].folderId;
+      const name = data[i].folderName;
+
+      //检查指定的folder_id文件夹里是否已有对应的name文件夹
+      const folder: FindOneOptions<FolderEntity> = {
+        where: FolderEntity.instance({
+          userId,
+          name,
+          //   pId: folderId,
+          del: false,
+        }),
+      };
+
+      const folders = await this.folderEntity.findOne(folder);
+
+      if (folders == undefined) {
+        //文件夹不存在
+        const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
+        const folderDB = FolderEntity.instance({
+          userId,
+          //   pId: folderId,
+          name,
+          size: 0,
+          createTime: date,
+        });
+        const count = await this.folderEntity.insert(folderDB);
+        if (count == void 0) {
+          //新建文件夹失败
+          return AjaxResult.fail('新建文件夹失败');
+        }
+        //新建文件夹成功
+        return AjaxResult.success(
+          MathTools.encryptForKey(count.raw['insertId']),
+          '新建文件夹成功',
+        );
+      } else {
+        //文件夹存在
+        return AjaxResult.fail(
+          '文件夹存在',
+          500,
+          MathTools.encryptForKey(folders.id),
+        );
+      }
+    }
+  }
+
+  /**
    * 获取用户文件和文件夹
    * @param userId
    * @param folderId
@@ -115,14 +193,18 @@ export class DriveService {
       }),
     };
 
-    const folders = await this.folderEntity.find(folder);
-    const files = await this.userFilesEntity.find(userfile);
+    const folders = this.folderEntity.find(folder);
+    const files = this.userFilesEntity.find(userfile);
+
+    // 多异步工作 等待全部完成
+    await Promise.all([folders, files]);
+
     const result: UserFileAndFolder[] = [];
 
     if (folders !== null) {
-      for (const folder of folders) {
+      for (const folder of await folders) {
         const data = new UserFileAndFolder();
-        data.id = MathTools.encryptForKey(folder.id);
+        data.id = folder.id.toString(); //MathTools.encryptForKey(); //文件夹不加密减少加密时间同时保证批量添加文件夹
         data.type = 'folder';
         data.name = folder.name;
         data.size = folder.size;
@@ -131,7 +213,7 @@ export class DriveService {
       }
     }
     if (files !== null) {
-      for (const file of files) {
+      for (const file of await files) {
         const data = new UserFileAndFolder();
         data.id = MathTools.encryptForKey(file.id);
         data.type = 'file';

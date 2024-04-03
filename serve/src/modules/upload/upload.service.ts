@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import DateUtils from 'src/utils/DateUtils';
 import { format } from 'date-fns';
 import * as path from 'path';
+import { time } from 'console';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -149,6 +150,8 @@ export class UploadService {
           return;
         }
 
+        return resolve(AjaxResult.success(null, '传输完成'));
+
         //开始合并片段文件
         for (let i = 0, len = files.length; i < len; i++) {
           const content = fs.readFileSync(path.join(sha256Path, i.toString()));
@@ -186,24 +189,6 @@ export class UploadService {
             console.log(e);
             resolve(AjaxResult.fail('传输出错'));
           });
-
-        // req
-        //   .on('data', (trunk) => {
-        //     buffers.push(trunk);
-        //   })
-        //   .on('end', () => {
-        //     console.log('结束');
-        //     const buffer = Buffer.concat(buffers);
-
-        //   })
-        //   // .on('close', () => {
-        //   //   console.log('close');
-        //   //
-        //   // })
-        //   .on('error', () => {
-        //     resolve(AjaxResult.fail('传输出错'));
-        //     console.log('error');
-        //   });
       } catch (e) {
         console.log(e);
         resolve(AjaxResult.fail('传输出错'));

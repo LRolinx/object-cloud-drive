@@ -18,6 +18,7 @@ export const API_LIST = {
   DRIVE: {
     GET_USERFILEANDFOLDER: '/drive/getUserFileAndFolder',
     ADD_USERFOLDER: '/drive/addUserFolder',
+    BATCHADD_USERFOLDER: '/drive/batchAddUserFolder',
     GET_USERFILEFORFILEID: '/drive/getUserFileForFileId',
     DEL_USERFILEORFOLDER: '/drive/delUserFileOrFolder',
   },

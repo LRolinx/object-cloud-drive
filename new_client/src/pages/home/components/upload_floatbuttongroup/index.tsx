@@ -1,5 +1,5 @@
 import { Button, FloatButton, FloatButtonGroup, Popconfirm, Progress, Space, Tooltip, Tour, TourProps, Upload } from 'ant-design-vue'
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, watch, onBeforeMount, computed } from 'vue'
 import './index.less'
 import { CloudUploadOutlined, FileAddTwoTone, FolderAddTwoTone } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
@@ -8,6 +8,7 @@ import { UploadType } from '@/types/UploadType'
 
 export const UploadFloatButtonGroup = defineComponent(
   (_, ctx) => {
+    const taskNum = ref(0)
     const driveStore = useDriveStore()
     const openUploadModal = ref(true)
 
@@ -21,10 +22,17 @@ export const UploadFloatButtonGroup = defineComponent(
 
     //计算正在进行的任务数量
     const calculateTaskNum = () => {
-		console.log("数量触发")
       const taskArr = driveStore.uploadTaskList.filter((x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Conduct)
+      taskNum.value = taskArr.length
       return taskArr.length
     }
+
+    watch(
+      () => driveStore.counter,
+      () => {
+        calculateTaskNum()
+      },
+    )
 
     return () => {
       return (
@@ -50,7 +58,7 @@ export const UploadFloatButtonGroup = defineComponent(
               </Space>
             </FloatButtonGroup>
 
-            <FloatButton onClick={handleOpen} badge={{ count: calculateTaskNum() }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
+            <FloatButton onClick={handleOpen} badge={{ count: taskNum.value }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
         </>
       )

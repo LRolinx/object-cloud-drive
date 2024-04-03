@@ -122,13 +122,14 @@ export const UploadModal = defineComponent(
 
     //初始化
     const init = () => {
-      nextTick(() => {
+      nextTick(async () => {
         const grid = vxeGridRef.value
         if (grid == void 0) return
         grid.loadData(driveStore.uploadTaskList)
         // grid.getTableData().fullData = driveStore.uploadBufferPool
 
         // console.log(driveStore.uploadBufferPool)
+        // await grid.refreshColumn()
       })
     }
 
@@ -142,11 +143,8 @@ export const UploadModal = defineComponent(
     )
 
     watch(
-      () => driveStore.uploadTaskList,
-      () => nextTick(() => init()),
-      {
-        deep: true,
-      }
+      () => driveStore.counter,
+      () => nextTick(() => init())
     )
 
     onBeforeMount(() => nextTick(() => init()))

@@ -46,7 +46,7 @@ export interface ConfType {
 const USER_HOME = process.env.HOME || process.env.USERPROFILE;
 
 const conf: ConfType = {
-  key: { 
+  key: {
     path: path.join(USER_HOME, '/.objectcloud/key/'),
   },
   upload: {

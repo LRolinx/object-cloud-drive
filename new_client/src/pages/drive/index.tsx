@@ -1,4 +1,4 @@
-import { defineComponent, onBeforeMount, onMounted, toRaw, watch, withModifiers } from 'vue'
+import { defineComponent, onBeforeMount, onMounted, ref, toRaw, watch, withModifiers } from 'vue'
 import { DriveEmits, DriveProps } from './type'
 import { useAppStore } from '@/store/models/app'
 import { useUserStore } from '@/store/models/user'
@@ -6,7 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { adduserfolderapi, deluserfileorfolderapi, getuserfileandfolderapi, getuserfileforfileidapi } from '@/api/drive'
 import { Button, Modal, message } from 'ant-design-vue'
 import { getvideosceenshotsapi } from '@/api/video'
-import { FileAndFloderType } from '@/types/FileAndFloderType'
+import { FileAndFloderType } from '@/types/FileAndFolderType'
 import './index.less'
 import { useGlobalDataStore } from './store/global_data'
 import { NewFolder } from '@/pages/home/components/new_folder'
@@ -14,6 +14,9 @@ import { DynamicScroller } from 'vue-virtual-scroller'
 import { useDriveStore } from '@/store/models/drive'
 import { Throttle } from '@/utils/date'
 import { GetFileTypeInItem } from '@/utils/FileType'
+import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType'
+import { BatchAddUserFileType } from '@/types/BatchAddUserFileType'
+import MathTools from '@/utils/MathTools'
 
 export default defineComponent<DriveProps, DriveEmits>(
   (props, ctx) => {
@@ -25,6 +28,9 @@ export default defineComponent<DriveProps, DriveEmits>(
     const router = useRouter()
     const throttle = Throttle(3000)
 
+    const dropAddFolderList = ref<BatchAddUserFolderType[]>([])
+    const dropAddFileList = ref<BatchAddUserFileType[]>([])
+
     /**
      * 获取路由的文件夹id
      */
@@ -32,7 +38,7 @@ export default defineComponent<DriveProps, DriveEmits>(
       const routerFolderId = route.params.folderId ?? ''
       const folderid = (driveStore.currenFolderId = routerFolderId.toString())
       if (folderid == undefined || folderid == '' || folderid == null) {
-        return '0'
+        return MathTools.RootUUID()
       }
 
       return typeof folderid == 'string' ? route.params.folderId.toString() : route.params.folderId[0]
@@ -141,9 +147,16 @@ export default defineComponent<DriveProps, DriveEmits>(
         if (item.kind === 'file') {
           //是文件才触发
           let entry = item.webkitGetAsEntry()
-          getFileFromEntryRecursively('0', entry)
+          getFileFromEntryRecursively(MathTools.RootUUID(), entry)
         }
       })
+
+      //遍历完成
+
+      console.log('遍历完成1', dropAddFolderList.value)
+      console.log('遍历完成1', dropAddFileList.value)
+      //   dropAddFolderList.value = []
+      //   dropAddFileList.value = []
     }
 
     /**
@@ -240,17 +253,18 @@ export default defineComponent<DriveProps, DriveEmits>(
 
     /**
      * 处理文件夹里的文件
-     * @param folderId
+     * @param pid
      * @param entry
      */
-    const getFileFromEntryRecursively = async (folderId: string, entry: any) => {
+    const getFileFromEntryRecursively = async (pid: string, entry: any) => {
       if (entry.isFile) {
+        return
         entry.file((file: File) => {
           let filenameAndfext = getFileNameAndFext(file.name)
 
           let path = entry.fullPath.substring(1)
 
-          let fileInfoOBJ = {
+          dropAddFileList.value.push({
             uploadType: 0,
             uploadCurrentChunkNum: 0,
             currentChunkMax: 0,
@@ -262,19 +276,36 @@ export default defineComponent<DriveProps, DriveEmits>(
             filePath: path,
             fileSha256: '',
             folderId: folderId == '0' ? getFolderId() : folderId,
-            // currentChunkList: []
-          }
+          })
+
+          //   let fileInfoOBJ = {
+          //     uploadType: 0,
+          //     uploadCurrentChunkNum: 0,
+          //     currentChunkMax: 0,
+          //     file,
+          //     fileSize: file.size,
+          //     fileType: file.type,
+          //     fname: filenameAndfext.fname,
+          //     fext: filenameAndfext.fext,
+          //     filePath: path,
+          //     fileSha256: '',
+          //     folderId: folderId == '0' ? getFolderId() : folderId,
+          //   }
           // console.log(fileInfoOBJ);
-          driveStore.uploadTaskList.push(fileInfoOBJ) //将任务写入数据
+          //   driveStore.uploadTaskList.push(fileInfoOBJ) //将任务写入数据
         })
       } else {
         //检测到文件夹
-        let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
+        // let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
+        dropAddFolderList.value.push({
+          folderId: pid == MathTools.RootUUID() ? getFolderId() : pid,
+          folderNmae: entry.name,
+        })
 
         let reader = entry.createReader()
         reader.readEntries((entries) => {
           for (let i = 0, len = entries.length; i < len; i++) {
-            getFileFromEntryRecursively(createfolderres.data.data, entries[i])
+            getFileFromEntryRecursively(MathTools.UUID(), entries[i])
           }
 
           // entries.forEach(entry => getFileFromEntryRecursively(entry));

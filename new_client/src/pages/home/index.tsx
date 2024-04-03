@@ -84,7 +84,6 @@ export default defineComponent<HomeProps, HomeEmits>(
         params.append('file', fileslice)
 
         uploadstreamfileapi(params, userStore.id, item.folderId, item.fname, item.filePath, item.fext, item.fileSha256, chunks, i).then((resp) => {
-          console.log(resp)
           const { code: code, message: msg, data: data } = resp.data
           if (code !== 200) {
             //上传失败
@@ -92,7 +91,8 @@ export default defineComponent<HomeProps, HomeEmits>(
             return message.error(msg)
           }
 
-          item.uploadCurrentChunkNum = item.uploadCurrentChunkNum + 1
+          item.uploadCurrentChunkNum += 1
+          driveStore.counter += 1
           if (item.uploadCurrentChunkNum >= item.currentChunkMax) {
             // console.log(childRouter);
             // $refs.childRouter.getUserFileAndFolder(
@@ -107,20 +107,25 @@ export default defineComponent<HomeProps, HomeEmits>(
     }
 
     const calculateSliceSize = (size: number) => {
-      //计算分段
-      let Msize = Number((((size / 1024 ** 2) * 100) / 100).toFixed(2))
-      if (Msize < 10) {
-        return 10
-      } else if (Msize < 100) {
-        return 10
-      } else {
+      //计算分段MB
+
+      const mbSize = Number((((size / 1024 ** 2) * 100) / 100).toFixed(2))
+
+      //计算的出百分比占比MB
+      const zb = parseInt(((mbSize / 100) * 2).toString())
+
+      if (zb > 10) {
         return 10
       }
+
+      return zb
     }
 
     //设置上传状态
     const setUploadType = (item: any, type: UploadType) => {
       item['uploadType'] = type
+      //操作计数器用于刷新
+      driveStore.counter += 1
     }
 
     watch(route, (toRouter) => {
@@ -146,6 +151,7 @@ export default defineComponent<HomeProps, HomeEmits>(
         // 监听到添加任务 开始分配任务
         const item = m.events['newValue']
         if (typeof item != 'object') return
+        driveStore.counter += 1
         //检查文件是否过小或过大或者文件是否存在
         if (item['file']['size'] <= 0) {
           //文件太小,无法上传

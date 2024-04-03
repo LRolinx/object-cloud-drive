@@ -1,18 +1,37 @@
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
-export const useDriveStore = defineStore('drive', {
-  // other options...
-  persist: {
-    storage: sessionStorage, // 缓存使用方式
-  },
-  state: () => {
+export const useDriveStore = defineStore(
+  'drive',
+  () => {
+    const navigation = ref([]) //导航
+    const currenFolderId = ref('0') //当前文件夹id
+    const uploadTaskList = ref([]) //上传任务列表
+	const counter = ref(0)
+
     return {
-      navigation: [], //导航
-      currenFolderId: '0', //当前文件夹id
-      uploadTaskList: [], //上传任务列表
-      uploadSetTimeOut: null, //延迟倒计时
-      uploadRemainingTask: 0, //剩余上传任务
+      navigation,
+      currenFolderId,
+      uploadTaskList,
+	  counter
     }
   },
-  actions: {},
-})
+//   {
+//     persist: {
+//       storage: sessionStorage, // 缓存使用方式
+//     },
+//   }
+)
+
+// {
+//   // other options...
+//   persist: {
+//     storage: sessionStorage, // 缓存使用方式
+//   },
+//   state: () => {
+//     return {
+
+//     }
+//   },
+//   actions: {},
+// })

@@ -3,6 +3,7 @@ import { Body, Controller, Inject, Post } from '@nestjs/common';
 import { DriveService } from './drive.service';
 import MathTools from 'src/utils/MathTools';
 import { StringUtils } from 'src/utils/StringUtils';
+import { AddBatchUserFolderType } from 'src/types/AddBatchUserFolderType';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -45,11 +46,30 @@ export class DriveController {
       return AjaxResult.fail('参数错误');
     }
 
-    const decryptUserid = parseInt(MathTools.decryptForKey(userid));
-    const decryptFolderid =
-      folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
+    const decryptUserid = parseInt(MathTools.decryptForKey(userid) as string);
+    const decryptFolderid = folderid;
 
     return this.driveService.addFolder(decryptUserid, decryptFolderid, name);
+  }
+
+  /**
+   * 添加批量用户文件夹
+   * @param userId
+   * @param data
+   * @returns
+   */
+  @Post('batchAddUserFolder')
+  async batchAddUserFolder(
+    @Body()
+    { userId, data }: { userId: string; data: AddBatchUserFolderType[] },
+  ): Promise<AjaxResult> {
+    if (!StringUtils.hasText(userId) || data == undefined) {
+      return AjaxResult.fail('参数错误');
+    }
+
+    const decryptUserid = parseInt(MathTools.decryptForKey(userId) as string);
+
+    return this.driveService.batchAddFolder(decryptUserid, data);
   }
 
   /**
@@ -65,9 +85,8 @@ export class DriveController {
     if (!StringUtils.hasText(userid) || !StringUtils.hasText(folderid)) {
       return AjaxResult.fail('参数错误');
     } else {
-      const decryptUserid = parseInt(MathTools.decryptForKey(userid));
-      const decryptFolderid =
-        folderid == '0' ? 0 : parseInt(MathTools.decryptForKey(folderid));
+      const decryptUserid = parseInt(MathTools.decryptForKey(userid) as string);
+      const decryptFolderid = folderid;
 
       //获取用户当前目录下的所有文件夹以及文件
       return this.driveService.getUserFileAndFolder(
@@ -88,7 +107,7 @@ export class DriveController {
       return AjaxResult.fail('参数错误');
     }
 
-    const did = parseInt(MathTools.decryptForKey(id));
+    const did = parseInt(MathTools.decryptForKey(id) as string);
     return this.driveService.getUserFileForFileId(did);
   }
 
@@ -102,7 +121,11 @@ export class DriveController {
     if (!StringUtils.hasText(id) || !StringUtils.hasText(type)) {
       return AjaxResult.fail('参数错误');
     }
-    const did = parseInt(MathTools.decryptForKey(id));
-    return this.driveService.delUserFileOrFolder(did, type);
+    if (type == 'file') {
+      const did = parseInt(MathTools.decryptForKey(id) as string);
+      return this.driveService.delUserFileOrFolder(did, type);
+    }
+    //文件夹
+    return this.driveService.delUserFileOrFolder(id, type);
   }
 }

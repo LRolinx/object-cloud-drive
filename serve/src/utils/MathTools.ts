@@ -57,10 +57,37 @@ export default class MathTools {
    * 使用私有密匙解密
    * @param value 需要解密的内容
    */
-  public static decryptForKey(encrypt: any): string {
-    const data = fs.readFileSync(`${conf.key.path}private.key`);
-    const decrypt = new NodeRSA(data);
-    decrypt.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' });
-    return decrypt.decrypt(encrypt, 'utf8');
+  public static decryptForKey(encrypt: any): string | boolean {
+    try {
+      const data = fs.readFileSync(`${conf.key.path}private.key`);
+      const decrypt = new NodeRSA(data);
+      decrypt.setOptions({ encryptionScheme: 'pkcs1', environment: 'browser' });
+      return decrypt.decrypt(encrypt, 'utf8');
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * 生成根UUID
+   * @returns
+   */
+  public static RootUUID() {
+    return '00000000-0000-0000-0000-000000000000';
+  }
+
+  /**
+   * 生成4位随机字符
+   * @returns
+   */
+  private static S4() {
+    return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+  }
+
+  /**
+   * 生成随机UUID
+   */
+  public static UUID() {
+    return `${MathTools.S4()}${MathTools.S4()}-${MathTools.S4()}-${MathTools.S4()}-${MathTools.S4()}-${MathTools.S4()}${MathTools.S4()}${MathTools.S4()}`;
   }
 }
