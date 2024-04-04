@@ -124,12 +124,15 @@ export class DriveService {
     for (let i = 0; i < data.length; i++) {
       //   const folderId = data[i].folderId;
       const name = data[i].folderName;
+      const pUuid = data[i].pUuid;
+      const folderUuid = data[i].folderUuid;
 
       //检查指定的folder_id文件夹里是否已有对应的name文件夹
       const folder: FindOneOptions<FolderEntity> = {
         where: FolderEntity.instance({
           userUuid,
           name,
+          pUuid,
           //   pId: folderId,
           del: false,
         }),
@@ -142,30 +145,33 @@ export class DriveService {
         const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
         const folderDB = FolderEntity.instance({
           userUuid,
-          //   pId: folderId,
+          pUuid,
+          folderUuid,
           name,
           size: 0,
           createTime: date,
         });
         const count = await this.folderEntity.insert(folderDB);
-        if (count == void 0) {
-          //新建文件夹失败
-          return AjaxResult.fail('新建文件夹失败');
-        }
-        //新建文件夹成功
-        return AjaxResult.success(
-          MathTools.encryptForKey(count.raw['insertId']),
-          '新建文件夹成功',
-        );
+        // if (count == void 0) {
+        //   //新建文件夹失败
+        //   return AjaxResult.fail('新建文件夹失败');
+        // }
+        // //新建文件夹成功
+        // return AjaxResult.success(
+        //   MathTools.encryptForKey(count.raw['insertId']),
+        //   '新建文件夹成功',
+        // );
       } else {
         //文件夹存在
-        return AjaxResult.fail(
-          '文件夹存在',
-          500,
-          MathTools.encryptForKey(folders.id),
-        );
+        // return AjaxResult.fail(
+        //   '文件夹存在',
+        //   500,
+        //   MathTools.encryptForKey(folders.id),
+        // );
       }
     }
+
+    return AjaxResult.fail('完成', 200);
   }
 
   /**
@@ -204,7 +210,8 @@ export class DriveService {
     if (folders !== null) {
       for (const folder of await folders) {
         const data = new UserFileAndFolder();
-        data.id = folder.id.toString(); //MathTools.encryptForKey(); //文件夹不加密减少加密时间同时保证批量添加文件夹
+        data.id = folder.folderUuid; //MathTools.encryptForKey(); //文件夹不加密减少加密时间同时保证批量添加文件夹
+        data.pUUid = folder.pUuid; //MathTools.encryptForKey(); //文件夹不加密减少加密时间同时保证批量添加文件夹
         data.type = 'folder';
         data.name = folder.name;
         data.size = folder.size;
@@ -215,7 +222,8 @@ export class DriveService {
     if (files !== null) {
       for (const file of await files) {
         const data = new UserFileAndFolder();
-        data.id = MathTools.encryptForKey(file.id);
+        data.id = file.fileSha256;
+        data.pUUid = file.folderUuid;
         data.type = 'file';
         data.updateTime = file.createTime;
         data.name = file.fileName;
@@ -255,12 +263,12 @@ export class DriveService {
    * @param type
    * @returns
    */
-  async delUserFileOrFolder(id: number, type: string): Promise<AjaxResult> {
+  async delUserFileOrFolder(id: string, type: string): Promise<AjaxResult> {
     const date = format(new Date(), DateUtils.DATETIME_DEFAULT_FORMAT);
     if (type == 'file') {
       //删除文件
       const userfile = UserFilesEntity.instance({
-        id,
+        fileSha256: id,
         del: false,
       });
       const count = await this.userFilesEntity.update(userfile, {
@@ -274,7 +282,7 @@ export class DriveService {
     } else {
       //删除文件夹
       const userfile = FolderEntity.instance({
-        id,
+        folderUuid: id,
       });
       const count = await this.folderEntity.update(userfile, {
         del: true,

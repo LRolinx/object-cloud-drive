@@ -30,17 +30,6 @@ export default defineComponent<HomeProps, HomeEmits>(
       //   childRouter.value.openNewFolderModel()
     }
 
-    //分配任务
-    const distributionTask = () => {
-      console.log('分配人物')
-      for (let i = 0, len = driveStore.uploadTaskList.length; i < len; i++) {
-        if (driveStore.uploadTaskList[i].uploadType == 0) {
-          //有空闲线程先异步执行
-          upLoadFun(driveStore.uploadTaskList[i])
-        }
-      }
-    }
-
     const openDrive = () => {
       //打开我的云盘
       router.push({ name: 'drive' })
@@ -92,7 +81,7 @@ export default defineComponent<HomeProps, HomeEmits>(
           }
 
           item.uploadCurrentChunkNum += 1
-          driveStore.counter += 1
+          appStore.counter += 1
           if (item.uploadCurrentChunkNum >= item.currentChunkMax) {
             // console.log(childRouter);
             // $refs.childRouter.getUserFileAndFolder(
@@ -114,6 +103,10 @@ export default defineComponent<HomeProps, HomeEmits>(
       //计算的出百分比占比MB
       const zb = parseInt(((mbSize / 100) * 2).toString())
 
+      if (zb <= 2) {
+        return 2
+      }
+
       if (zb > 10) {
         return 10
       }
@@ -125,7 +118,7 @@ export default defineComponent<HomeProps, HomeEmits>(
     const setUploadType = (item: any, type: UploadType) => {
       item['uploadType'] = type
       //操作计数器用于刷新
-      driveStore.counter += 1
+      appStore.counter += 1
     }
 
     watch(route, (toRouter) => {
@@ -135,23 +128,15 @@ export default defineComponent<HomeProps, HomeEmits>(
       appStore.siderbarStr = toRouter.name.toString() //重置最后路由
     })
 
-    // watch(
-    //   () => driveStore.uploadTaskList,
-    //   () => {
-    //     //监听文件上传任务 进行分配上传
-    //     distributionTask()
-    //   },
-    //   { deep: true }
-    // )
 
     driveStore.$subscribe((m, s) => {
       //监听任务列表变化
-      //   console.log(m.events['type'])
+      //   console.log(m)
       if (m.events['type'] === 'add') {
         // 监听到添加任务 开始分配任务
         const item = m.events['newValue']
-        if (typeof item != 'object') return
-        driveStore.counter += 1
+        if (typeof item['file'] === undefined) return
+        appStore.counter += 1
         //检查文件是否过小或过大或者文件是否存在
         if (item['file']['size'] <= 0) {
           //文件太小,无法上传
@@ -164,71 +149,62 @@ export default defineComponent<HomeProps, HomeEmits>(
           return
         }
 
-        const fr = new FileReader()
-        fr.readAsArrayBuffer(item['file'])
-        fr.onload = (data) => {
-          const sha256Id = sha256(data.target.result)
-          item['fileSha256'] = sha256Id
+        examinefileapi(userStore.id, item.folderId, item.fileSha256, item.fname, item.fext).then((resp) => {
+          const { code, message: msg, data } = resp.data
+          if (code !== 200) {
+            //上传失败
+            setUploadType(item, UploadType.Error)
+            return message.error(msg)
+          }
 
-          examinefileapi(userStore.id, item.folderId, sha256Id, item.fname, item.fext).then((resp) => {
-            const { code, message: msg, data } = resp.data
-            if (code !== 200) {
-              //上传失败
-              setUploadType(item, UploadType.Error)
-              return message.error(msg)
-            }
+          if (!data.userFileExist) {
+            //用户文件不存在
+            if (!data.fileExist) {
+              //文件不存在 开始上传
+              setUploadType(item, UploadType.Prepare)
 
-            if (!data.userFileExist) {
-              //用户文件不存在
-              if (!data.fileExist) {
-                //文件不存在 开始上传
-                setUploadType(item, UploadType.Prepare)
-
-                upLoadFun(item)
-              } else {
-                //秒传文件
-                setUploadType(item, UploadType.Fast)
-                //   $http
-                //     .post(`${userStore.serve.serveUrl}upload/uploadSecondPass`, {
-                //       userid: userStore.id,
-                //       folderid: item.folderId,
-                //       fileName: item.fname,
-                //       filePath: item.filePath,
-                //       fileExt: item.fext,
-                //       fileSha256: item.fileSha256,
-                //     })
-                //     .then((SecondPass) => {
-                //       if (SecondPass.data.code == 200) {
-                //         // childRouter.value.getUserFileAndFolder(
-                //         //   childRouter.value.getFolderId()
-                //         // );
-                //         // console.log(childRouter);
-                //         //设置任务为秒传
-                //         setTaskState(item, 5, 0)
-                //       } else {
-                //         //秒传失败
-                //         setTaskState(item, 404, 0)
-                //         console.log(SecondPass.data.message)
-                //       }
-                //     })
-              }
+              // upLoadFun(item)
             } else {
-              //用户文件已存在
-              setUploadType(item, UploadType.Exist)
+              //秒传文件
+              setUploadType(item, UploadType.Fast)
+              //   $http
+              //     .post(`${userStore.serve.serveUrl}upload/uploadSecondPass`, {
+              //       userid: userStore.id,
+              //       folderid: item.folderId,
+              //       fileName: item.fname,
+              //       filePath: item.filePath,
+              //       fileExt: item.fext,
+              //       fileSha256: item.fileSha256,
+              //     })
+              //     .then((SecondPass) => {
+              //       if (SecondPass.data.code == 200) {
+              //         // childRouter.value.getUserFileAndFolder(
+              //         //   childRouter.value.getFolderId()
+              //         // );
+              //         // console.log(childRouter);
+              //         //设置任务为秒传
+              //         setTaskState(item, 5, 0)
+              //       } else {
+              //         //秒传失败
+              //         setTaskState(item, 404, 0)
+              //         console.log(SecondPass.data.message)
+              //       }
+              //     })
             }
-          })
-        }
+          } else {
+            //用户文件已存在
+            setUploadType(item, UploadType.Exist)
+          }
+        })
 
-        // distributionTask()
+        // const fr = new FileReader()
+        // fr.readAsArrayBuffer(item['file'])
+        // fr.onload = (data) => {
+        //   const sha256Id = sha256(data.target.result)
+        //   item['fileSha256'] = sha256Id
+
+        // }
       }
-      //   console.log(m, s)
-      //   if (!bool) {
-      //     bool = true
-      //     driveStore.uploadTaskList.splice(driveStore.uploadTaskList.length - 1, 1)
-      //   }
-      //   driveStore.uploadTaskList = s.drive.uploadTaskList;
-
-      // console.log(s);
     })
 
     return () => {
@@ -273,7 +249,7 @@ export default defineComponent<HomeProps, HomeEmits>(
                 </div>
               </div>
               <div class="content">
-                <router-view ref={childRouter}></router-view>
+                <router-view>{/* <component ref={childRouter} is={Component} key={route.path}></component> */}</router-view>
               </div>
             </div>
             <UploadFloatButtonGroup></UploadFloatButtonGroup>

@@ -29,7 +29,7 @@ export const adduserfolderapi = (userUuid: string, folderUuid: string, name: str
 }
 
 //批量添加用户文件夹
-export const batchAddUserFolder = (userUuid: string, data: BatchAddUserFolderType[]): Promise<Resp> => {
+export const batchAddUserFolderApi = (userUuid: string, data: BatchAddUserFolderType[]): Promise<Resp> => {
   return $http.post(API_LIST.DRIVE.BATCHADD_USERFOLDER, {
     userUuid,
     data

@@ -35,7 +35,7 @@ const routes = [
     },
     children: [
       {
-        path: 'drive/:folderId(.*)*',
+        path: 'drive/:folderUuid(.*)*',
         component: drive,
         name: 'drive',
         meta: {

@@ -1,4 +1,5 @@
 export type BatchAddUserFolderType = {
-  folderId: string
-  folderNmae: string
+  pUuid: string
+  folderUuid: string
+  folderName: string
 }

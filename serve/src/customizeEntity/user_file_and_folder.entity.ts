@@ -20,12 +20,17 @@ import { Column, Entity, PrimaryColumn } from 'typeorm';
 @Entity('t_user_file_and_folder')
 export class UserFileAndFolder {
   /**
-   * 加密用户ID
+   * 文件夹Uuid
    */
-  @PrimaryColumn({
+  @Column({
     type: 'varchar',
   })
   id?: string;
+
+  @Column({
+    type: 'varchar',
+  })
+  pUUid?: string;
 
   @Column({ type: 'varchar', length: 255 })
   name?: string;

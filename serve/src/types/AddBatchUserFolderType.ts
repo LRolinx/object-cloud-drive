@@ -1,4 +1,5 @@
 export type AddBatchUserFolderType = {
-  folderId: string;
+  pUuid: string;
+  folderUuid: string;
   folderName: string;
 };

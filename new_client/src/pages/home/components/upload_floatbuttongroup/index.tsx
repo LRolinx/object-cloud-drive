@@ -5,10 +5,12 @@ import { CloudUploadOutlined, FileAddTwoTone, FolderAddTwoTone } from '@ant-desi
 import { useDriveStore } from '@/store/models/drive'
 import { UploadModal } from '../upload_modal'
 import { UploadType } from '@/types/UploadType'
+import { useAppStore } from '@/store/models/app'
 
 export const UploadFloatButtonGroup = defineComponent(
   (_, ctx) => {
     const taskNum = ref(0)
+    const appStore = useAppStore()
     const driveStore = useDriveStore()
     const openUploadModal = ref(true)
 
@@ -28,7 +30,7 @@ export const UploadFloatButtonGroup = defineComponent(
     }
 
     watch(
-      () => driveStore.counter,
+      () => appStore.counter,
       () => {
         calculateTaskNum()
       },

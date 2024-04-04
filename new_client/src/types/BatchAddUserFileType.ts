@@ -2,7 +2,7 @@ export type BatchAddUserFileType = {
   uploadType: number
   uploadCurrentChunkNum: number
   currentChunkMax: number
-  file: object
+  file: File
   fileSize: number
   fileType: string
   fname: string

@@ -121,7 +121,7 @@ export class DriveController {
       return AjaxResult.fail('参数错误');
     }
     if (type == 'file') {
-      const did = parseInt(MathTools.decryptForKey(id) as string);
+      const did = MathTools.decryptForKey(id) as string;
       return this.driveService.delUserFileOrFolder(did, type);
     }
     //文件夹

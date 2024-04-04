@@ -5,9 +5,11 @@ import { CloudUploadOutlined, DashboardTwoTone } from '@ant-design/icons-vue'
 import { useDriveStore } from '@/store/models/drive'
 import { VXETable, VxeGrid, VxeGridInstance, VxeGridProps } from 'vxe-table'
 import { UploadType } from '@/types/UploadType'
+import { useAppStore } from '@/store/models/app'
 
 export const UploadModal = defineComponent(
   (props, _) => {
+    const appStore = useAppStore()
     const driveStore = useDriveStore()
 
     //空表格渲染
@@ -143,7 +145,7 @@ export const UploadModal = defineComponent(
     )
 
     watch(
-      () => driveStore.counter,
+      () => appStore.counter,
       () => nextTick(() => init())
     )
 
