@@ -24,7 +24,9 @@ export const UploadFloatButtonGroup = defineComponent(
 
     //计算正在进行的任务数量
     const calculateTaskNum = () => {
-      const taskArr = driveStore.uploadTaskList.filter((x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Checkout || x['uploadType'] == UploadType.Conduct)
+      const taskArr = driveStore.uploadTaskList.filter(
+        (x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Checkout || x['uploadType'] == UploadType.Conduct
+      )
       taskNum.value = taskArr.length
       return taskArr.length
     }
@@ -33,7 +35,7 @@ export const UploadFloatButtonGroup = defineComponent(
       () => appStore.counter,
       () => {
         calculateTaskNum()
-      },
+      }
     )
 
     return () => {
@@ -60,7 +62,7 @@ export const UploadFloatButtonGroup = defineComponent(
               </Space>
             </FloatButtonGroup>
 
-            <FloatButton onClick={handleOpen} badge={{ count: taskNum.value }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
+            <FloatButton class={{ uploadOpenButton: taskNum.value > 0 }} onClick={handleOpen} badge={{ count: taskNum.value,overflowCount:9999 }} shape="square" description={<CloudUploadOutlined />}></FloatButton>
           </div>
         </>
       )

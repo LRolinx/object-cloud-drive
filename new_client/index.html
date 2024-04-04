@@ -55,7 +55,7 @@
         -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         box-sizing: border-box;
         /* padding: 0;
-        margin: 0; */
+                    margin: 0; */
       }
 
       /* 文字选择颜色 */
@@ -65,17 +65,17 @@
       }
 
       /* #app {
-        -webkit-transform: translateZ(0);
-        -moz-transform: translateZ(0);
-        -ms-transform: translateZ(0);
-        -o-transform: translateZ(0);
-        transform: translateZ(0);
-        min-height: 100vh;
-        padding: 0;
-        margin: 0;
-        text-align: left;
-        max-width: none;
-      } */
+                    -webkit-transform: translateZ(0);
+                    -moz-transform: translateZ(0);
+                    -ms-transform: translateZ(0);
+                    -o-transform: translateZ(0);
+                    transform: translateZ(0);
+                    min-height: 100vh;
+                    padding: 0;
+                    margin: 0;
+                    text-align: left;
+                    max-width: none;
+                  } */
 
       html {
         font-size: 100px;
@@ -169,6 +169,42 @@
         20% {
           transform: scaleY(1);
           -webkit-transform: scaleY(1);
+        }
+      }
+
+      .uploadOpenButton {
+        &::before,
+        &::after {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          border: 2px solid var(--primary-color);
+          transition: all 0.5s;
+          animation: clippath 3s infinite linear;
+          border-radius: 10px;
+          clip-path: inset(0 0 98% 0);
+        }
+
+        &::after {
+          animation: clippath 3s infinite -1.5s linear;
+        }
+      }
+      @keyframes clippath {
+        0%,
+        100% {
+          clip-path: inset(0 0 98% 0);
+        }
+        25% {
+          clip-path: inset(0 98% 0 0);
+        }
+        50% {
+          clip-path: inset(98% 0 0 0);
+        }
+        75% {
+          clip-path: inset(0 0 0 98%);
         }
       }
     </style>
