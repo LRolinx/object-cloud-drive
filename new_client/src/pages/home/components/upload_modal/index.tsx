@@ -65,7 +65,7 @@ export const UploadModal = defineComponent(
                   <DashboardTwoTone style={{ fontSize: '24px' }} />
                   <div>
                     <div style={{ fontSize: '14px' }}>{`${row['fname']}.${row['fext']}`}</div>
-                    <div style={{ fontSize: '12px', color: '#999' }}>{row['fileSize']}</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>{filebyteToText(row['fileSize'])}</div>
                   </div>
                 </Space>
               )
@@ -81,6 +81,10 @@ export const UploadModal = defineComponent(
             default: ({ row }) => {
               if (row['uploadType'] == UploadType.Waiting) {
                 return '等待中'
+              }
+
+              if (row['uploadType'] == UploadType.Checkout) {
+                return '检查中'
               }
 
               if (row['uploadType'] == UploadType.Prepare) {
@@ -122,6 +126,29 @@ export const UploadModal = defineComponent(
       return parseInt(percent.toString())
     }
 
+    // 文件大小转文字
+    const filebyteToText = (byte) => {
+      if (byte < 1024) {
+        return `${byte} B`
+      }
+
+      if (byte < 1024 * 1024) {
+        return `${(byte / 1024).toFixed(2)} KB`
+      }
+
+      if (byte < 1024 * 1024 * 1024) {
+        return `${(byte / 1024 / 1024).toFixed(2)} MB`
+      }
+
+      if (byte < 1024 * 1024 * 1024 * 1024) {
+        return `${(byte / 1024 / 1024 / 1024).toFixed(2)} GB`
+      }
+
+      if (byte < 1024 * 1024 * 1024 * 1024) {
+        return `${(byte / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB`
+      }
+    }
+
     //初始化
     const init = () => {
       nextTick(async () => {
@@ -146,7 +173,7 @@ export const UploadModal = defineComponent(
 
     watch(
       () => appStore.counter,
-      () => nextTick(() => init())
+      () => nextTick(async () => init())
     )
 
     onBeforeMount(() => nextTick(() => init()))

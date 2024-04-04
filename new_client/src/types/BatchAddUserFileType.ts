@@ -10,4 +10,6 @@ export type BatchAddUserFileType = {
   filePath: string
   fileSha256: string
   folderId: string
+  userFileExist:boolean,
+  fileExist:boolean,
 }

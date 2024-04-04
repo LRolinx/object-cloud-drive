@@ -18,6 +18,8 @@ import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType'
 import { BatchAddUserFileType } from '@/types/BatchAddUserFileType'
 import MathTools from '@/utils/MathTools'
 import { sha256 } from 'js-sha256'
+import { UploadType } from '@/types/UploadType'
+import { examinefileapi } from '@/api/update'
 
 export default defineComponent<DriveProps, DriveEmits>(
   (props, ctx) => {
@@ -31,6 +33,13 @@ export default defineComponent<DriveProps, DriveEmits>(
 
     const dropAddFolderList = ref<BatchAddUserFolderType[]>([])
     const dropAddFileList = ref<BatchAddUserFileType[]>([])
+
+    //设置上传状态
+    const setUploadType = (item: any, type: UploadType) => {
+      item['uploadType'] = type
+      //操作计数器用于刷新
+      appStore.counter += 1
+    }
 
     /**
      * 获取路由的文件夹id
@@ -156,8 +165,8 @@ export default defineComponent<DriveProps, DriveEmits>(
       Promise.all(entryPromiseList).then(async () => {
         //同目录文件夹文件递归完成
         await wait(1000)
-        console.log('遍历完成1', dropAddFolderList.value)
-        console.log('遍历完成1', dropAddFileList.value)
+        console.log('目录遍历完成', dropAddFolderList.value)
+        console.log('文件遍历完成', dropAddFileList.value)
 
         const dropAddFolderListSlice = []
 
@@ -178,40 +187,113 @@ export default defineComponent<DriveProps, DriveEmits>(
           )
         )
 
-        // console.log('获取sha')
-        // dropAddFileList.value.forEach((item) => {
-        //   // 获取全部文件Sha256
-        //   const fr = new FileReader()
-        //   fr.readAsArrayBuffer(item['file'])
-        //   fr.onload = (data) => {
-        //     const sha256Id = sha256(data.target.result)
-        //     item['fileSha256'] = sha256Id
-        // 	console.log("获取shazhongj")
-        //   }
-        // })
-        // console.log('sha结束')
-
         //等待新增目录切片请求完成后再处理文件
         Promise.all(dropAddFolderListSlice).then(async () => {
-          await wait(10000)
+          await wait(1000)
           dropAddFolderList.value = []
 
-          // 检查文件
-
+          const fileSha256Promise = []
           dropAddFileList.value.forEach(async (item) => {
-            // 添加上传文件任务
-            await wait(1000)
+            //先添加到任务列表
             driveStore.uploadTaskList.push(item)
+            appStore.counter += 1
+            if (item.uploadType == UploadType.Waiting) {
+              const fr = new FileReader()
+              fr.readAsArrayBuffer(item['file'])
+              fileSha256Promise.push
+              new Promise(() => {
+                fr.onload = (data) => {
+                  setUploadType(item, UploadType.Checkout)
+                  const sha256Id = sha256(data.target.result)
+                  item['fileSha256'] = sha256Id
+
+                  examinefileapi(userStore.id, item.folderId, item.fileSha256, item.fname, item.fext).then((resp) => {
+                    const { code, message: msg, data } = resp.data
+                    if (code !== 200) {
+                      //上传失败
+                      setUploadType(item, UploadType.Error)
+                      return //message.error(msg)
+                    }
+
+                    item.userFileExist = data['userFileExist']
+                    item.fileExist = data['fileExist']
+
+                    setUploadType(item, UploadType.Prepare)
+                  })
+                }
+              })
+            }
           })
 
-          //   for (let i = 0; i < dropAddFileList.value.length; i++) {
-          //     await wait(1000)
-          //     driveStore.uploadTaskList.push(dropAddFileList.value[i])
-          //   }
-
-          dropAddFileList.value = []
+          Promise.all(fileSha256Promise).then(async () => {
+            dropAddFileList.value = []
+          })
         })
       })
+    }
+
+    /**
+     * 处理文件夹里的文件
+     * @param pid
+     * @param entry
+     */
+    const getFileFromEntryRecursively = async (pid: string, folderUuid: string, entry: any) => {
+      if (entry.isFile) {
+        entry.file((file: File) => {
+          const filenameAndfext = getFileNameAndFext(file.name)
+          const path = entry.fullPath.substring(1)
+
+          const item = {
+            uploadType: UploadType.Waiting,
+            uploadCurrentChunkNum: 0,
+            currentChunkMax: 0,
+            file,
+            fileSize: file.size,
+            fileType: file.type,
+            fname: filenameAndfext.fname,
+            fext: filenameAndfext.fext,
+            filePath: path,
+            fileSha256: '',
+            folderId: pid,
+            userFileExist: undefined,
+            fileExist: undefined,
+          }
+
+          //检查文件是否过小或过大或者文件是否存在
+          if (item['file']['size'] <= 0) {
+            //文件太小,无法上传
+            item.file = undefined
+            setUploadType(item, UploadType.Small)
+          }
+          if (item['file']['size'] >= 1024 * 1024 * 1024 * 1.5) {
+            //文件太大,无法上传
+            item.file = undefined
+            setUploadType(item, UploadType.Big)
+          }
+
+          dropAddFileList.value.push(item)
+        })
+      } else {
+        //检测到文件夹
+        // let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
+        dropAddFolderList.value.push({
+          pUuid: pid == MathTools.RootUUID() ? getFolderId() : pid,
+          folderUuid: folderUuid,
+          folderName: entry.name,
+        })
+        // console.log(pid, folderUuid, entry.name)
+
+        let reader = entry.createReader()
+        reader.readEntries((entries) => {
+          for (let i = 0, len = entries.length; i < len; i++) {
+            getFileFromEntryRecursively(folderUuid, MathTools.UUID(), entries[i])
+          }
+
+          // entries.forEach(entry => getFileFromEntryRecursively(entry));
+        })
+        //刷新
+        // getUserFileAndFolder(userStore.id,getFolderId())
+      }
     }
 
     /**
@@ -279,11 +361,11 @@ export default defineComponent<DriveProps, DriveEmits>(
         fname: filenameAndfext.fname,
         fext: filenameAndfext.fext,
         filePath: path,
-        fileSha256: '',
+        fileSha256: undefined,
         folderId: getFolderId(),
-        // currentChunkList: []
+        userFileExist: undefined,
+        fileExist: undefined,
       }
-      // console.log(fileInfoOBJ);
 
       driveStore.uploadTaskList.push(fileInfoOBJ) //将任务写入数据
     }
@@ -304,64 +386,6 @@ export default defineComponent<DriveProps, DriveEmits>(
         fext = ''
       }
       return { fname, fext }
-    }
-
-    /**
-     * 处理文件夹里的文件
-     * @param pid
-     * @param entry
-     */
-    const getFileFromEntryRecursively = async (pid: string, folderUuid: string, entry: any) => {
-      if (entry.isFile) {
-        entry.file((file: File) => {
-          const filenameAndfext = getFileNameAndFext(file.name)
-          const path = entry.fullPath.substring(1)
-
-          const item = {
-            uploadType: 0,
-            uploadCurrentChunkNum: 0,
-            currentChunkMax: 0,
-            file,
-            fileSize: file.size,
-            fileType: file.type,
-            fname: filenameAndfext.fname,
-            fext: filenameAndfext.fext,
-            filePath: path,
-            fileSha256: '',
-            folderId: pid,
-          }
-
-          const fr = new FileReader()
-          fr.readAsArrayBuffer(item['file'])
-          fr.onload = (data) => {
-            const sha256Id = sha256(data.target.result)
-            item['fileSha256'] = sha256Id
-            console.log('获取shazhongj')
-          }
-
-          dropAddFileList.value.push(item)
-        })
-      } else {
-        //检测到文件夹
-        // let createfolderres = await adduserfolderapi(userStore.id, folderId == '0' ? getFolderId() : folderId, entry.name)
-        dropAddFolderList.value.push({
-          pUuid: pid == MathTools.RootUUID() ? getFolderId() : pid,
-          folderUuid: folderUuid,
-          folderName: entry.name,
-        })
-        // console.log(pid, folderUuid, entry.name)
-
-        let reader = entry.createReader()
-        reader.readEntries((entries) => {
-          for (let i = 0, len = entries.length; i < len; i++) {
-            getFileFromEntryRecursively(folderUuid, MathTools.UUID(), entries[i])
-          }
-
-          // entries.forEach(entry => getFileFromEntryRecursively(entry));
-        })
-        //刷新
-        // getUserFileAndFolder(userStore.id,getFolderId())
-      }
     }
 
     const openNewFolderModel = () => {
@@ -506,10 +530,7 @@ export default defineComponent<DriveProps, DriveEmits>(
     //渲染导航
     const RenderNavigation = () => {
       //   console.log('导航', driveStore.navigation)
-      const node = [
-        //   <p class={{ toolbarTitle: true, colorR: driveStore.navigation.length >= 1 }}>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</p>
-        <BreadcrumbItem>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</BreadcrumbItem>,
-      ]
+      const node = [<BreadcrumbItem>{driveStore.navigation.length == 0 ? `我的云盘(${store.fileData?.length ?? 0})` : '我的云盘'}</BreadcrumbItem>]
 
       for (let i = 0; i < driveStore.navigation.length; i++) {
         const item = driveStore.navigation[i]
@@ -518,10 +539,6 @@ export default defineComponent<DriveProps, DriveEmits>(
             {item.text}
             {i == driveStore.navigation.length - 1 && <span>{`(${store.fileData.length})`}</span>}
           </BreadcrumbItem>
-          //   <div style="display: inline-flex" class={{ toolbarOn: i != driveStore.navigation.length - 1 }}>
-          //     <p class="toolbarArrow colorR">›</p>
-
-          //   </div>
         )
       }
 
@@ -539,17 +556,22 @@ export default defineComponent<DriveProps, DriveEmits>(
       //监听路由变化
       const folderUuid =
         updateGuard.params['folderUuid'] === undefined || updateGuard.params['folderUuid'] === null || updateGuard.params['folderUuid'] === '' ? MathTools.RootUUID() : updateGuard.params['folderUuid']
-      getUserFileAndFolder(userStore.id, folderUuid as string)
 
-        const currentFolderList = driveStore.navigation
-        //倒序删除导航
-        for (let i = currentFolderList.length; i > 0; i--) {
-          if (folderUuid != currentFolderList[currentFolderList.length - 1].id) {
-            currentFolderList.splice(i - 1, 1)
-          } else {
-            break
-          }
+      if (typeof folderUuid === 'object') {
+        getUserFileAndFolder(userStore.id, folderUuid[0])
+      } else {
+        getUserFileAndFolder(userStore.id, folderUuid)
+      }
+
+      const currentFolderList = driveStore.navigation
+      //倒序删除导航
+      for (let i = currentFolderList.length; i > 0; i--) {
+        if (folderUuid != currentFolderList[currentFolderList.length - 1].id) {
+          currentFolderList.splice(i - 1, 1)
+        } else {
+          break
         }
+      }
     })
 
     // onBeforeRouteLeave(()=>{

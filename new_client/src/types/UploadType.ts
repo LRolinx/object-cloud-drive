@@ -1,6 +1,8 @@
 export enum UploadType {
   /**等待 */
   Waiting,
+  /**校验 */
+  Checkout,
   /**准备 */
   Prepare,
   /**已存在 */

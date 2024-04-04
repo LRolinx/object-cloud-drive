@@ -24,7 +24,7 @@ export const UploadFloatButtonGroup = defineComponent(
 
     //计算正在进行的任务数量
     const calculateTaskNum = () => {
-      const taskArr = driveStore.uploadTaskList.filter((x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Conduct)
+      const taskArr = driveStore.uploadTaskList.filter((x) => x['uploadType'] == UploadType.Waiting || x['uploadType'] == UploadType.Prepare || x['uploadType'] == UploadType.Checkout || x['uploadType'] == UploadType.Conduct)
       taskNum.value = taskArr.length
       return taskArr.length
     }

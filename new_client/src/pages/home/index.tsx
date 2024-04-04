@@ -46,7 +46,9 @@ export default defineComponent<HomeProps, HomeEmits>(
     }
 
     // 片段上传
-    const upLoadFun = (item) => {
+    const upLoadFun = async (item) => {
+      //设置状态为上传中
+      setUploadType(item, UploadType.Conduct)
       const blobSlice = File.prototype.slice
 
       // 指定文件分块大小 1024的2次方
@@ -55,9 +57,6 @@ export default defineComponent<HomeProps, HomeEmits>(
       const chunks = Math.ceil(item.file.size / chunkSize)
       //设置总片段数量
       item.currentChunkMax = chunks
-
-      //设置状态为上传中
-      setUploadType(item, UploadType.Conduct)
 
       for (let i = 0, len = chunks; i < len; i++) {
         // 计算开始读取的位置
@@ -128,42 +127,30 @@ export default defineComponent<HomeProps, HomeEmits>(
       appStore.siderbarStr = toRouter.name.toString() //重置最后路由
     })
 
-
     driveStore.$subscribe((m, s) => {
       //监听任务列表变化
-      //   console.log(m)
-      if (m.events['type'] === 'add') {
+    //   console.log(m.events)
+      if (m.events['type'] === 'set') {
         // 监听到添加任务 开始分配任务
-        const item = m.events['newValue']
-        if (typeof item['file'] === undefined) return
-        appStore.counter += 1
-        //检查文件是否过小或过大或者文件是否存在
-        if (item['file']['size'] <= 0) {
-          //文件太小,无法上传
-          setUploadType(item, UploadType.Small)
-          return
-        }
-        if (item['file']['size'] >= 1024 * 1024 * 1024 * 10) {
-          //文件太大,无法上传
-          setUploadType(item, UploadType.Big)
-          return
-        }
+        const item = m.events['target']
+        if (item['file'] === undefined || item['uploadType'] !== UploadType.Prepare) return
+        // setUploadType(item, UploadType.Prepare)
+        // appStore.counter += 1
 
-        examinefileapi(userStore.id, item.folderId, item.fileSha256, item.fname, item.fext).then((resp) => {
-          const { code, message: msg, data } = resp.data
-          if (code !== 200) {
-            //上传失败
-            setUploadType(item, UploadType.Error)
-            return message.error(msg)
-          }
+        // examinefileapi(userStore.id, item.folderId, item.fileSha256, item.fname, item.fext).then((resp) => {
+        //   const { code, message: msg, data } = resp.data
+        //   if (code !== 200) {
+        //     //上传失败
+        //     setUploadType(item, UploadType.Error)
+        //     return message.error(msg)
+        //   }
 
-          if (!data.userFileExist) {
+          if (!item.userFileExist) {
             //用户文件不存在
-            if (!data.fileExist) {
+            if (!item.fileExist) {
               //文件不存在 开始上传
-              setUploadType(item, UploadType.Prepare)
 
-              // upLoadFun(item)
+              upLoadFun(item)
             } else {
               //秒传文件
               setUploadType(item, UploadType.Fast)
@@ -195,15 +182,7 @@ export default defineComponent<HomeProps, HomeEmits>(
             //用户文件已存在
             setUploadType(item, UploadType.Exist)
           }
-        })
-
-        // const fr = new FileReader()
-        // fr.readAsArrayBuffer(item['file'])
-        // fr.onload = (data) => {
-        //   const sha256Id = sha256(data.target.result)
-        //   item['fileSha256'] = sha256Id
-
-        // }
+        // })
       }
     })
 
