@@ -1,16 +1,11 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { UserModule } from './modules/user/user.module';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerMiddleware } from './common/logger/logger.middleware';
-import { DataBaseConfig } from './config/orm.config';
-import { DriveModule } from './modules/drive/drive.module';
-import { UploadModule } from './modules/upload/upload.module';
-import { VideoModule } from './modules/video/video.module';
-import { ResourcPoolModule } from './modules/resource_pool/resource_pool.module';
+import { FilesEntity } from 'src/entity/files.entity';
+import { UserFilesEntity } from 'src/entity/user_files.entity';
+import { ResourcPoolController } from './resource_pool.controller';
+import { ResourcPoolService } from './resource_pool.service';
 
-/**
+/*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
  * ▓██   ▒ ██  ▓██▒▒██▀ ▀█   ██▄█▒      ██╔══██╗██║   ██║██╔════╝
  * ▒████ ░▓██  ▒██░▒▓█    ▄ ▓███▄░      ██████╔╝██║   ██║██║  ███╗
@@ -20,28 +15,16 @@ import { ResourcPoolModule } from './modules/resource_pool/resource_pool.module'
  * ░     ░░▒░ ░ ░   ░  ▒   ░ ░▒ ▒░
  * ░ ░    ░░░ ░ ░ ░        ░ ░░ ░
  * ░     ░ ░      ░  ░
- * Copyright 2021 Clover.
+ * Copyright 2022 LRolinx.
  * <p>
- *  App模块「即主程序」
+ *  -
  * </p>
- * @author Clover
- * @create 2021-11-08 15:23
+ * @author LRolinx
+ * @create 2024-04-11 17:34
  */
 @Module({
-  controllers: [AppController],
-  imports: [
-    UserModule,
-    DriveModule,
-    UploadModule,
-    VideoModule,
-    ResourcPoolModule,
-    TypeOrmModule.forRoot(DataBaseConfig),
-  ],
-  providers: [AppService],
+  controllers: [ResourcPoolController],
+  imports: [TypeOrmModule.forFeature([FilesEntity, UserFilesEntity])],
+  providers: [ResourcPoolService],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // 使用日志中间件
-    consumer.apply(LoggerMiddleware).forRoutes('/');
-  }
-}
+export class ResourcPoolModule {}

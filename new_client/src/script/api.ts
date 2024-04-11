@@ -26,4 +26,9 @@ export const API_LIST = {
     GET_VIDEOSCEENSHOTS: '/video/getVideoSceenshots',
     PLAY_VIDEOSTEAM: '/video/playVideoSteam',
   },
+  RESOURCEPOOL: {
+    PLAY_VIDEOSTEAM: '/resourcepool/playVideoSteam',
+    GET_VIDEOSCEENSHOTS: '/resourcepool/getVideoSceenshots',
+    GET_FOLDERANDFILE: '/resourcepool/getFolderAndFile',
+  },
 }

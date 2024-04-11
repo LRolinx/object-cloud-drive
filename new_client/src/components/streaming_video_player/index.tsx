@@ -1,10 +1,11 @@
-import { defineComponent, nextTick, onBeforeMount, watch } from 'vue'
+import { defineComponent, nextTick, onBeforeMount, ref, watch } from 'vue'
 import { StreamingVideoPlayerEmits, StreamingVideoPlayerProps } from './type'
 import { Modal } from 'ant-design-vue'
 import './index.less'
 
 export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, StreamingVideoPlayerEmits>(
   (props, ctx) => {
+    const index = ref(0)
     //返回
     const onCancel = () => {
       ctx.emit('update:open', false)
@@ -12,6 +13,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
 
     const init = () => {
       nextTick(() => {
+		
         const container = document.querySelector('.container'),
           mainVideo = container.querySelector('video'),
           videoTimeline = container.querySelector('.video-timeline'),
@@ -28,8 +30,16 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
           pipBtn = container.querySelector('.pic-in-pic span'),
           fullScreenBtn = container.querySelector('.fullscreen i')
 
-        fetch('http://192.168.2.231:3000/video/playLocalVideoSteam?fileName=2K_60_6040.mp4').then((resp) => {
+
+        fetch('http://192.168.3.15:3000/resourcepool/playResourcPoolSteam', {
+          method: 'post',
+          headers: {
+            'Content-Type': 'application/json;charset=utf-8',
+          },
+          body: JSON.stringify({ path: props.data[index.value] }),
+        }).then((resp) => {
           resp.blob().then((blob) => {
+			URL.revokeObjectURL(mainVideo.src)
             mainVideo.src = URL.createObjectURL(blob)
           })
         })
@@ -143,8 +153,16 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
 
         speedBtn.addEventListener('click', () => speedOptions.classList.toggle('show'))
         pipBtn.addEventListener('click', () => mainVideo.requestPictureInPicture())
-        skipBackward.addEventListener('click', () => (mainVideo.currentTime -= 5))
-        skipForward.addEventListener('click', () => (mainVideo.currentTime += 5))
+        skipBackward.addEventListener('click', () => {
+			// (mainVideo.currentTime -= 5)
+			index.value -= 1;
+			init()
+		})
+        skipForward.addEventListener('click', () => {
+			//(mainVideo.currentTime += 5)
+			index.value += 1;
+			init()
+		})
         mainVideo.addEventListener('play', () => playPauseBtn.classList.replace('fa-play', 'fa-pause'))
         mainVideo.addEventListener('pause', () => playPauseBtn.classList.replace('fa-pause', 'fa-play'))
         playPauseBtn.addEventListener('click', () => (mainVideo.paused ? mainVideo.play() : mainVideo.pause()))

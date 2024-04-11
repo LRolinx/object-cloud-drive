@@ -9,13 +9,10 @@ export const StreamingVideo = defineComponent(
     const openVideoModal = ref(false)
     const openImageModal = ref(false)
     const openAudioModal = ref(false)
-    const videoList = ref([])
+    const videoList = ref(['F:\\Videos/hls-1080p-0494f.mp4','F:\\Videos/hls-1080p-f5e9f.mp4'])
 
     const showVideoModal = () => {
       openVideoModal.value = true
-      videoList.value.push(
-        'm2+c7R+kU2IF4Kn8v9c/kCJqZGx5f2Ioj3XOX6HxXjTg7X1gXnTXMz9C4lTvk7ql4m39H6UXqdcKF8SbUzI5VU0ronOI+aYmYMRglsAVGWawtXD41vrJEfonMiM3fdD9+ehR+LDcjfAuPYc/aoAbzJcxnBBkwD7YKyvPB+hrvDA='
-      )
     }
 
     const showImageModal = () => {

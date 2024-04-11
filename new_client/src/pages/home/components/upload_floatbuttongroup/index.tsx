@@ -12,7 +12,7 @@ export const UploadFloatButtonGroup = defineComponent(
     const taskNum = ref(0)
     const appStore = useAppStore()
     const driveStore = useDriveStore()
-    const openUploadModal = ref(true)
+    const openUploadModal = ref(false)
 
     //新建文件夹
     const openNewFolderModel = () => ctx.emit('openNewFolderModel')

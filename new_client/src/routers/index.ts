@@ -12,7 +12,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import loginAndRegistered from '@/pages/login_and_registered/index' //登录与注册
 import home from '@/pages/home/' //主页
 import drive from '@/pages/drive/' //云盘
-import driveResourcePool from '@/pages/drive_resource_pool/index.vue' //资源池
+import driveResourcePool from '@/pages/drive_resource_pool/index' //资源池
 import { StreamingVideo } from '@/pages/streaming_video' //视频流DEMO
 import error404 from '@/pages/error/404' //404错误
 import { useUserStore } from '@/store/models/user'
@@ -79,7 +79,7 @@ router.beforeEach(async (to, _from) => {
     document.title = to.meta.title as string
   }
 
-//   console.log(userStore.isLogin, to.name, to.path)
+  //   console.log(userStore.isLogin, to.name, to.path)
 
   if (!userStore.isLogin && to.name !== 'login') {
     //用户未登录 重定向到登录页面，并且避免无限重定向
@@ -95,6 +95,5 @@ router.beforeEach(async (to, _from) => {
     //用户已登录 去到不存在的页面
     return { name: '404' }
   }
-
 })
 export default router
