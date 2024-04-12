@@ -6,6 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpParameterExceptionFilter } from './common/filters/http-parameter-exception.filter';
 import MathTools from './utils/MathTools';
+import conf from './config/config';
 /**
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
  * ▓██   ▒ ██  ▓██▒▒██▀ ▀█   ██▄█▒      ██╔══██╗██║   ██║██╔════╝
@@ -26,6 +27,14 @@ import MathTools from './utils/MathTools';
 async function bootstrap() {
   //生成公私密匙
   MathTools.generateKey();
+
+  //创建缩略图目录
+  if (!fs.existsSync(conf.preview.path)) {
+    //没临时文件夹
+    fs.mkdirSync(conf.preview.path, {
+      recursive: true,
+    });
+  }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(path.join(__dirname, '..', 'resources'), {

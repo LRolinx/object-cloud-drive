@@ -33,4 +33,22 @@ export class StringUtils {
     }
     return o.trim().length > 0;
   }
+
+  /**
+   * 获取文件名和后缀
+   * @param value
+   */
+  static getFileNameAndFext = (value: string) => {
+    //
+    let fname = '';
+    let fext = '';
+    if (value.indexOf('.') != -1) {
+      fname = value.substring(0, value.lastIndexOf('.')); //获取文件名
+      fext = value.substring(value.lastIndexOf('.') + 1); //获取后缀名
+    } else {
+      fname = value.substring(value.lastIndexOf('.') + 1); //获取文件名
+      fext = '';
+    }
+    return { fname, fext };
+  };
 }

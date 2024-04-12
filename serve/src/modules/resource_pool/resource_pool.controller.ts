@@ -2,6 +2,7 @@ import { AjaxResult } from 'src/utils/ajax-result.classes';
 import { Controller, Post, Body, Inject, Res } from '@nestjs/common';
 import { StringUtils } from 'src/utils/StringUtils';
 import { ResourcPoolService } from './resource_pool.service';
+import conf from 'src/config/config';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -45,12 +46,12 @@ export class ResourcPoolController {
    * @param id
    */
   @Post('getVideoSceenshots')
-  async getVideoSceenshots(@Body() { path }) {
+  async getVideoSceenshots(@Body() { name, ext, path }) {
     if (!StringUtils.hasText(path)) {
       return AjaxResult.fail('参数错误');
     }
     // const decryptId = id == '0' ? '' : MathTools.decryptForKey(id);
-    return this.resourcPoolService.getResourcPoolSceenshots(path);
+    return this.resourcPoolService.getResourcPoolSceenshots(name, ext, path);
   }
 
   /**
@@ -58,7 +59,7 @@ export class ResourcPoolController {
    */
   @Post('getFolderAndFile')
   async getFolderAndFile(@Body() { path }): Promise<AjaxResult> {
-    const _path = path != undefined ? path : 'F:\\Videos';
+    const _path = path != undefined ? path : conf.resourcePool.path;
     return this.resourcPoolService.getFilesAndFoldersInDir(_path);
   }
 }

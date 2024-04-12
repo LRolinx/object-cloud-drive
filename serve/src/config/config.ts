@@ -26,7 +26,7 @@ export type MysqlType = {
   port?: number;
 };
 
-export type KeyType = {
+export type PathType = {
   path: string; //Key保存的路径
 };
 
@@ -39,8 +39,10 @@ export type UploadType = {
 export interface ConfType {
   mysql?: MysqlType;
   port?: number;
-  key: KeyType;
+  key: PathType;
   upload: UploadType;
+  preview: PathType;
+  resourcePool: PathType;
 }
 
 const USER_HOME = process.env.HOME || process.env.USERPROFILE;
@@ -53,6 +55,14 @@ const conf: ConfType = {
     // rootPath:`${USER_HOME}/.objectcloud/`,
     temp: path.join(USER_HOME, '/.objectcloud/temp/'),
     path: path.join(USER_HOME, '/.objectcloud/upload/'),
+  },
+  preview: {
+    //预览图地址
+    path: path.join(USER_HOME, '/.objectcloud/preview/'),
+  },
+  resourcePool: {
+    //资源池路径
+    path: 'C:\\Users\\LRolinx\\Downloads',
   },
 };
 

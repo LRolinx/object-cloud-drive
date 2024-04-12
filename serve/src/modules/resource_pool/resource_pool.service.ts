@@ -8,6 +8,8 @@ import { UserFilesEntity } from 'src/entity/user_files.entity';
 import * as fs from 'fs';
 import * as cmd from 'child_process';
 import { AjaxResult } from 'src/utils/ajax-result.classes';
+import conf from 'src/config/config';
+import { StringUtils } from 'src/utils/StringUtils';
 
 /*
  * █████▒█      ██  ▄████▄   ██ ▄█▀     ██████╗ ██╗   ██╗ ██████╗
@@ -62,8 +64,12 @@ export class ResourcPoolService {
    * @param id
    * @returns
    */
-  async getResourcPoolSceenshots(path: string): Promise<StreamableFile> {
-    const videoshots = `${path}.png`;
+  async getResourcPoolSceenshots(
+    name: string,
+    ext: string,
+    path: string,
+  ): Promise<StreamableFile> {
+    const videoshots = `${conf.preview.path}${name}.${ext}.png`;
 
     if (fs.existsSync(path)) {
       //视频文件存在
@@ -103,9 +109,11 @@ export class ResourcPoolService {
         result.push(data);
       } else {
         // 文件
+        const fileInfo = StringUtils.getFileNameAndFext(item);
         const data = {
           type: 'file',
-          name: item,
+          name: fileInfo.fname,
+          ext: fileInfo.fext,
           path: itemPath,
         };
 
