@@ -6,7 +6,7 @@
  * @create 2024-03-30 13:26
  */
 export const API_LIST = {
-  BASEURL: 'http://127.0.0.1:3000',
+  BASEURL: 'http://192.168.3.15:3000',
   USER: {
     GET_PUBLICKEY: '/user/getpublickey',
     LOGIN: '/user/login',

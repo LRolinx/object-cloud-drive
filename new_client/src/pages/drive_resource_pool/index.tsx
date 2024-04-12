@@ -48,7 +48,10 @@ export default defineComponent(
           })
       } else {
         //打开文件
-        // message.warn('哦吼,文件预览还不能用')
+
+        if (item['ext'].toUpperCase() != 'MP4') {
+          return message.warn('哦吼,文件预览还不能用')
+        }
         videoList.value = []
 
         const videoData = store.fileData.filter((x) => x.ext != undefined && x.ext.toUpperCase() == 'MP4')

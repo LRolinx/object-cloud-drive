@@ -52,7 +52,7 @@ export class ResourcPoolService {
     const head = {
       'Accept-Ranges': 'bytes',
       'Content-Length': fileSize,
-      // 'Content-Type': 'video/mp4',
+      'Content-Type': 'video/mp4',
     };
     res.writeHead(200, head);
 
@@ -69,30 +69,32 @@ export class ResourcPoolService {
     ext: string,
     path: string,
   ): Promise<StreamableFile> {
-    const videoshots = `${conf.preview.path}${name}.${ext}.png`;
+    try {
+      const videoshots = `${conf.preview.path}${name}.${ext}.png`;
 
-    if (fs.existsSync(path)) {
-      //视频文件存在
-      if (!fs.existsSync(videoshots)) {
-        //视频缩略图不存在
-        const comStr = `ffmpeg -i ${path} -y -f image2 -frames 1 ${videoshots}`;
-        console.log(comStr);
-        const com = cmd.execSync(comStr);
-        if (!com) {
-          return null;
+      if (fs.existsSync(path)) {
+        //视频文件存在
+        if (!fs.existsSync(videoshots)) {
+          //视频缩略图不存在
+          const comStr = `ffmpeg -i ${path} -y -f image2 -frames 1 ${videoshots}`;
+          console.log(comStr);
+          const com = cmd.execSync(comStr);
+          if (!com) {
+            return null;
+          }
         }
+        const file = fs.createReadStream(videoshots);
+        return new StreamableFile(file);
       }
-      const file = fs.createReadStream(videoshots);
-      return new StreamableFile(file);
-    }
-    return null;
+      return null;
+    } catch {}
   }
 
-  async getFilesAndFoldersInDir(path) {
-    const items = fs.readdirSync(path);
+  async getFilesAndFoldersInDir(_path) {
+    const items = fs.readdirSync(_path);
     const result = [];
     items.forEach((item) => {
-      const itemPath = String.raw`${path}/${item}`;
+      const itemPath = `${_path}/${item}`;
       //   const normalizedPath = path.normalize(itemPath);
       const stat = fs.statSync(itemPath);
       if (stat.isDirectory()) {
@@ -110,17 +112,18 @@ export class ResourcPoolService {
       } else {
         // 文件
         const fileInfo = StringUtils.getFileNameAndFext(item);
-        // if (
-        //   fileInfo.fext != undefined &&
-        //   fileInfo.fext.toUpperCase() == 'MP4'
-        // ) {
-        //   // 如果是视频文件则进行生成缩略图
-        //   this.getResourcPoolSceenshots(
-        //     fileInfo.fname,
-        //     fileInfo.fext,
-        //     itemPath,
-        //   );
-        // }
+        if (
+          fileInfo.fext != undefined &&
+          (fileInfo.fext.toUpperCase() == 'MP4' ||
+            fileInfo.fext.toUpperCase() == 'M3U8')
+        ) {
+          // 如果是视频文件则进行生成缩略图
+          this.getResourcPoolSceenshots(
+            fileInfo.fname,
+            fileInfo.fext,
+            itemPath,
+          );
+        }
 
         const data = {
           type: 'file',

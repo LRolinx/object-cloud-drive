@@ -1,11 +1,13 @@
 import { defineComponent, nextTick, onBeforeMount, ref, watch } from 'vue'
 import { StreamingVideoPlayerEmits, StreamingVideoPlayerProps } from './type'
-import { Modal } from 'ant-design-vue'
+import { Modal, Spin } from 'ant-design-vue'
 import './index.less'
 import { API_LIST } from '@/script/api'
 
 export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, StreamingVideoPlayerEmits>(
   (props, ctx) => {
+    //视频加载中
+    const loading = ref(false)
     //当前播放索引
     const index = ref(0)
     //返回
@@ -15,6 +17,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
 
     // 设置播放数据
     const setPlayData = () => {
+      loading.value = true
       const container = document.querySelector('.container'),
         mainVideo = container.querySelector('video')
 
@@ -28,6 +31,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
         resp.blob().then((blob) => {
           URL.revokeObjectURL(mainVideo.src)
           mainVideo.src = URL.createObjectURL(blob)
+          loading.value = false
         })
       })
     }
@@ -169,13 +173,15 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
           if (index.value > 0) {
             index.value -= 1
             setPlayData()
+            // console.log(props.index,index.value,props.data.length)
           }
         })
         skipForward.addEventListener('click', () => {
           //(mainVideo.currentTime += 5)
-          if (index.value <= props.data.length) {
+          if (index.value < props.data.length - 1) {
             index.value += 1
             setPlayData()
+            // console.log(props.index,index.value,props.data.length)
           }
         })
         mainVideo.addEventListener('play', () => playPauseBtn.classList.replace('fa-play', 'fa-pause'))
@@ -190,7 +196,9 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
       () => props.open,
       () => {
         if (props.open) {
-          init()
+          nextTick(() => {
+            init()
+          })
         } else {
           const container = document.querySelector('.container'),
             mainVideo = container.querySelector('video')
@@ -200,72 +208,76 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
       }
     )
 
-    onBeforeMount(() => {
-      init()
-    })
+    // onBeforeMount(() => {
+    //   nextTick(() => {
+    //     init()
+    //   })
+    // })
 
     return () => {
       return (
         <>
           <div class="streaming_video_player">
             <Modal onCancel={onCancel} style="width:80vw" v-model:open={props.open} title="流视频" footer={<></>}>
-              <div class="container show-controls">
-                <div class="wrapper">
-                  <div class="video-timeline">
-                    <div class="progress-area">
-                      <span>00:00</span>
-                      <div class="progress-bar"></div>
+              <Spin spinning={loading.value}>
+                <div class="container show-controls">
+                  <div class="wrapper">
+                    <div class="video-timeline">
+                      <div class="progress-area">
+                        <span>00:00</span>
+                        <div class="progress-bar"></div>
+                      </div>
                     </div>
-                  </div>
-                  <ul class="video-controls">
-                    <li class="options left">
-                      <button class="volume">
-                        <i class="fa-solid fa-volume-high"></i>
-                      </button>
-                      <input type="range" min="0" max="1" step="any" />
-                      <div class="video-timer">
-                        <p class="current-time">00:00</p>
-                        <p class="separator"> / </p>
-                        <p class="video-duration">00:00</p>
-                      </div>
-                    </li>
-                    <li class="options center">
-                      <button class="skip-backward">
-                        <i class="fas fa-backward"></i>
-                      </button>
-                      <button class="play-pause">
-                        <i class="fas fa-play"></i>
-                      </button>
-                      <button class="skip-forward">
-                        <i class="fas fa-forward"></i>
-                      </button>
-                    </li>
-                    <li class="options right">
-                      <div class="playback-content">
-                        <button class="playback-speed">
-                          <span class="material-symbols-rounded">slow_motion_video</span>
+                    <ul class="video-controls">
+                      <li class="options left">
+                        <button class="volume">
+                          <i class="fa-solid fa-volume-high"></i>
                         </button>
-                        <ul class="speed-options">
-                          <li data-speed="2">2x</li>
-                          <li data-speed="1.5">1.5x</li>
-                          <li data-speed="1" class="active">
-                            Normal
-                          </li>
-                          <li data-speed="0.75">0.75x</li>
-                          <li data-speed="0.5">0.5x</li>
-                        </ul>
-                      </div>
-                      <button class="pic-in-pic">
-                        <span class="material-icons">picture_in_picture_alt</span>
-                      </button>
-                      <button class="fullscreen">
-                        <i class="fa-solid fa-expand"></i>
-                      </button>
-                    </li>
-                  </ul>
+                        <input type="range" min="0" max="1" step="any" />
+                        <div class="video-timer">
+                          <p class="current-time">00:00</p>
+                          <p class="separator"> / </p>
+                          <p class="video-duration">00:00</p>
+                        </div>
+                      </li>
+                      <li class="options center">
+                        <button class="skip-backward">
+                          <i class="fas fa-backward"></i>
+                        </button>
+                        <button class="play-pause">
+                          <i class="fas fa-play"></i>
+                        </button>
+                        <button class="skip-forward">
+                          <i class="fas fa-forward"></i>
+                        </button>
+                      </li>
+                      <li class="options right">
+                        <div class="playback-content">
+                          <button class="playback-speed">
+                            <span class="material-symbols-rounded">slow_motion_video</span>
+                          </button>
+                          <ul class="speed-options">
+                            <li data-speed="2">2x</li>
+                            <li data-speed="1.5">1.5x</li>
+                            <li data-speed="1" class="active">
+                              Normal
+                            </li>
+                            <li data-speed="0.75">0.75x</li>
+                            <li data-speed="0.5">0.5x</li>
+                          </ul>
+                        </div>
+                        <button class="pic-in-pic">
+                          <span class="material-icons">picture_in_picture_alt</span>
+                        </button>
+                        <button class="fullscreen">
+                          <i class="fa-solid fa-expand"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                  <video autoplay loop></video>
                 </div>
-                <video autoplay loop></video>
-              </div>
+              </Spin>
             </Modal>
           </div>
         </>
