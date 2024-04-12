@@ -62,7 +62,7 @@ const conf: ConfType = {
   },
   resourcePool: {
     //资源池路径
-    path: 'C:\\Users\\LRolinx\\Downloads',
+    path: 'C:/Users/LRolinx/Downloads',
   },
 };
 

@@ -110,6 +110,18 @@ export class ResourcPoolService {
       } else {
         // 文件
         const fileInfo = StringUtils.getFileNameAndFext(item);
+        // if (
+        //   fileInfo.fext != undefined &&
+        //   fileInfo.fext.toUpperCase() == 'MP4'
+        // ) {
+        //   // 如果是视频文件则进行生成缩略图
+        //   this.getResourcPoolSceenshots(
+        //     fileInfo.fname,
+        //     fileInfo.fext,
+        //     itemPath,
+        //   );
+        // }
+
         const data = {
           type: 'file',
           name: fileInfo.fname,

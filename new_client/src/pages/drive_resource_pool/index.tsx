@@ -1,11 +1,16 @@
-import { getfolderandfileapi } from '@/api/resource_pool'
+import { getfolderandfileapi, getvideosceenshotsapi } from '@/api/resource_pool'
 import { message } from 'ant-design-vue'
-import { defineComponent, onBeforeMount } from 'vue'
+import { defineComponent, onBeforeMount, ref } from 'vue'
 import { useGlobalDataStore } from './store/global_data'
+import { StreamingVideoPlayer } from '@/components/streaming_video_player'
 
 export default defineComponent(
   () => {
     const store = useGlobalDataStore()
+
+    const openStreamingVideoPlayer = ref(false)
+    const videoList = ref([])
+    const videoIndex = ref(0)
     /**
      * 打开文件或打开文件夹
      * @param item
@@ -29,21 +34,34 @@ export default defineComponent(
 
             store.fileData = data
 
-            //   for (let i = 0; i < store.fileData.length; i++) {
-            //     if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'image') {
-            //       ImageToblobUrl(i)
-            //     }
-            //     if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'video') {
-            //       VideoImageToblobUrl(i)
-            //     }
-            //   }
+            // const videoData = data.filter((x) => x.ext != undefined && x.ext.toUpperCase() == 'MP4')
+            // for (let i = 0; i < videoData.length; i++) {
+            //   videoData[i].src = undefined
+            //   getvideosceenshotsapi(videoData[i]['name'], videoData[i]['ext'], videoData[i]['path']).then((res) => {
+            //     videoData[i].src = URL.createObjectURL(res.data)
+            //   })
+            // }
+            // console.log(store.fileData)
           })
           .catch(() => {
             // $tipMessge.open(err.data.message);
           })
       } else {
         //打开文件
-        message.warn('哦吼,文件预览还不能用')
+        // message.warn('哦吼,文件预览还不能用')
+        videoList.value = []
+
+        const videoData = store.fileData.filter((x) => x.ext != undefined && x.ext.toUpperCase() == 'MP4')
+
+        for (let i = 0; i < videoData.length; i++) {
+          const _item = videoData[i]
+          videoList.value.push(_item['path'])
+
+          if (_item['path'] == item['path']) {
+            videoIndex.value = i
+          }
+        }
+        openStreamingVideoPlayer.value = true
       }
     }
 
@@ -62,17 +80,17 @@ export default defineComponent(
             <div class="fileContentBox">
               <div class="fileContentImg">
                 {item.type == 'folder' && <img class="imagePreview" src="/src/assets/img/folder.png" draggable="false" />}
-
-                {item.type == 'file' && item.blob != null && (
+                {item.type == 'file' && item.src != undefined && (
                   <div class="imgBox">
                     <img
                       class="imagePreview"
                       ref="img"
-                      src={item.blob}
+                      src={item.src}
                       draggable="false"
-                      onLoad={() => {
-                        window.URL.revokeObjectURL(item.blob)
-                      }}
+                      //   onLoad={() => {
+                      //     console.log('触发')
+                      //     window.URL.revokeObjectURL(item.src)
+                      //   }}
                     />
                     <i class="iconfont icon-or-play videoImg" v-if="GetFileTypeInItem(item).type == 'video'"></i>
                   </div>
@@ -81,7 +99,7 @@ export default defineComponent(
                 {/* {item.type == 'file' && item.blob == null && <i class={{iconfont:true,iconPreview:true, GetFileTypeInItem(item).iconStr}}></i>} */}
               </div>
               <div class="fileContentText">
-                <p class="fileContentName">{`${item.name}  ${item.suffix == null ? '' : `.${item.suffix}`}`}</p>
+                <p class="fileContentName">{`${item.name}${item.ext == null ? '' : `.${item.ext}`}`}</p>
                 {/* <p class="fileContentDate">{item.updateTime.slice(0, item.updateTime.length - 3)}</p> */}
               </div>
             </div>
@@ -103,14 +121,14 @@ export default defineComponent(
 
           store.fileData = data
 
-          //   for (let i = 0; i < store.fileData.length; i++) {
-          //     if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'image') {
-          //       ImageToblobUrl(i)
-          //     }
-          //     if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'video') {
-          //       VideoImageToblobUrl(i)
-          //     }
+          // for (let i = 0; i < store.fileData.length; i++) {
+          //   if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'image') {
+          //     ImageToblobUrl(i)
           //   }
+          //   if (store.fileData[i].type == 'file' && GetFileTypeInItem(store.fileData[i]).type == 'video') {
+          //     VideoImageToblobUrl(i)
+          //   }
+          // }
         })
         .catch(() => {
           // $tipMessge.open(err.data.message);
@@ -121,6 +139,8 @@ export default defineComponent(
       return (
         <>
           <div class="dropZone" ref="recycleScroller">
+            <StreamingVideoPlayer v-model:open={openStreamingVideoPlayer.value} data={videoList.value} index={videoIndex.value}></StreamingVideoPlayer>
+
             {store.fileData.length == 0 && (
               <div class="emptyBox">
                 <img src="/src/assets/img/empty.png" draggable="false" />

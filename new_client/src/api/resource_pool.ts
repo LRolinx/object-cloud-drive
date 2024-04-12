@@ -24,11 +24,13 @@ export const playvideosteamapi = (id: string): Promise<Resp> => {
 }
 
 //获取视频缩略图
-export const getvideosceenshotsapi = (id: string): Promise<AxiosResponse> => {
+export const getvideosceenshotsapi = (name: string, ext: string, path: string): Promise<AxiosResponse> => {
   return $http.post(
     API_LIST.RESOURCEPOOL.GET_VIDEOSCEENSHOTS,
     {
-      id,
+      name,
+	  ext,
+	  path
     },
     {
       responseType: 'blob',
@@ -37,14 +39,14 @@ export const getvideosceenshotsapi = (id: string): Promise<AxiosResponse> => {
 }
 
 //获取目录下的文件夹和文件
-export const getfolderandfileapi = (path?: string): Promise<AxiosResponse> => {
-	return $http.post(
-	  API_LIST.RESOURCEPOOL.GET_FOLDERANDFILE,
-	  {
-		path,
-	  },
-	//   {
-	// 	responseType: 'blob',
-	//   }
-	)
-  }
+export const getfolderandfileapi = (path?: string): Promise<AxiosResponse<Resp<any[]>>> => {
+  return $http.post(
+    API_LIST.RESOURCEPOOL.GET_FOLDERANDFILE,
+    {
+      path,
+    }
+    //   {
+    // 	responseType: 'blob',
+    //   }
+  )
+}
