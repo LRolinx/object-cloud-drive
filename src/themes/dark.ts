@@ -8,7 +8,7 @@
  * @create: 2022-11-28 23:34
  */
 import { theme } from 'antd'
-import { AliasToken } from 'antd/es/theme'
+import { AliasToken } from 'antd/es/theme/interface'
 import { lightTheme } from './light'
 
 const lightToDark = theme.darkAlgorithm(lightTheme as AliasToken)
