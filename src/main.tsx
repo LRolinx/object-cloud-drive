@@ -1,5 +1,5 @@
 import React from "react";
-import {StyleProvider} from "@ant-design/cssinjs"
+import {ConfigProvider } from "antd"
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./style.less";
@@ -8,7 +8,7 @@ export default ReactDOM.createRoot(document.getElementById("root") as HTMLElemen
   // <React.StrictMode>
   //   <App />
   // </React.StrictMode>
-  <StyleProvider hashPriority="high">
+  <ConfigProvider theme={{ token: { colorPrimary: '#6266f5' } }}>
     <App />
-  </StyleProvider>
+  </ConfigProvider>
 );
