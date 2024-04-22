@@ -1,7 +1,7 @@
 {
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "yarn build",
+    "beforeBuildCommand": "pnpm build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist"
   },
@@ -54,9 +54,9 @@
     },
     "windows": [
       {
-        "width": 400,
+        "width": 800,
         "height": 600,
-        "resizable": false,
+        "resizable": true,
         "label": "login",
         "url": "/login",
         "fileDropEnabled": false,

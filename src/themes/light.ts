@@ -8,9 +8,9 @@
  * @create: 2022-11-25 11:37
  */
 import { theme } from 'antd'
-import { AliasToken } from 'antd/es/theme'
+import {AliasToken} from "antd/es/theme/interface";
 
 export const lightTheme: Partial<AliasToken> = {
   ...theme.defaultSeed,
-  colorPrimary: '#00a846'
+  colorPrimary: '#6266f5'
 }
