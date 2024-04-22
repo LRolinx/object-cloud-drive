@@ -1,6 +1,6 @@
 import { JSEncrypt } from 'JSEncrypt'
-import { useUserStore } from '@/store/models/user'
-import { useAppStore } from '@/store/models/app'
+import { useUserStore } from '@/store/user'
+import { useAppStore } from '@/store/app'
 
 export default class MathTools {
 
