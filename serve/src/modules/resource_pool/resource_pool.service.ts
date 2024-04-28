@@ -232,6 +232,9 @@ export class ResourcPoolService {
         result.push(data);
       }
     });
+    result.sort(
+      (a, b) => (a.type == 'folder' ? 0 : 1) - (b.type == 'folder' ? 0 : 1),
+    );
     return AjaxResult.success(result, '查询成功');
   }
 }
