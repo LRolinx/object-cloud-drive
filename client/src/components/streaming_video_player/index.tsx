@@ -289,7 +289,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
                       </li>
                     </ul>
                   </div>
-                  <video autoplay loop></video>
+                  <video autoplay></video>
                 </div>
               </Spin>
             </Modal>

@@ -3,6 +3,7 @@ import { message } from 'ant-design-vue'
 import { defineComponent, onBeforeMount, ref } from 'vue'
 import { useGlobalDataStore } from './store/global_data'
 import { StreamingVideoPlayer } from '@/components/streaming_video_player'
+import { API_LIST } from '@/script/api'
 
 export default defineComponent(
   () => {
@@ -83,19 +84,19 @@ export default defineComponent(
             <div class="fileContentBox">
               <div class="fileContentImg">
                 {item.type == 'folder' && <img class="imagePreview" src="/src/assets/img/folder.png" draggable="false" />}
-                {item.type == 'file' && item.src != undefined && (
+                {item.type == 'file' && (
                   <div class="imgBox">
                     <img
                       class="imagePreview"
                       ref="img"
-                      src={item.src}
+                      src={`${API_LIST.BASEURL}/resourcepool/getVideoSceenshots?name=${item.name}&ext=${item.ext}&path=${item.path}`}
                       draggable="false"
                       //   onLoad={() => {
                       //     console.log('触发')
                       //     window.URL.revokeObjectURL(item.src)
                       //   }}
                     />
-                    <i class="iconfont icon-or-play videoImg" v-if="GetFileTypeInItem(item).type == 'video'"></i>
+                    {/* <i class="iconfont icon-or-play videoImg" v-if="GetFileTypeInItem(item).type == 'video'"></i> */}
                   </div>
                 )}
 

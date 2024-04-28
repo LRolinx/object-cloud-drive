@@ -87,13 +87,18 @@ export class ResourcPoolController {
    * 获取视频缩略图
    * @param id
    */
-  @Post('getVideoSceenshots')
-  async getVideoSceenshots(@Body() { name, ext, path }) {
-    if (!StringUtils.hasText(path)) {
-      return AjaxResult.fail('参数错误');
-    }
+  @Get('getVideoSceenshots')
+  async getVideoSceenshots(
+    @Res({ passthrough: false }) res,
+    @Query() { name, ext, path },
+  ) {
     // const decryptId = id == '0' ? '' : MathTools.decryptForKey(id);
-    return this.resourcPoolService.getResourcPoolSceenshots(name, ext, path);
+    return this.resourcPoolService.getResourcPoolSceenshots(
+      res,
+      name,
+      ext,
+      path,
+    );
   }
 
   /**

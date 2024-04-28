@@ -96,15 +96,6 @@ export class ResourcPoolService {
       fs.writeFileSync(videoDuration, updatedContent, 'utf8');
     }
 
-    // //获取视频总时长
-    // const comStr = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path}`;
-    // const timeCom = cmd.execSync(comStr);
-    // if (!timeCom) {
-    //   return null;
-    // }
-
-    // const time = parseFloat(timeCom.toString().replace('\r\n', ''));
-
     const stat = fs.statSync(videoDuration);
     const fileSize = stat.size;
 
@@ -130,15 +121,6 @@ export class ResourcPoolService {
     //视频mpd路径
     const videoDuration = `${conf.preview.path}${name}/${fileName}`;
 
-    // //获取视频总时长
-    // const comStr = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path}`;
-    // const timeCom = cmd.execSync(comStr);
-    // if (!timeCom) {
-    //   return null;
-    // }
-
-    // const time = parseFloat(timeCom.toString().replace('\r\n', ''));
-
     const stat = fs.statSync(videoDuration);
     const fileSize = stat.size;
 
@@ -158,10 +140,11 @@ export class ResourcPoolService {
    * @returns
    */
   async getResourcPoolSceenshots(
+    res: Response,
     name: string,
     ext: string,
     path: string,
-  ): Promise<StreamableFile> {
+  ): Promise<Response> {
     try {
       if (!fs.existsSync(`${conf.preview.path}${name}`)) {
         //没临时文件夹
@@ -183,8 +166,21 @@ export class ResourcPoolService {
             return null;
           }
         }
+
+        const stat = fs.statSync(videoshots);
+        const fileSize = stat.size;
+
         const file = fs.createReadStream(videoshots);
-        return new StreamableFile(file);
+        const head = {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': fileSize,
+          'Content-Type': 'application/dash+xml',
+        };
+        res.writeHead(200, head);
+        return file.pipe(res);
+
+        // const file = fs.createReadStream(videoshots);
+        // return new StreamableFile(file);
       }
       return null;
     } catch {}
@@ -212,18 +208,19 @@ export class ResourcPoolService {
       } else {
         // 文件
         const fileInfo = StringUtils.getFileNameAndFext(item);
-        if (
-          fileInfo.fext != undefined &&
-          (fileInfo.fext.toUpperCase() == 'MP4' ||
-            fileInfo.fext.toUpperCase() == 'M3U8')
-        ) {
-          // 如果是视频文件则进行生成缩略图
-          this.getResourcPoolSceenshots(
-            fileInfo.fname,
-            fileInfo.fext,
-            itemPath,
-          );
-        }
+        // if (
+        //   fileInfo.fext != undefined &&
+        //   (fileInfo.fext.toUpperCase() == 'MP4' ||
+        //     fileInfo.fext.toUpperCase() == 'M3U8')
+        // ) {
+        //   // 如果是视频文件则进行生成缩略图
+        //   this.getResourcPoolSceenshots(
+        //     null,
+        //     fileInfo.fname,
+        //     fileInfo.fext,
+        //     itemPath,
+        //   );
+        // }
 
         const data = {
           type: 'file',

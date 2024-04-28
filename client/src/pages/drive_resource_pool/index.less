@@ -1,118 +1,122 @@
-
 .file-container {
-	position: relative;
-	flex: 1;
-	z-index: 0;
-	/* overflow: auto; */
-	display: flex;
-	flex-wrap: wrap;
-  }
-  
-  .fileBox {
-	overflow: hidden;
-	flex-shrink: 0;
-	flex-grow: 0;
-	border-radius: 0.2rem;
-	display: inline-flex;
-  
-	user-select: none;
-	/* margin: 0.2rem; */
-	margin: 15px;
-	padding-top: 0.12rem;
-	letter-spacing: 0.01px;
-	transition: ease 0.2s;
-	height: 1.8rem;
-	width: 1.6rem;
-  }
-  
-  .fileBox:hover {
-	background-color: var(--primary-color02);// rgba(117, 139, 189, 0.2);
-  }
-  
-  .fileBoxOn {
-	background-color: #758bbd;
-  }
-  
-  .fileContentBox {
-	display: flex;
-	flex: 1;
-	flex-direction: column;
-	align-items: center;
-	/* justify-content: center; */
-  }
-  
-  .fileContentImg {
-	display: flex;
-	min-height: 100px;
-  }
-  
-  .fileContentText {
-	display: flex;
-	flex-direction: column;
-  }
-  
-  .imgBox {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	width: 1rem;
-	height: 1rem;
-	position: relative;
-  }
-  
-  .videoImg {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: absolute;
-	left: 50%;
-	right: 50%;
-	width: max-content;
-	transform: translateX(-50%);
-	width: 0.4rem;
-	height: 0.4rem;
-	color: white;
-	border-radius: 100rem;
-	background: rgba(30, 30, 30, 0.3);
-	padding: 0.08rem;
-	backdrop-filter: blur(2px);
-	padding-left: 0.1rem;
-  }
-  
-  .imagePreview,
-  .iconPreview {
-	height: max-content;
-	max-height: 1rem;
-	max-width: 1rem;
-  }
-  
-  .iconPreview {
-	font-size: 100%;
-  }
-  
-  .fileContentName {
-	font-size: 0.14rem;
-	color: #333;
-	line-height: 1.5;
-	width: 100%;
-	text-align: center;
-	margin-top: 0.12rem;
-	padding-left: 0.2rem;
-	padding-right: 0.2rem;
-  
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	text-overflow: ellipsis;
-	overflow-wrap: break-word;
-	overflow: hidden;
-	word-break: break-all;
-  }
-  
-  .fileContentDate {
-	text-align: center;
-	font-size: 0.12rem;
-	color: #999;
-	transform-origin: center;
-	line-height: 0.2rem;
-  }
+  position: relative;
+  flex: 1;
+  z-index: 0;
+  /* overflow: auto; */
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.fileBox {
+  overflow: hidden;
+  flex-shrink: 0;
+  flex-grow: 0;
+  border-radius: 0.2rem;
+  display: inline-flex;
+
+  user-select: none;
+  /* margin: 0.2rem; */
+  margin: 15px;
+  padding-top: 0.12rem;
+  letter-spacing: 0.01px;
+  transition: ease 0.2s;
+  height: 1.8rem;
+  width: 1.6rem;
+}
+
+.fileBox:hover {
+  background-color: var(--primary-color02); // rgba(117, 139, 189, 0.2);
+}
+
+.fileBoxOn {
+  background-color: #758bbd;
+}
+
+.fileContentBox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: center; */
+}
+
+.fileContentImg {
+  display: flex;
+  min-height: 100px;
+}
+
+.fileContentText {
+  display: flex;
+  flex-direction: column;
+}
+
+.imgBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 1rem;
+  height: 1rem;
+  position: relative;
+}
+
+.videoImg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  width: max-content;
+  transform: translateX(-50%);
+  width: 0.4rem;
+  height: 0.4rem;
+  color: white;
+  border-radius: 100rem;
+  background: rgba(30, 30, 30, 0.3);
+  padding: 0.08rem;
+  backdrop-filter: blur(2px);
+  padding-left: 0.1rem;
+}
+
+.imagePreview {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.imagePreview,
+.iconPreview {
+  height: max-content;
+  max-height: 1rem;
+  max-width: 1rem;
+}
+
+.iconPreview {
+  font-size: 100%;
+}
+
+.fileContentName {
+  font-size: 0.14rem;
+  color: #333;
+  line-height: 1.5;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.12rem;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+.fileContentDate {
+  text-align: center;
+  font-size: 0.12rem;
+  color: #999;
+  transform-origin: center;
+  line-height: 0.2rem;
+}
