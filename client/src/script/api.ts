@@ -31,5 +31,6 @@ export const API_LIST = {
     PLAY_VIDEOSTEAM: '/resourcepool/playVideoSteam',
     GET_VIDEOSCEENSHOTS: '/resourcepool/getVideoSceenshots',
     GET_FOLDERANDFILE: '/resourcepool/getFolderAndFile',
+    GET_DASHURL: '/resourcepool/getDashUrl',
   },
 }

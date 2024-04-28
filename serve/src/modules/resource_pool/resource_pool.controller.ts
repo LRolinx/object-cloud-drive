@@ -1,5 +1,14 @@
 import { AjaxResult } from 'src/utils/ajax-result.classes';
-import { Controller, Post, Body, Inject, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Inject,
+  Res,
+  Get,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { StringUtils } from 'src/utils/StringUtils';
 import { ResourcPoolService } from './resource_pool.service';
 import conf from 'src/config/config';
@@ -29,16 +38,49 @@ export class ResourcPoolController {
   ) {}
 
   /**
+   * 获取Dash播放地址
+   */
+  @Post('getDashUrl')
+  async getDashUrl(@Body() { name, ext, path }) {
+    if (!StringUtils.hasText(path)) {
+      return AjaxResult.fail('参数错误');
+    }
+    return this.resourcPoolService.getDashUrl(name, ext, path);
+  }
+
+  /**
    * 播放视频流
    * @param id
    * @returns
    */
-  @Post('playVideoSteam')
-  async playVideoSteam(@Res({ passthrough: false }) res, @Body() { path }) {
+  @Get('playVideoSteam/')
+  async playVideoSteam(
+    @Res({ passthrough: false }) res,
+    @Query() { name, ext, path },
+  ) {
     if (!StringUtils.hasText(path)) {
       return AjaxResult.fail('参数错误');
     }
-    return this.resourcPoolService.playLocalResourcPoolSteam(res, path);
+    return this.resourcPoolService.playLocalResourcPoolSteam(
+      res,
+      name,
+      ext,
+      path,
+    );
+  }
+
+  /**
+   * 播放视频流M4S
+   * @param id
+   * @returns
+   */
+  @Get('playVideoSteam/:name/:fileName')
+  async playVideoSteamM4S(@Res({ passthrough: false }) res, @Param() params) {
+    return this.resourcPoolService.playVideoSteamM4S(
+      res,
+      params.name,
+      params.fileName,
+    );
   }
 
   /**

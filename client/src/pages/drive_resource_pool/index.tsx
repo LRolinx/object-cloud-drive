@@ -52,18 +52,18 @@ export default defineComponent(
         if (item['ext'].toUpperCase() != 'MP4') {
           return message.warn('哦吼,文件预览还不能用')
         }
-        videoList.value = []
 
-        const videoData = store.fileData.filter((x) => x.ext != undefined && x.ext.toUpperCase() == 'MP4')
+        videoList.value = store.fileData.filter((x) => x.ext != undefined && x.ext.toUpperCase() == 'MP4')
 
-        for (let i = 0; i < videoData.length; i++) {
-          const _item = videoData[i]
-          videoList.value.push(_item['path'])
+        for (let i = 0; i < videoList.value.length; i++) {
+          const _item = videoList.value[i]
+        //   videoList.value.push(_item['path'])
 
           if (_item['path'] == item['path']) {
             videoIndex.value = i
           }
         }
+
         openStreamingVideoPlayer.value = true
       }
     }

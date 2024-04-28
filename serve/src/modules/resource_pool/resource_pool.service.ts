@@ -38,24 +38,117 @@ export class ResourcPoolService {
   ) {}
 
   /**
+   * 获取Dash播放地址
+   */
+  async getDashUrl(
+    name: string,
+    ext: string,
+    path: string,
+  ): Promise<AjaxResult> {
+    const videoDuration = `${conf.preview.path}${name}/index.mpd`;
+    return AjaxResult.success(videoDuration, 'Success');
+  }
+
+  /**
    * 播放本地视频流
    * @param id
    */
   async playLocalResourcPoolSteam(
     res: Response,
+    name: string,
+    ext: string,
     path: string,
   ): Promise<Response> {
-    const stat = fs.statSync(path);
+    //创建对应的视频Dash目录
+    if (!fs.existsSync(`${conf.preview.path}${name}`)) {
+      //没临时文件夹
+      fs.mkdirSync(`${conf.preview.path}${name}`, {
+        recursive: true,
+      });
+    }
+
+    //视频mpd路径
+    const videoDuration = `${conf.preview.path}${name}/index.mpd`;
+    if (!fs.existsSync(videoDuration)) {
+      //视频dash文件不存在 生成
+      const comStr = `ffmpeg -i ${path} -c copy -f dash ${conf.preview.path}${name}/index.mpd`;
+
+      const com = cmd.execSync(comStr);
+      if (!com) {
+        return null;
+      }
+
+      //打开生成的MPD文件 进行修改路径
+      // 读取文件内容
+      const data = fs.readFileSync(videoDuration, 'utf8');
+      // 替换指定的文本
+      const updatedContent = data
+        .replace(
+          /init-stream\$RepresentationID\$.m4s/g,
+          `playVideoSteam/${name}/init-stream$RepresentationID$.m4s`,
+        )
+        .replace(
+          /chunk-stream\$RepresentationID\$-\$Number%05d\$.m4s/g,
+          `playVideoSteam/${name}/chunk-stream$RepresentationID$-$Number%05d$.m4s`,
+        );
+
+      // 写入更新后的内容到文件
+      fs.writeFileSync(videoDuration, updatedContent, 'utf8');
+    }
+
+    // //获取视频总时长
+    // const comStr = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path}`;
+    // const timeCom = cmd.execSync(comStr);
+    // if (!timeCom) {
+    //   return null;
+    // }
+
+    // const time = parseFloat(timeCom.toString().replace('\r\n', ''));
+
+    const stat = fs.statSync(videoDuration);
     const fileSize = stat.size;
 
-    const file = fs.createReadStream(path);
+    const file = fs.createReadStream(videoDuration);
     const head = {
       'Accept-Ranges': 'bytes',
       'Content-Length': fileSize,
-      'Content-Type': 'video/mp4',
+      'Content-Type': 'application/dash+xml',
     };
     res.writeHead(200, head);
+    return file.pipe(res);
+  }
 
+  /**
+   * 播放视频流M4S
+   * @param id
+   */
+  async playVideoSteamM4S(
+    res: Response,
+    name: string,
+    fileName: string,
+  ): Promise<Response> {
+    //视频mpd路径
+    const videoDuration = `${conf.preview.path}${name}/${fileName}`;
+
+    // //获取视频总时长
+    // const comStr = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path}`;
+    // const timeCom = cmd.execSync(comStr);
+    // if (!timeCom) {
+    //   return null;
+    // }
+
+    // const time = parseFloat(timeCom.toString().replace('\r\n', ''));
+
+    const stat = fs.statSync(videoDuration);
+    const fileSize = stat.size;
+
+    const file = fs.createReadStream(videoDuration);
+    const head = {
+      'Accept-Ranges': 'bytes',
+      'Content-Length': fileSize,
+      'Content-Type': 'application/dash+xml',
+    };
+    res.writeHead(200, head);
     return file.pipe(res);
   }
 
@@ -70,7 +163,14 @@ export class ResourcPoolService {
     path: string,
   ): Promise<StreamableFile> {
     try {
-      const videoshots = `${conf.preview.path}${name}.${ext}.png`;
+      if (!fs.existsSync(`${conf.preview.path}${name}`)) {
+        //没临时文件夹
+        fs.mkdirSync(`${conf.preview.path}${name}`, {
+          recursive: true,
+        });
+      }
+
+      const videoshots = `${conf.preview.path}${name}/index.png`;
 
       if (fs.existsSync(path)) {
         //视频文件存在

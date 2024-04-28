@@ -10,6 +10,15 @@ import { AxiosResponse } from 'axios'
 import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
+//获取Dash播放地址
+export const getDashUrlAPI = (name: string, ext: string, path: string) => {
+  return $http.post(API_LIST.RESOURCEPOOL.GET_DASHURL, {
+    name,
+    ext,
+    path,
+  })
+}
+
 //播放视频流
 export const playvideosteamapi = (id: string): Promise<Resp> => {
   return $http.post(
@@ -29,8 +38,8 @@ export const getvideosceenshotsapi = (name: string, ext: string, path: string): 
     API_LIST.RESOURCEPOOL.GET_VIDEOSCEENSHOTS,
     {
       name,
-	  ext,
-	  path
+      ext,
+      path,
     },
     {
       responseType: 'blob',

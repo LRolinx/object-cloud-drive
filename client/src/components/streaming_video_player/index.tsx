@@ -3,6 +3,7 @@ import { StreamingVideoPlayerEmits, StreamingVideoPlayerProps } from './type'
 import { Modal, Spin } from 'ant-design-vue'
 import './index.less'
 import { API_LIST } from '@/script/api'
+import { getDashUrlAPI } from '@/api/resource_pool'
 
 export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, StreamingVideoPlayerEmits>(
   (props, ctx) => {
@@ -10,6 +11,10 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
     const loading = ref(false)
     //当前播放索引
     const index = ref(0)
+
+    //dash播放
+    const dashPlayer = dashjs.MediaPlayer().create()
+
     //返回
     const onCancel = () => {
       ctx.emit('update:open', false)
@@ -17,23 +22,32 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
 
     // 设置播放数据
     const setPlayData = () => {
-      loading.value = true
       const container = document.querySelector('.container'),
         mainVideo = container.querySelector('video')
+      //   loading.value = true
 
-      fetch(`${API_LIST.BASEURL}/resourcepool/playVideoSteam`, {
-        method: 'post',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8',
-        },
-        body: JSON.stringify({ path: props.data[index.value] }),
-      }).then((resp) => {
-        resp.blob().then((blob) => {
-          URL.revokeObjectURL(mainVideo.src)
-          mainVideo.src = URL.createObjectURL(blob)
-          loading.value = false
-        })
-      })
+      dashPlayer.initialize(mainVideo, `${API_LIST.BASEURL}/resourcepool/playVideoSteam?name=${props.data[index.value].name}&ext=${props.data[index.value].ext}&path=${props.data[index.value].path}`, true)
+
+      // //   getDashUrlAPI(props.data[index.value].name, props.data[index.value].ext, props.data[index.value].path).then((resp) => {
+      // //     console.log(resp)
+      // //   })
+
+      //   fetch(`${API_LIST.BASEURL}/resourcepool/playVideoSteam`, {
+      //     method: 'post',
+      //     headers: {
+      //       'Content-Type': 'application/json;charset=utf-8',
+      //     },
+      //     body: JSON.stringify({ ...props.data[index.value] }),
+      //   }).then((resp) =>
+      //     resp.blob().then((blob) => {
+      //       URL.revokeObjectURL(mainVideo.src)
+      //       const blobUrl = URL.createObjectURL(blob)
+      //       console.log(blobUrl)
+
+      //       //   mainVideo.src =
+      //       loading.value = false
+      //     })
+      //   )
     }
 
     const init = () => {
@@ -200,10 +214,10 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
             init()
           })
         } else {
-          const container = document.querySelector('.container'),
-            mainVideo = container.querySelector('video')
-          // mainVideo.pause()
-          URL.revokeObjectURL(mainVideo.src)
+          //   const container = document.querySelector('.container'),
+          //     mainVideo = container.querySelector('video')
+          //   // mainVideo.pause()
+          //   URL.revokeObjectURL(mainVideo.src)
         }
       }
     )
@@ -218,7 +232,7 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
       return (
         <>
           <div class="streaming_video_player">
-            <Modal onCancel={onCancel} style="width:80vw" v-model:open={props.open} title="流视频" footer={<></>}>
+            <Modal maskClosable={false} onCancel={onCancel} style="width:80vw" v-model:open={props.open} title="流视频" footer={<></>}>
               <Spin spinning={loading.value}>
                 <div class="container show-controls">
                   <div class="wrapper">
