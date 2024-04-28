@@ -26,7 +26,11 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
         mainVideo = container.querySelector('video')
       //   loading.value = true
 
-      dashPlayer.initialize(mainVideo, `${API_LIST.BASEURL}/resourcepool/playVideoSteam?name=${props.data[index.value].name}&ext=${props.data[index.value].ext}&path=${props.data[index.value].path}`, true)
+      dashPlayer.initialize(
+        mainVideo,
+        `${API_LIST.BASEURL}/resourcepool/playVideoSteam?name=${props.data[index.value].name}&ext=${props.data[index.value].ext}&path=${props.data[index.value].path}`,
+        true
+      )
 
       // //   getDashUrlAPI(props.data[index.value].name, props.data[index.value].ext, props.data[index.value].path).then((resp) => {
       // //     console.log(resp)
@@ -214,9 +218,9 @@ export const StreamingVideoPlayer = defineComponent<StreamingVideoPlayerProps, S
             init()
           })
         } else {
-          //   const container = document.querySelector('.container'),
-          //     mainVideo = container.querySelector('video')
-          //   // mainVideo.pause()
+          const container = document.querySelector('.container'),
+            mainVideo = container.querySelector('video')
+          mainVideo.pause()
           //   URL.revokeObjectURL(mainVideo.src)
         }
       }
