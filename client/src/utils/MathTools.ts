@@ -1,4 +1,4 @@
-import { JSEncrypt } from 'JSEncrypt'
+import { JSEncrypt } from 'jsencrypt'
 import { useUserStore } from '@/store/models/user'
 import { useAppStore } from '@/store/models/app'
 
