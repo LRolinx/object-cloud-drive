@@ -37,6 +37,7 @@ object-cloud-drive/
 - pnpm：建议使用 pnpm 管理前端依赖
 - Rust：建议 stable 工具链
 - SQLite：由后端通过 SQLx 自动创建数据库和表结构，无需手动建表
+- ffmpeg：音视频预览需要 ffmpeg 支持，确保 ffmpeg 可执行文件在系统 PATH 中
 
 ## 后端启动
 
