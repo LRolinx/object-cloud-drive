@@ -1,4 +1,6 @@
 # Object Cloud Drive 说明书
+![alt text](image-1.png)
+![alt text](image.png)
 
 Object Cloud Drive 是一个仿云盘项目，包含桌面/网页客户端和 Rust 后端服务。项目支持用户登录、文件上传、文件夹上传、分片并发上传、秒传、文件/文件夹下载、图片预览、视频流预览、资源池浏览、头像上传裁剪、深色主题和动态背景等功能。
 
@@ -15,7 +17,6 @@ Object Cloud Drive 是一个仿云盘项目，包含桌面/网页客户端和 Ru
 object-cloud-drive/
 ├── client/              # 新版 React/Tauri 客户端
 ├── serve_rust/          # 新版 Rust 后端
-├── serve/               # 旧版后端代码，当前主要开发不再使用
 ├── resources/           # 项目资源
 └── README.md            # 项目说明书
 ```
@@ -270,13 +271,3 @@ POST /resourcepool/getFolderAndFile
 - 前端改动后运行：`cd client && pnpm build`
 - 后端改动后运行：`cd serve_rust && cargo check`
 - 涉及接口地址、资源池路径、存储目录时，优先检查配置文件。
-- 不建议直接提交 `objcloud.db3`、`target/`、`dist/`、`node_modules/`、`.pnpm-store/` 等生成物。
-
-## 当前状态
-
-当前主力版本是：
-
-- 前端：`client/`
-- 后端：`serve_rust/`
-
-`serve/` 是旧版后端目录，README 中如有旧说明，以本文件为准。
