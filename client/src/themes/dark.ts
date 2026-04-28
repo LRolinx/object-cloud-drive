@@ -15,7 +15,12 @@ const lightToDark = theme.darkAlgorithm(lightTheme as AliasToken)
 
 export const darkTheme: Partial<AliasToken> = {
   ...lightToDark,
-  colorBgContainer: '#282a2a',
+  colorPrimary: '#8b93ff',
+  colorBgBase: '#0c1020',
+  colorBgLayout: '#0f1426',
+  colorBgContainer: '#171d31',
+  colorBgElevated: '#1d2438',
+  colorBorder: 'rgba(148, 163, 184, 0.18)',
+  colorText: '#e6ebff',
+  colorTextSecondary: '#98a4bf',
 }
-
-console.log(darkTheme);

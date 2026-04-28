@@ -31,6 +31,10 @@ export const loginapi = (account: string, password: string): Promise<Resp> => {
  * @param password 密码
  * @param registeredCode 用户密码
  */
-export const registeredapi = (nickName, account: string, password: string, registeredCode: string): Promise<Resp> => {
+export const registeredapi = (nickName: string, account: string, password: string, registeredCode: string): Promise<Resp> => {
   return $http.post(API_LIST.USER.REGISTERED, { nickName, account, password, registeredCode })
+}
+
+export const updateavatarapi = (userUuid: string, photo: string): Promise<Resp> => {
+  return $http.post(API_LIST.USER.UPDATE_AVATAR, { userUuid, photo })
 }

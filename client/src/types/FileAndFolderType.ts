@@ -6,4 +6,5 @@ export type FileAndFloderType = {
   suffix: string
   type: string
   updateTime: string
+  fileSha256?: string
 }

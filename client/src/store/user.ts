@@ -1,29 +1,42 @@
-import {createSlice} from "@reduxjs/toolkit";
+const USER_STORAGE_KEY = 'object-cloud-user';
 
-export const useUserStore = createSlice({
-  name:'user',
-  initialState:{
-        isLogin: false, //是否登录
-        id: '', //用户id
-        photo: '', //用户头像
-        nickname: '', //用户昵称
-  },
-  reducers:{
+export type UserState = {
+  isLogin: boolean;
+  id: string;
+  photo: string;
+  nickname: string;
+};
 
+const emptyUserState: UserState = {
+  isLogin: false,
+  id: '',
+  photo: '',
+  nickname: '',
+};
+
+const readUserState = (): UserState => {
+  const raw = localStorage.getItem(USER_STORAGE_KEY);
+  if (!raw) {
+    return emptyUserState;
   }
-  // other options...
-  // persist: {
-  //   //   enabled: true, // 开启缓存  默认会存储在本地localstorage
-  //   storage: sessionStorage, // 缓存使用方式
-  //   //   paths: ['info', 'isLogin', 'id', 'photo', 'nickname', 'siderbarStr', 'serve', 'drive'], // 需要缓存键
-  // },
-  // state: () => {
-  //   return {
-  //     isLogin: false, //是否登录
-  //     id: '', //用户id
-  //     photo: '', //用户头像
-  //     nickname: '', //用户昵称
-  //   }
-  // },
-  // actions: {},
-})
+
+  try {
+    return { ...emptyUserState, ...JSON.parse(raw) };
+  } catch {
+    return emptyUserState;
+  }
+};
+
+let state = readUserState();
+
+export const getUserState = () => state;
+
+export const setUserState = (nextState: Partial<UserState>) => {
+  state = { ...state, ...nextState };
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(state));
+};
+
+export const clearUserState = () => {
+  state = { ...emptyUserState };
+  localStorage.removeItem(USER_STORAGE_KEY);
+};

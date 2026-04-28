@@ -8,6 +8,7 @@
 import $http from '$http'
 import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
+import { AxiosProgressEvent } from 'axios'
 
 // 检查文件
 export const examinefileapi = (userUuid: string, folderUuid: string, fileSha256: string, filename: string, fileext: string): Promise<Resp> => {
@@ -30,7 +31,8 @@ export const uploadstreamfileapi = (
   fileExt: string,
   fileSha256: string,
   currentChunkMax: number,
-  currentChunkIndex: number
+  currentChunkIndex: number,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
 ): Promise<Resp> => {
   return $http.put(API_LIST.UPDATE.UPLOAD_STREAMFILE, fileslice, {
 	params: {
@@ -44,8 +46,24 @@ export const uploadstreamfileapi = (
       currentChunkMax,
       currentChunkIndex,
     },
-    // headers: {
-    //   'Content-Type': 'multipart/form-data;charset=utf-8',
-    // },
+    onUploadProgress,
+  })
+}
+
+export const uploadsecondpassapi = (
+  userUuid: string,
+  folderUuid: string,
+  fileName: string,
+  filePath: string,
+  fileExt: string,
+  fileSha256: string
+): Promise<Resp> => {
+  return $http.post(API_LIST.UPDATE.UPLOAD_SECONDPASS, {
+    userUuid,
+    folderUuid,
+    fileName,
+    filePath,
+    fileExt,
+    fileSha256,
   })
 }

@@ -1,0 +1,73 @@
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.28), transparent 28%),
+    var(--app-bg);
+  transition: background 900ms ease, opacity 900ms ease;
+}
+
+.ambient-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, #000, transparent 78%);
+  opacity: 0.65;
+  transition: opacity 800ms ease;
+}
+
+.ambient-background-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 1;
+  transform: scale(1.04);
+  transition: opacity 900ms ease, filter 900ms ease;
+}
+
+.ambient-background-pixi-canvas {
+  z-index: 1;
+  filter: blur(30px) saturate(1.45);
+  opacity: 0.72;
+}
+
+.ambient-background-fallback-canvas {
+  z-index: 2;
+  filter: blur(26px) saturate(1.58);
+  opacity: 0.96;
+}
+
+html[data-theme='dark'] .ambient-background {
+  background:
+    radial-gradient(circle at 50% 4%, rgba(92, 102, 255, 0.18), transparent 30%),
+    #0a0e1a;
+}
+
+html[data-theme='dark'] .ambient-background::after {
+  opacity: 0.34;
+}
+
+html[data-theme='dark'] .ambient-background-pixi-canvas {
+  filter: blur(38px) saturate(1.55) brightness(1.08);
+  opacity: 0.78;
+}
+
+html[data-theme='dark'] .ambient-background-fallback-canvas {
+  filter: blur(32px) saturate(1.7) brightness(1.14);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-background-canvas {
+    transition: opacity 400ms ease, filter 400ms ease;
+  }
+}

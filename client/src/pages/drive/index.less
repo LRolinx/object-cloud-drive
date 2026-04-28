@@ -1,0 +1,227 @@
+.drive-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  background: transparent;
+  color: var(--app-text);
+}
+
+.drive-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 32px 12px;
+}
+
+.drive-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 32px 32px;
+  background: transparent;
+}
+
+.drive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  grid-auto-rows: 208px;
+  gap: 16px;
+  align-content: start;
+  align-items: start;
+}
+
+.drive-card {
+  border-radius: 16px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  backdrop-filter: blur(18px) saturate(1.22);
+  box-sizing: border-box;
+  padding: 14px 12px 12px;
+  min-width: 0;
+  height: 208px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.drive-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 44px rgba(41, 61, 125, 0.12);
+}
+
+.drive-thumb-frame {
+  width: 82px;
+  height: 76px;
+  flex: 0 0 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drive-thumb {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.drive-folder {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  display: block;
+}
+
+.drive-video-thumb {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+}
+
+.drive-video-play {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  color: #fff;
+  font-size: 20px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.drive-file-icon {
+  flex: 0 0 auto;
+  font-size: 54px;
+  color: #6372d8;
+}
+
+.drive-card-meta {
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 42px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.drive-card-meta .ant-space-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.drive-card-name {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 18px;
+  line-height: 18px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drive-card-time {
+  display: block;
+  width: 100%;
+  height: 16px;
+  line-height: 16px;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drive-card-actions {
+  width: 100%;
+  min-height: 28px;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 0 0 28px;
+  overflow: visible;
+}
+
+.drive-card-action-btn.ant-btn-sm {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.drive-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.drive-drop-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(98, 102, 245, 0.14);
+  border: 2px dashed rgba(98, 102, 245, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+html[data-theme='dark'] .drive-card {
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .drive-card:hover {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.36);
+}
+
+html[data-theme='dark'] .drive-file-icon {
+  color: #98a2ff;
+}
+
+html[data-theme='dark'] .drive-drop-mask {
+  background: rgba(31, 41, 91, 0.62);
+  border-color: rgba(139, 147, 255, 0.75);
+}
+
+@media (max-width: 920px) {
+  .drive-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 20px 18px 12px;
+  }
+
+  .drive-list {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .drive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    grid-auto-rows: 202px;
+  }
+
+  .drive-card {
+    height: 202px;
+  }
+}

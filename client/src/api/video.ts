@@ -11,11 +11,11 @@ import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
 //获取视频预览图
-export const getvideosceenshotsapi = (id: string): Promise<Resp> => {
+export const getvideosceenshotsapi = (fileSha256: string): Promise<Resp> => {
   return $http.post(
     API_LIST.VIDEO.GET_VIDEOSCEENSHOTS,
     {
-      id,
+      fileSha256,
     },
     {
       responseType: 'blob',
@@ -35,3 +35,6 @@ export const playvideosteamapi = (id: string): Promise<AxiosResponse> => {
     }
   )
 }
+
+export const getVideoStreamUrl = (id: string) =>
+  `${API_LIST.BASEURL}${API_LIST.VIDEO.PLAY_VIDEOSTEAM}?id=${encodeURIComponent(id)}`

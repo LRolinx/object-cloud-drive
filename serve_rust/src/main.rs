@@ -1,35 +1,63 @@
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
+use std::fs;
+
+use actix_cors::Cors;
+use actix_files::Files;
+use actix_web::middleware::Logger;
+use actix_web::{App, HttpServer, web};
+
+mod config;
+mod crypto;
+mod handlers;
+mod models;
 mod sqltool;
-use sqltool::{openSql};
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+use config::AppConfig;
+use crypto::ensure_keypair;
+use handlers::AppState;
+use sqltool::open_sql;
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+fn show_banner() {
+    if let Ok(file) = fs::read_to_string("../serve/resources/banner.txt") {
+        println!("{file}");
+    }
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // 先打开数据库
-    
-     let _ = openSql().await;
-    
+    env_logger::init();
 
-    HttpServer::new(|| {
-        App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+    let config = AppConfig::load();
+    fs::create_dir_all(&config.key_dir)?;
+    fs::create_dir_all(&config.upload_temp_dir)?;
+    fs::create_dir_all(&config.upload_dir)?;
+    fs::create_dir_all(&config.preview_dir)?;
+    ensure_keypair(&config.public_key_path, &config.private_key_path)?;
+
+    let pool = open_sql(&config).await.map_err(std::io::Error::other)?;
+    let state = web::Data::new(AppState {
+        pool,
+        config: config.clone(),
+    });
+    let static_dir = config.static_dir.clone();
+
+    show_banner();
+    println!("the application start on the 3000 port...");
+
+    HttpServer::new(move || {
+        let cors = Cors::permissive();
+        let app = App::new()
+            .app_data(state.clone())
+            .wrap(Logger::default())
+            .wrap(cors)
+            .configure(handlers::config);
+
+        if static_dir.exists() {
+            app.service(Files::new("/static", static_dir.clone()))
+        } else {
+            app
+        }
     })
-    .bind(("127.0.0.1", 1314))?
+    .bind(("0.0.0.0", 3000))?
     .run()
     .await
 }

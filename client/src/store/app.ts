@@ -1,24 +1,16 @@
-import {createSlice} from '@reduxjs/toolkit'
+const PUBLIC_KEY_STORAGE_KEY = 'object-cloud-public-key';
 
-export const useAppStore = createSlice({
-    name: 'app',
-    initialState: {
-        initState: false, //初始化状态
-        width: 0, //浏览器宽度
-        height: 0, //浏览器高度
-        publickey: '', //公钥
-        siderbarStr: 'drive', //当前页面名
-        counter: 0, //操作计数器
-    },
-    selectors: {
-        getPublickey: (state) => state.publickey,
-    },
-    reducers: {
-        setPublickey(state, {payload}) {
-            state.publickey = payload;
-        },
-    },
-})
+type AppState = {
+  publickey: string;
+};
 
-export const {getPublickey} = useAppStore.selectors
-export const {setPublickey} = useAppStore.actions
+const state: AppState = {
+  publickey: localStorage.getItem(PUBLIC_KEY_STORAGE_KEY) ?? '',
+};
+
+export const setPublickey = (value: string) => {
+  state.publickey = value;
+  localStorage.setItem(PUBLIC_KEY_STORAGE_KEY, value);
+};
+
+export const getPublickey = () => state.publickey;

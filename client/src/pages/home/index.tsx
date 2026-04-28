@@ -1,218 +1,402 @@
-import {memo} from "react";
-import {UploadType} from "@/types/UploadType";
+import { CloudOutlined, DatabaseOutlined, LogoutOutlined, PlaySquareOutlined } from '@ant-design/icons';
+import { Avatar, Button, Modal, Space, Typography, message } from 'antd';
+import { ChangeEvent, MouseEvent as ReactMouseEvent, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-export default memo((p, c) => {
+import './index.less';
+import { clearUserState, getUserState, setUserState } from '@/store/user';
+import { resetDriveNavigation } from '@/store/drive';
+import { UploadCenter } from '@/components/upload_center';
+import { updateavatarapi } from '@/api/user';
 
-    //打开新建文件夹
-    const onOpenNewFolderModel = () => {
-        console.log(childRouter.value)
-        //   childRouter.value.openNewFolderModel()
-        //   childRouter.value.$props.openNewFolderModel()
-        //   childRouter.value.openNewFolderModel()
+const menuItems = [
+  { key: '/home/drive', label: '我的云盘', icon: <CloudOutlined /> },
+  { key: '/home/driveResourcePool', label: '资源池', icon: <DatabaseOutlined /> },
+  { key: '/home/streamingVideo', label: '视频流DEMO', icon: <PlaySquareOutlined /> },
+];
+
+const AVATAR_CANVAS_WIDTH = 420;
+const AVATAR_CANVAS_HEIGHT = 300;
+
+type AvatarCrop = {
+  x: number;
+  y: number;
+  size: number;
+};
+
+type AvatarDrawInfo = {
+  offsetX: number;
+  offsetY: number;
+  drawWidth: number;
+  drawHeight: number;
+  scale: number;
+};
+
+export default memo(() => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const cropCanvasRef = useRef<HTMLCanvasElement>(null);
+  const cropImageRef = useRef<HTMLImageElement | null>(null);
+  const cropDrawInfoRef = useRef<AvatarDrawInfo | null>(null);
+  const cropDragRef = useRef<{
+    mode: 'move' | 'resize';
+    corner?: 'nw' | 'ne' | 'sw' | 'se';
+    startX: number;
+    startY: number;
+    startCrop: AvatarCrop;
+  } | null>(null);
+  const [userVersion, setUserVersion] = useState(0);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
+  const [avatarSource, setAvatarSource] = useState('');
+  const [avatarCrop, setAvatarCrop] = useState<AvatarCrop>({ x: 90, y: 30, size: 240 });
+  const user = useMemo(() => getUserState(), [location.pathname, userVersion]);
+
+  const logout = () => {
+    clearUserState();
+    resetDriveNavigation();
+    navigate('/login', { replace: true });
+  };
+
+  const readAvatarFile = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('图片读取失败'));
+      reader.readAsDataURL(file);
+    });
+
+  const getAvatarDrawInfo = (image: HTMLImageElement): AvatarDrawInfo => {
+    const scale = Math.min(AVATAR_CANVAS_WIDTH / image.naturalWidth, AVATAR_CANVAS_HEIGHT / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    return {
+      offsetX: (AVATAR_CANVAS_WIDTH - drawWidth) / 2,
+      offsetY: (AVATAR_CANVAS_HEIGHT - drawHeight) / 2,
+      drawWidth,
+      drawHeight,
+      scale,
+    };
+  };
+
+  const clampAvatarCrop = (crop: AvatarCrop, info = cropDrawInfoRef.current): AvatarCrop => {
+    if (!info) {
+      return crop;
+    }
+    const minSize = 72;
+    const maxSize = Math.min(info.drawWidth, info.drawHeight);
+    const size = Math.min(Math.max(crop.size, minSize), maxSize);
+    const x = Math.min(Math.max(crop.x, info.offsetX), info.offsetX + info.drawWidth - size);
+    const y = Math.min(Math.max(crop.y, info.offsetY), info.offsetY + info.drawHeight - size);
+    return { x, y, size };
+  };
+
+  const drawAvatarCrop = () => {
+    const canvas = cropCanvasRef.current;
+    const image = cropImageRef.current;
+    if (!canvas || !image) {
+      return;
+    }
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return;
     }
 
-    const openDrive = () => {
-        //打开我的云盘
-        router.push({ name: 'drive' })
+    const info = getAvatarDrawInfo(image);
+    cropDrawInfoRef.current = info;
+    const crop = clampAvatarCrop(avatarCrop, info);
+    if (crop.x !== avatarCrop.x || crop.y !== avatarCrop.y || crop.size !== avatarCrop.size) {
+      setAvatarCrop(crop);
+      return;
     }
 
-    const openDriveResourcePool = () => {
-        // 打开资源池
-        router.push({ name: 'driveResourcePool' })
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#0f172a';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, info.offsetX, info.offsetY, info.drawWidth, info.drawHeight);
+
+    context.fillStyle = 'rgba(2, 6, 23, 0.58)';
+    context.fillRect(0, 0, canvas.width, crop.y);
+    context.fillRect(0, crop.y + crop.size, canvas.width, canvas.height - crop.y - crop.size);
+    context.fillRect(0, crop.y, crop.x, crop.size);
+    context.fillRect(crop.x + crop.size, crop.y, canvas.width - crop.x - crop.size, crop.size);
+
+    context.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    context.lineWidth = 2;
+    context.strokeRect(crop.x + 1, crop.y + 1, crop.size - 2, crop.size - 2);
+    context.strokeStyle = 'rgba(139, 147, 255, 0.88)';
+    context.lineWidth = 1;
+    context.strokeRect(crop.x + 6, crop.y + 6, crop.size - 12, crop.size - 12);
+
+    const handleSize = 14;
+    context.fillStyle = '#fff';
+    context.strokeStyle = '#8b93ff';
+    context.lineWidth = 2;
+    [
+      [crop.x, crop.y],
+      [crop.x + crop.size, crop.y],
+      [crop.x, crop.y + crop.size],
+      [crop.x + crop.size, crop.y + crop.size],
+    ].forEach(([x, y]) => {
+      context.beginPath();
+      context.roundRect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize, 4);
+      context.fill();
+      context.stroke();
+    });
+  };
+
+  useEffect(() => {
+    if (!avatarSource) {
+      cropImageRef.current = null;
+      return;
+    }
+    const image = new Image();
+    image.onload = () => {
+      const info = getAvatarDrawInfo(image);
+      cropImageRef.current = image;
+      cropDrawInfoRef.current = info;
+      const size = Math.min(info.drawWidth, info.drawHeight) * 0.72;
+      setAvatarCrop({
+        x: info.offsetX + (info.drawWidth - size) / 2,
+        y: info.offsetY + (info.drawHeight - size) / 2,
+        size,
+      });
+    };
+    image.onerror = () => message.error('图片读取失败');
+    image.src = avatarSource;
+  }, [avatarSource]);
+
+  useEffect(() => {
+    drawAvatarCrop();
+  }, [avatarCrop, avatarSource]);
+
+  const getCanvasPoint = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    const canvas = cropCanvasRef.current;
+    if (!canvas) {
+      return { x: 0, y: 0 };
+    }
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  };
+
+  const handleCropPointerDown = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    const point = getCanvasPoint(event);
+    const resizeHotArea = 24;
+    const corners = [
+      { key: 'nw' as const, x: avatarCrop.x, y: avatarCrop.y },
+      { key: 'ne' as const, x: avatarCrop.x + avatarCrop.size, y: avatarCrop.y },
+      { key: 'sw' as const, x: avatarCrop.x, y: avatarCrop.y + avatarCrop.size },
+      { key: 'se' as const, x: avatarCrop.x + avatarCrop.size, y: avatarCrop.y + avatarCrop.size },
+    ];
+    const activeCorner = corners.find(
+      (corner) => Math.abs(point.x - corner.x) <= resizeHotArea && Math.abs(point.y - corner.y) <= resizeHotArea
+    )?.key;
+    const insideCrop =
+      point.x >= avatarCrop.x &&
+      point.x <= avatarCrop.x + avatarCrop.size &&
+      point.y >= avatarCrop.y &&
+      point.y <= avatarCrop.y + avatarCrop.size;
+
+    if (!insideCrop && !activeCorner) {
+      return;
     }
 
-    const openStreamingVideo = () => {
-        //打开视频流DEMO
-        router.push({ name: 'StreamingVideo' })
+    cropDragRef.current = {
+      mode: activeCorner ? 'resize' : 'move',
+      corner: activeCorner,
+      startX: point.x,
+      startY: point.y,
+      startCrop: avatarCrop,
+    };
+  };
+
+  const handleCropPointerMove = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    const drag = cropDragRef.current;
+    if (!drag) {
+      return;
+    }
+    const point = getCanvasPoint(event);
+    const deltaX = point.x - drag.startX;
+    const deltaY = point.y - drag.startY;
+    if (drag.mode === 'move') {
+      setAvatarCrop(clampAvatarCrop({ ...drag.startCrop, x: drag.startCrop.x + deltaX, y: drag.startCrop.y + deltaY }));
+      return;
+    }
+    const growMap = {
+      nw: Math.max(-deltaX, -deltaY),
+      ne: Math.max(deltaX, -deltaY),
+      sw: Math.max(-deltaX, deltaY),
+      se: Math.max(deltaX, deltaY),
+    };
+    const corner = drag.corner || 'se';
+    const nextSize = drag.startCrop.size + growMap[corner];
+    const nextCrop = {
+      ...drag.startCrop,
+      size: nextSize,
+      x: corner === 'nw' || corner === 'sw' ? drag.startCrop.x + drag.startCrop.size - nextSize : drag.startCrop.x,
+      y: corner === 'nw' || corner === 'ne' ? drag.startCrop.y + drag.startCrop.size - nextSize : drag.startCrop.y,
+    };
+    setAvatarCrop(clampAvatarCrop(nextCrop));
+  };
+
+  const handleCropPointerUp = () => {
+    cropDragRef.current = null;
+  };
+
+  const cropAvatarAsBase64 = () => {
+    const image = cropImageRef.current;
+    const info = cropDrawInfoRef.current;
+    if (!image || !info) {
+      throw new Error('请先选择头像图片');
     }
 
-    // 片段上传
-    const upLoadFun = async (item) => {
-        //设置状态为上传中
-        setUploadType(item, UploadType.Conduct)
-        const blobSlice = File.prototype.slice
-
-        // 指定文件分块大小 1024的2次方
-        const chunkSize = calculateSliceSize(item.file.size) * 1024 ** 2
-        // 计算文件分块总数
-        const chunks = Math.ceil(item.file.size / chunkSize)
-        //设置总片段数量
-        item.currentChunkMax = chunks
-
-        for (let i = 0, len = chunks; i < len; i++) {
-            // 计算开始读取的位置
-            const start = i * chunkSize
-            // 计算结束读取的位置
-            const end = start + chunkSize >= item.file.size ? item.file.size : start + chunkSize
-
-            // 简化流程
-            const fileslice = blobSlice.call(item.file, start, end)
-
-            //片段流上传
-            const params = new FormData() //创建form对象
-            params.append('file', fileslice)
-
-            uploadstreamfileapi(params, userStore.id, item.folderId, item.fname, item.filePath, item.fext, item.fileSha256, chunks, i).then((resp) => {
-                const { code: code, message: msg, data: data } = resp.data
-                if (code !== 200) {
-                    //上传失败
-                    setUploadType(item, UploadType.Error)
-                    return message.error(msg)
-                }
-
-                item.uploadCurrentChunkNum += 1
-                appStore.counter += 1
-                if (item.uploadCurrentChunkNum >= item.currentChunkMax) {
-                    // console.log(childRouter);
-                    // $refs.childRouter.getUserFileAndFolder(
-                    //   $refs.childRouter.getFolderId()
-                    // );
-
-                    //设置任务上传完成
-                    setUploadType(item, UploadType.Success)
-                }
-            })
-        }
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('无法处理头像');
     }
 
-    const calculateSliceSize = (size: number) => {
-        //计算分段MB
+    const crop = clampAvatarCrop(avatarCrop, info);
+    const sourceX = (crop.x - info.offsetX) / info.scale;
+    const sourceY = (crop.y - info.offsetY) / info.scale;
+    const sourceSize = crop.size / info.scale;
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, size, size);
+    context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+    return canvas.toDataURL('image/jpeg', 0.88);
+  };
 
-        const mbSize = Number((((size / 1024 ** 2) * 100) / 100).toFixed(2))
-
-        //计算的出百分比占比MB
-        const zb = parseInt(((mbSize / 100) * 2).toString())
-
-        if (zb <= 2) {
-            return 2
-        }
-
-        if (zb > 10) {
-            return 10
-        }
-
-        return zb
+  const updateAvatar = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      message.warning('请选择图片文件');
+      return;
+    }
+    if (!user.id) {
+      message.warning('请先登录');
+      return;
     }
 
-    //设置上传状态
-    const setUploadType = (item: any, type: UploadType) => {
-        item['uploadType'] = type
-        //操作计数器用于刷新
-        appStore.counter += 1
+    try {
+      const photo = await readAvatarFile(file);
+      setAvatarSource(photo);
+      setAvatarCropOpen(true);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '图片读取失败');
     }
+  };
 
-    watch(route, (toRouter) => {
-        // //设置最后路由
-        appStore.siderbarStr = toRouter.name.toString()
-        // sessionStorage.setItem("siderbarStr", toRouter.name);
-        appStore.siderbarStr = toRouter.name.toString() //重置最后路由
-    })
+  const confirmAvatarCrop = async () => {
+    try {
+      const photo = cropAvatarAsBase64();
+      const response = await updateavatarapi(user.id, photo);
+      const { code, message: msg } = response.data;
+      if (code !== 200) {
+        message.error(msg);
+        return;
+      }
+      setUserState({ photo });
+      setUserVersion((version) => version + 1);
+      setAvatarCropOpen(false);
+      setAvatarSource('');
+      message.success(msg);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '头像更新失败');
+    }
+  };
 
-    driveStore.$subscribe((m, s) => {
-        //监听任务列表变化
-        //   console.log(m.events)
-        if (m.events['type'] === 'set') {
-            // 监听到添加任务 开始分配任务
-            const item = m.events['target']
-            if (item['file'] === undefined || item['uploadType'] !== UploadType.Prepare) return
-            // setUploadType(item, UploadType.Prepare)
-            // appStore.counter += 1
+  return (
+    <div className="home">
+      <div className="main">
+        <div className="siderbar">
+          <div className="logo">
+            <p>对象云盘</p>
+          </div>
 
-            // examinefileapi(userStore.id, item.folderId, item.fileSha256, item.fname, item.fext).then((resp) => {
-            //   const { code, message: msg, data } = resp.data
-            //   if (code !== 200) {
-            //     //上传失败
-            //     setUploadType(item, UploadType.Error)
-            //     return message.error(msg)
-            //   }
+          <ul className="siderbarUl">
+            {menuItems.map((item) => {
+              const active = location.pathname.startsWith(item.key);
+              return (
+                <li
+                  key={item.key}
+                  className={active ? 'liOn' : ''}
+                  onClick={() => navigate(item.key)}
+                >
+                  {item.icon}
+                  <p>{item.label}</p>
+                </li>
+              );
+            })}
+          </ul>
 
-            if (!item.userFileExist) {
-                //用户文件不存在
-                if (!item.fileExist) {
-                    //文件不存在 开始上传
-
-                    upLoadFun(item)
-                } else {
-                    //秒传文件
-                    setUploadType(item, UploadType.Fast)
-                    //   $http
-                    //     .post(`${userStore.serve.serveUrl}upload/uploadSecondPass`, {
-                    //       userid: userStore.id,
-                    //       folderid: item.folderId,
-                    //       fileName: item.fname,
-                    //       filePath: item.filePath,
-                    //       fileExt: item.fext,
-                    //       fileSha256: item.fileSha256,
-                    //     })
-                    //     .then((SecondPass) => {
-                    //       if (SecondPass.data.code == 200) {
-                    //         // childRouter.value.getUserFileAndFolder(
-                    //         //   childRouter.value.getFolderId()
-                    //         // );
-                    //         // console.log(childRouter);
-                    //         //设置任务为秒传
-                    //         setTaskState(item, 5, 0)
-                    //       } else {
-                    //         //秒传失败
-                    //         setTaskState(item, 404, 0)
-                    //         console.log(SecondPass.data.message)
-                    //       }
-                    //     })
-                }
-            } else {
-                //用户文件已存在
-                setUploadType(item, UploadType.Exist)
-            }
-            // })
-        }
-    })
-
-    return <>
-        <div className="home">
-            {/* <NewFolder v-model:open={showNewFolderModel.value} onSubmit={newFolderSubmit}></NewFolder> */}
-
-            <div className="topbar" v-if="false">
-                <p>网盘2.0 全新升级~</p>
+          <div className="headBox">
+            <div className="headChildBox">
+              <button className="avatarButton" type="button" onClick={() => setAvatarCropOpen(true)}>
+                <Avatar src={user.photo || undefined}>{user.nickname?.slice(0, 1) || 'U'}</Avatar>
+              </button>
+              <input ref={avatarInputRef} className="avatarInput" type="file" accept="image/*" onChange={updateAvatar} />
+              <p className="userName">{user.nickname || '未登录用户'}</p>
+              <Button type="text" icon={<LogoutOutlined />} onClick={logout} />
             </div>
-
-            <div className="main">
-                <div className="siderbar">
-                    <div className="logo">
-                        <p>对象云盘</p>
-                    </div>
-
-                    <ul className="siderbarUl">
-                        <li className={"liOn": appStore.siderbarStr == 'drive'} onClick={openDrive}>
-                            {/* <i class="iconfont icon-drive"></i> */}
-                            <CloudTwoTone/>
-                            <p>我的云盘</p>
-                        </li>
-                        <li className={{liOn: appStore.siderbarStr == 'driveResourcePool'}}
-                            onClick={openDriveResourcePool}>
-                            {/* <i class="iconfont icon-cloud"></i> */}
-                            <DatabaseTwoTone/>
-                            <p>资源池</p>
-                        </li>
-                        <li className={{liOn: appStore.siderbarStr == 'StreamingVideo'}} onClick={openStreamingVideo}>
-                            {/* <i class="iconfont icon-video-play"></i> */}
-                            <PlaySquareTwoTone/>
-                            <p>视频流DEMO</p>
-                        </li>
-                    </ul>
-
-                    <div className="headBox">
-                        <div className="headChildBox">
-                            <img src={userStore.photo}/>
-                            <p>{userStore.nickname}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="content">
-                    <router-view>{/* <component ref={childRouter} is={Component} key={route.path}></component> */}</router-view>
-                </div>
-            </div>
-            <UploadFloatButtonGroup></UploadFloatButtonGroup>
-            {/* <UploadModal onOpenNewFolderModel={onOpenNewFolderModel} uploadTaskList={props.uploadTaskList} uploadRemainingTask={props.uploadRemainingTask}></UploadModal> */}
+          </div>
         </div>
-    </>
-})
+
+        <div className="content">
+          <Outlet />
+        </div>
+      </div>
+      <UploadCenter />
+      <Modal
+        open={avatarCropOpen}
+        title="头像设置"
+        okText="保存头像"
+        cancelText="取消"
+        onOk={confirmAvatarCrop}
+        onCancel={() => {
+          setAvatarCropOpen(false);
+          setAvatarSource('');
+        }}
+        okButtonProps={{ disabled: !avatarSource }}
+        maskClosable={false}
+        destroyOnClose
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          {avatarSource ? (
+            <div className="avatarCropCanvasWrap">
+              <canvas
+                ref={cropCanvasRef}
+                className="avatarCropCanvas"
+                width={AVATAR_CANVAS_WIDTH}
+                height={AVATAR_CANVAS_HEIGHT}
+                onMouseDown={handleCropPointerDown}
+                onMouseMove={handleCropPointerMove}
+                onMouseUp={handleCropPointerUp}
+                onMouseLeave={handleCropPointerUp}
+              />
+              <Typography.Text type="secondary">
+                拖动裁剪框移动头像，拖动四角白色方块调整大小，比例会保持正方形。
+              </Typography.Text>
+            </div>
+          ) : (
+            <div className="avatarCropEmpty">
+              <Typography.Text type="secondary">先选择一张图片，然后在画布上裁剪头像区域。</Typography.Text>
+            </div>
+          )}
+          <Button onClick={() => avatarInputRef.current?.click()}>
+            {avatarSource ? '重新选择图片' : '选择图片'}
+          </Button>
+        </Space>
+      </Modal>
+    </div>
+  );
+});

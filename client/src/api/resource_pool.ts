@@ -11,17 +11,20 @@ import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
 //播放视频流
-export const playvideosteamapi = (id: string): Promise<Resp> => {
+export const playvideosteamapi = (path: string): Promise<Resp> => {
   return $http.post(
     API_LIST.RESOURCEPOOL.PLAY_VIDEOSTEAM,
     {
-      id,
+      path,
     },
     {
       responseType: 'blob',
     }
   )
 }
+
+export const getResourcePoolVideoStreamUrl = (path: string) =>
+  `${API_LIST.BASEURL}${API_LIST.RESOURCEPOOL.PLAY_VIDEOSTEAM}?path=${encodeURIComponent(path)}`
 
 //获取视频缩略图
 export const getvideosceenshotsapi = (name: string, ext: string, path: string): Promise<AxiosResponse> => {

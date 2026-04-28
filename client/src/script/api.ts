@@ -6,15 +6,17 @@
  * @create 2024-03-30 13:26
  */
 export const API_LIST = {
-    BASEURL: 'http://192.168.3.15:3000',
+    BASEURL: 'http://192.168.50.48:3000',
     USER: {
         GET_PUBLICKEY: '/user/getpublickey',
         LOGIN: '/user/login',
         REGISTERED: '/user/registered',
+        UPDATE_AVATAR: '/user/updateAvatar',
     },
     UPDATE: {
         EXAMINE_FILE: '/upload/examineFile',
         UPLOAD_STREAMFILE: '/upload/uploadStreamFile',
+        UPLOAD_SECONDPASS: '/upload/uploadSecondPass',
     },
     DRIVE: {
         GET_USERFILEANDFOLDER: '/drive/getUserFileAndFolder',
