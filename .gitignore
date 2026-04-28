@@ -15,6 +15,9 @@ dist-ssr
 # Editor directories and files
 serve_rust/target/*
 serve_rust/objcloud.db3*
+serve_rust/objcloud.db3-shm
+serve_rust/objcloud.db3-wal
+
 .vscode/*
 !.vscode/extensions.json
 .idea
