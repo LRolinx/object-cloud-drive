@@ -7,4 +7,5 @@ export type FileAndFloderType = {
   type: string
   updateTime: string
   fileSha256?: string
+  mediaType?: 'video' | 'audio' | string
 }

@@ -4,6 +4,18 @@ export const GetFileTypeInItem = (item: any) => {
 	  type: '',
 	  iconStr: 'icon-unknown',
 	}
+	if (item.mediaType === 'video') {
+	  return {
+		type: 'video',
+		iconStr: 'icon-video',
+	  }
+	}
+	if (item.mediaType === 'audio') {
+	  return {
+		type: 'audio',
+		iconStr: 'icon-music',
+	  }
+	}
 	if (item.fileType == null) {
 	  //使用后缀判断
 	  if (item.suffix != null) {
@@ -129,6 +141,11 @@ export const GetFileTypeInItem = (item: any) => {
 			break
 		  }
 		  case 'aac': {
+			typeStr.type = 'audio'
+			typeStr.iconStr = 'icon-music'
+			break
+		  }
+		  case 'm4a': {
 			typeStr.type = 'audio'
 			typeStr.iconStr = 'icon-music'
 			break

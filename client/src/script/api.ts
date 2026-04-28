@@ -23,6 +23,7 @@ export const API_LIST = {
         ADD_USERFOLDER: '/drive/addUserFolder',
         BATCHADD_USERFOLDER: '/drive/batchAddUserFolder',
         GET_USERFILEFORFILEID: '/drive/getUserFileForFileId',
+        DOWNLOAD_USERFOLDER: '/drive/downloadUserFolder',
         DEL_USERFILEORFOLDER: '/drive/delUserFileOrFolder',
     },
     VIDEO: {

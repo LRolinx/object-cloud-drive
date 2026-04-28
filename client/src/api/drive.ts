@@ -49,6 +49,20 @@ export const getuserfileforfileidapi = (id: string): Promise<Resp> => {
   )
 }
 
+//下载用户文件夹
+export const downloaduserfolderapi = (userUuid: string, id: string): Promise<AxiosResponse<Blob>> => {
+  return $http.post(
+    API_LIST.DRIVE.DOWNLOAD_USERFOLDER,
+    {
+      userUuid,
+      id,
+    },
+    {
+      responseType: 'blob',
+    }
+  )
+}
+
 //删除文件或文件夹
 export const deluserfileorfolderapi = (id: string, type: string): Promise<Resp> => {
   return $http.post(API_LIST.DRIVE.DEL_USERFILEORFOLDER, {

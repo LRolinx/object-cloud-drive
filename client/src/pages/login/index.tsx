@@ -11,8 +11,35 @@ import { getUserState, setUserState } from '@/store/user';
 const ACCOUNT_STORAGE_KEY = 'object-cloud-account';
 const PASSWORD_STORAGE_KEY = 'object-cloud-password';
 
-const encodeRememberValue = (value: string) => window.btoa(window.btoa(value).replace(/=/g, '··')).replace(/=/g, 's+');
-const decodeRememberValue = (value: string) => window.atob(window.atob(value.replace(/s\+/g, '=').replace(/··/g, '=')));
+const encodeRememberValue = (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary);
+};
+
+const decodeUtf8Base64 = (value: string) => {
+  const binary = window.atob(value);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+};
+
+const decodeLegacyRememberValue = (value: string) =>
+  window.atob(window.atob(value.replace(/s\+/g, '=').replace(/··/g, '=')));
+
+const decodeRememberValue = (value: string) => {
+  try {
+    return decodeUtf8Base64(value);
+  } catch {
+    try {
+      return decodeLegacyRememberValue(value);
+    } catch {
+      return null;
+    }
+  }
+};
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -31,10 +58,19 @@ export const LoginPage = () => {
     const account = localStorage.getItem(ACCOUNT_STORAGE_KEY);
     const password = localStorage.getItem(PASSWORD_STORAGE_KEY);
     if (account && password) {
+      const decodedAccount = decodeRememberValue(account);
+      const decodedPassword = decodeRememberValue(password);
+      if (decodedAccount === null || decodedPassword === null) {
+        localStorage.removeItem(ACCOUNT_STORAGE_KEY);
+        localStorage.removeItem(PASSWORD_STORAGE_KEY);
+        setRememberMe(false);
+        return;
+      }
+
       setRememberMe(true);
       loginForm.setFieldsValue({
-        username: decodeRememberValue(account),
-        password: decodeRememberValue(password),
+        username: decodedAccount,
+        password: decodedPassword,
       });
     }
   }, [currentUser.isLogin, loginForm, navigate]);
@@ -123,7 +159,7 @@ export const LoginPage = () => {
               <Form.Item>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Checkbox checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)}>
-                    记住账号
+                    记住账号和密码
                   </Checkbox>
                   <a onClick={() => setIsRegistered(true)}>注册账号</a>
                 </div>

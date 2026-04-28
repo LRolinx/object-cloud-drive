@@ -1,5 +1,5 @@
 import { Button, Modal } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getResourcePoolVideoStreamUrl } from '@/api/resource_pool';
 import { getVideoStreamUrl } from '@/api/video';
@@ -32,9 +32,12 @@ export const StreamingVideoPlayer = ({
   sourceType = 'resourcepool',
   onClose,
 }: Props) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [currentIndex, setCurrentIndex] = useState(index);
+  const [minimized, setMinimized] = useState(false);
 
   const currentSource = useMemo(() => getSourceValue(data[currentIndex]), [currentIndex, data]);
+  const currentTitle = useMemo(() => getSourceTitle(data[currentIndex], currentIndex), [currentIndex, data]);
   const videoUrl = useMemo(() => {
     if (!open || !currentSource) {
       return '';
@@ -48,63 +51,89 @@ export const StreamingVideoPlayer = ({
     setCurrentIndex(index);
   }, [index, open]);
 
+  useEffect(() => {
+    if (!open) {
+      setMinimized(false);
+      videoRef.current?.pause();
+    }
+  }, [open]);
+
+  const closePreview = () => {
+    videoRef.current?.pause();
+    setMinimized(false);
+    onClose?.();
+  };
+
   return (
-    <Modal
-      open={open}
-      width="86vw"
-      title="视频预览"
-      footer={null}
-      onCancel={onClose}
-      maskClosable={false}
-      destroyOnClose
-      styles={{ body: { paddingTop: 12 } }}
-    >
-      <div className="streaming-video-layout">
-        <div className="streaming-video-main">
-          <video controls autoPlay preload="metadata" src={videoUrl} className="streaming-video-element" />
-          {data.length > 1 && (
-            <div className="streaming-video-actions">
-              <Button
-                disabled={currentIndex <= 0}
-                onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
-              >
-                上一个
-              </Button>
-              <Button
-                disabled={currentIndex >= data.length - 1}
-                onClick={() => setCurrentIndex((value) => Math.min(data.length - 1, value + 1))}
-              >
-                下一个
-              </Button>
-            </div>
-          )}
-        </div>
-        <aside className="streaming-video-playlist">
-          <div className="streaming-video-playlist-title">同目录视频</div>
-          <div className="streaming-video-playlist-scroll">
-            {data.map((item, itemIndex) => (
-              <button
-                key={`${getSourceValue(item)}-${itemIndex}`}
-                type="button"
-                className={`streaming-video-playlist-item${itemIndex === currentIndex ? ' is-active' : ''}`}
-                onClick={() => setCurrentIndex(itemIndex)}
-              >
-                <span className="streaming-video-playlist-thumb">
-                  {getSourcePoster(item) ? (
-                    <img src={getSourcePoster(item)} alt={getSourceTitle(item, itemIndex)} />
-                  ) : (
-                    <span>{itemIndex + 1}</span>
-                  )}
-                </span>
-                <span className="streaming-video-playlist-meta">
-                  <span className="streaming-video-playlist-name">{getSourceTitle(item, itemIndex)}</span>
-                  <span className="streaming-video-playlist-subtitle">同目录视频</span>
-                </span>
-              </button>
-            ))}
+    <>
+      <Modal
+        open={open && !minimized}
+        width="86vw"
+        title={
+          <div className="media-preview-titlebar">
+            <span>视频预览</span>
+            <Button size="small" onClick={() => setMinimized(true)}>最小化</Button>
           </div>
-        </aside>
-      </div>
-    </Modal>
+        }
+        footer={null}
+        onCancel={closePreview}
+        maskClosable={false}
+        styles={{ body: { paddingTop: 12 } }}
+      >
+        <div className="streaming-video-layout">
+          <div className="streaming-video-main">
+            <video ref={videoRef} controls autoPlay preload="metadata" src={videoUrl} className="streaming-video-element" />
+            {data.length > 1 && (
+              <div className="streaming-video-actions">
+                <Button
+                  disabled={currentIndex <= 0}
+                  onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
+                >
+                  上一个
+                </Button>
+                <Button
+                  disabled={currentIndex >= data.length - 1}
+                  onClick={() => setCurrentIndex((value) => Math.min(data.length - 1, value + 1))}
+                >
+                  下一个
+                </Button>
+              </div>
+            )}
+          </div>
+          <aside className="streaming-video-playlist">
+            <div className="streaming-video-playlist-title">同目录视频</div>
+            <div className="streaming-video-playlist-scroll">
+              {data.map((item, itemIndex) => (
+                <button
+                  key={`${getSourceValue(item)}-${itemIndex}`}
+                  type="button"
+                  className={`streaming-video-playlist-item${itemIndex === currentIndex ? ' is-active' : ''}`}
+                  onClick={() => setCurrentIndex(itemIndex)}
+                >
+                  <span className="streaming-video-playlist-thumb">
+                    {getSourcePoster(item) ? (
+                      <img src={getSourcePoster(item)} alt={getSourceTitle(item, itemIndex)} />
+                    ) : (
+                      <span>{itemIndex + 1}</span>
+                    )}
+                  </span>
+                  <span className="streaming-video-playlist-meta">
+                    <span className="streaming-video-playlist-name">{getSourceTitle(item, itemIndex)}</span>
+                    <span className="streaming-video-playlist-subtitle">同目录视频</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </Modal>
+      {open && minimized && (
+        <div className="media-preview-mini">
+          <div className="media-preview-mini-title">{currentTitle}</div>
+          <Button size="small" onClick={() => setMinimized(false)}>还原</Button>
+          <Button size="small" danger onClick={closePreview}>关闭</Button>
+        </div>
+      )}
+    </>
   );
 };

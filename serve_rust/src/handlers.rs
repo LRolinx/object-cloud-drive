@@ -280,10 +280,13 @@ pub async fn get_user_file_and_folder(
             update_time: row.get("create_time"),
             suffix: None,
             file_sha256: None,
+            media_type: None,
         });
     }
 
     for row in files {
+        let file_sha256: String = row.get("file_sha256");
+        let media_type = detect_media_type(&state.config.upload_dir.join(&file_sha256)).await;
         result.push(UserFileAndFolder {
             id: row.get::<i64, _>("id").to_string(),
             p_uuid: row.get("folder_uuid"),
@@ -292,7 +295,8 @@ pub async fn get_user_file_and_folder(
             size: 0.0,
             update_time: row.get("create_time"),
             suffix: Some(row.get("suffix")),
-            file_sha256: Some(row.get("file_sha256")),
+            file_sha256: Some(file_sha256),
+            media_type,
         });
     }
 
@@ -336,6 +340,52 @@ pub async fn get_user_file_for_file_id(
 
     let file_sha256: String = row.get("file_sha256");
     stream_file_response(state.config.upload_dir.join(file_sha256), None, None).await
+}
+
+pub async fn download_user_folder(
+    state: web::Data<AppState>,
+    body: web::Json<FolderDownloadBody>,
+) -> Result<HttpResponse> {
+    if !has_text(&body.user_uuid) || !has_text(&body.id) {
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
+    }
+
+    let Some(folder_row) = sqlx::query(
+        "SELECT name FROM t_folder WHERE user_uuid = ? AND folder_uuid = ? AND del = 0 LIMIT 1",
+    )
+    .bind(body.user_uuid.trim())
+    .bind(body.id.trim())
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(error::ErrorInternalServerError)?
+    else {
+        return Ok(HttpResponse::NotFound().finish());
+    };
+
+    let folder_name: String = folder_row.get("name");
+    let root_name = sanitize_zip_path_part(&folder_name);
+    let zip_entries = collect_folder_zip_entries(
+        &state.pool,
+        &state.config.upload_dir,
+        body.user_uuid.trim(),
+        body.id.trim(),
+        &root_name,
+    )
+    .await?;
+    let zip_bytes = build_store_zip(zip_entries).map_err(error::ErrorInternalServerError)?;
+    let filename = format!("{}.zip", root_name);
+
+    Ok(HttpResponse::Ok()
+        .append_header((header::CONTENT_TYPE, "application/zip"))
+        .append_header((
+            header::CONTENT_DISPOSITION,
+            format!(
+                "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+                ascii_filename(&filename),
+                percent_encode_filename(&filename)
+            ),
+        ))
+        .body(zip_bytes))
 }
 
 pub async fn del_user_file_or_folder(
@@ -579,10 +629,9 @@ pub async fn upload_second_pass(
 ) -> Result<HttpResponse> {
     if !has_text(&body.user_uuid)
         || !has_text(&body.folder_uuid)
-        || !has_text(&body.file_name)
         || !has_text(&body.file_path)
-        || !has_text(&body.file_ext)
         || !has_text(&body.file_sha256)
+        || (!has_text(&body.file_name) && !has_text(&body.file_ext))
     {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
     }
@@ -795,14 +844,17 @@ pub async fn resource_pool_get_folder_and_file(
                 name,
                 ext: None,
                 path: entry_path.to_string_lossy().to_string(),
+                media_type: None,
             });
         } else {
             let (file_name, file_ext) = split_file_name_and_ext(&name);
+            let media_type = detect_media_type(&entry_path).await;
             result.push(ResourcePoolItem {
                 item_type: "file".to_string(),
                 name: file_name.to_string(),
                 ext: Some(file_ext.to_string()),
                 path: entry_path.to_string_lossy().to_string(),
+                media_type,
             });
         }
     }
@@ -830,6 +882,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 .route(
                     "/getUserFileForFileId",
                     web::post().to(get_user_file_for_file_id),
+                )
+                .route(
+                    "/downloadUserFolder",
+                    web::post().to(download_user_folder),
                 )
                 .route(
                     "/delUserFileOrFolder",
@@ -868,6 +924,223 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                     web::post().to(resource_pool_get_folder_and_file),
                 ),
         );
+}
+
+struct ZipInputEntry {
+    name: String,
+    data: Vec<u8>,
+    is_dir: bool,
+}
+
+struct ZipCentralEntry {
+    name: String,
+    crc32: u32,
+    size: u32,
+    local_offset: u32,
+    is_dir: bool,
+}
+
+async fn collect_folder_zip_entries(
+    pool: &SqlitePool,
+    upload_dir: &Path,
+    user_uuid: &str,
+    folder_uuid: &str,
+    root_name: &str,
+) -> Result<Vec<ZipInputEntry>> {
+    let mut entries = vec![ZipInputEntry {
+        name: format!("{}/", root_name),
+        data: Vec::new(),
+        is_dir: true,
+    }];
+    let mut stack = vec![(folder_uuid.to_string(), root_name.to_string())];
+
+    while let Some((current_folder_uuid, current_zip_path)) = stack.pop() {
+        let child_folders = sqlx::query(
+            "SELECT folder_uuid, name FROM t_folder WHERE user_uuid = ? AND p_uuid = ? AND del = 0 ORDER BY name",
+        )
+        .bind(user_uuid)
+        .bind(&current_folder_uuid)
+        .fetch_all(pool)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+
+        for row in child_folders {
+            let child_uuid: String = row.get("folder_uuid");
+            let child_name: String = row.get("name");
+            let child_zip_path = format!("{}/{}", current_zip_path, sanitize_zip_path_part(&child_name));
+            entries.push(ZipInputEntry {
+                name: format!("{}/", child_zip_path),
+                data: Vec::new(),
+                is_dir: true,
+            });
+            stack.push((child_uuid, child_zip_path));
+        }
+
+        let files = sqlx::query(
+            "SELECT file_name, suffix, file_sha256 FROM t_user_files WHERE user_uuid = ? AND folder_uuid = ? AND del = 0 ORDER BY file_name",
+        )
+        .bind(user_uuid)
+        .bind(&current_folder_uuid)
+        .fetch_all(pool)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+
+        for row in files {
+            let file_name: String = row.get("file_name");
+            let suffix: String = row.get("suffix");
+            let file_sha256: String = row.get("file_sha256");
+            let display_name = if suffix.trim().is_empty() {
+                file_name
+            } else {
+                format!("{}.{}", file_name, suffix)
+            };
+            let data = fs::read(upload_dir.join(file_sha256))
+                .await
+                .map_err(error::ErrorInternalServerError)?;
+            entries.push(ZipInputEntry {
+                name: format!("{}/{}", current_zip_path, sanitize_zip_path_part(&display_name)),
+                data,
+                is_dir: false,
+            });
+        }
+    }
+
+    Ok(entries)
+}
+
+fn sanitize_zip_path_part(value: &str) -> String {
+    let sanitized = value
+        .trim()
+        .replace('\\', "_")
+        .replace('/', "_")
+        .replace('\0', "");
+
+    if sanitized.is_empty() {
+        "未命名".to_string()
+    } else {
+        sanitized
+    }
+}
+
+fn ascii_filename(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_' | ' ') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn percent_encode_filename(value: &str) -> String {
+    let mut encoded = String::new();
+    for byte in value.as_bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'_') {
+            encoded.push(*byte as char);
+        } else {
+            encoded.push_str(&format!("%{:02X}", byte));
+        }
+    }
+    encoded
+}
+
+fn push_u16(buffer: &mut Vec<u8>, value: u16) {
+    buffer.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_u32(buffer: &mut Vec<u8>, value: u32) {
+    buffer.extend_from_slice(&value.to_le_bytes());
+}
+
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = 0xffff_ffffu32;
+    for byte in bytes {
+        crc ^= *byte as u32;
+        for _ in 0..8 {
+            let mask = (crc & 1).wrapping_neg();
+            crc = (crc >> 1) ^ (0xedb8_8320 & mask);
+        }
+    }
+    !crc
+}
+
+fn to_zip_u32(value: usize) -> io::Result<u32> {
+    u32::try_from(value).map_err(|_| io::Error::new(ErrorKind::InvalidData, "ZIP 文件过大"))
+}
+
+fn build_store_zip(entries: Vec<ZipInputEntry>) -> io::Result<Vec<u8>> {
+    let mut output = Vec::new();
+    let mut central_entries = Vec::new();
+
+    for entry in entries {
+        let name_bytes = entry.name.as_bytes();
+        let crc = if entry.is_dir { 0 } else { crc32(&entry.data) };
+        let size = to_zip_u32(entry.data.len())?;
+        let local_offset = to_zip_u32(output.len())?;
+
+        push_u32(&mut output, 0x0403_4b50);
+        push_u16(&mut output, 20);
+        push_u16(&mut output, 0x0800);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u32(&mut output, crc);
+        push_u32(&mut output, size);
+        push_u32(&mut output, size);
+        push_u16(&mut output, u16::try_from(name_bytes.len()).map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?);
+        push_u16(&mut output, 0);
+        output.extend_from_slice(name_bytes);
+        output.extend_from_slice(&entry.data);
+
+        central_entries.push(ZipCentralEntry {
+            name: entry.name,
+            crc32: crc,
+            size,
+            local_offset,
+            is_dir: entry.is_dir,
+        });
+    }
+
+    let central_offset = to_zip_u32(output.len())?;
+    for entry in &central_entries {
+        let name_bytes = entry.name.as_bytes();
+        push_u32(&mut output, 0x0201_4b50);
+        push_u16(&mut output, 20);
+        push_u16(&mut output, 20);
+        push_u16(&mut output, 0x0800);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u32(&mut output, entry.crc32);
+        push_u32(&mut output, entry.size);
+        push_u32(&mut output, entry.size);
+        push_u16(&mut output, u16::try_from(name_bytes.len()).map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u16(&mut output, 0);
+        push_u32(&mut output, if entry.is_dir { 0x10 << 16 } else { 0 });
+        push_u32(&mut output, entry.local_offset);
+        output.extend_from_slice(name_bytes);
+    }
+
+    let central_size = to_zip_u32(output.len())? - central_offset;
+    let entry_count = u16::try_from(central_entries.len())
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "ZIP 条目过多"))?;
+
+    push_u32(&mut output, 0x0605_4b50);
+    push_u16(&mut output, 0);
+    push_u16(&mut output, 0);
+    push_u16(&mut output, entry_count);
+    push_u16(&mut output, entry_count);
+    push_u32(&mut output, central_size);
+    push_u32(&mut output, central_offset);
+    push_u16(&mut output, 0);
+
+    Ok(output)
 }
 
 async fn stream_file_response(
@@ -954,6 +1227,54 @@ async fn ensure_screenshot(video_path: &Path, screenshot_path: &Path) -> io::Res
         .output()
         .await
         .map(|_| ())
+}
+
+async fn detect_media_type(path: &Path) -> Option<String> {
+    let video_output = tokio::process::Command::new("ffprobe")
+        .arg("-v")
+        .arg("error")
+        .arg("-select_streams")
+        .arg("v:0")
+        .arg("-show_entries")
+        .arg("stream=codec_type")
+        .arg("-of")
+        .arg("csv=p=0")
+        .arg(path)
+        .output()
+        .await
+        .ok()?;
+
+    if video_output.status.success()
+        && String::from_utf8_lossy(&video_output.stdout)
+            .lines()
+            .any(|line| line.trim() == "video")
+    {
+        return Some("video".to_string());
+    }
+
+    let audio_output = tokio::process::Command::new("ffprobe")
+        .arg("-v")
+        .arg("error")
+        .arg("-select_streams")
+        .arg("a:0")
+        .arg("-show_entries")
+        .arg("stream=codec_type")
+        .arg("-of")
+        .arg("csv=p=0")
+        .arg(path)
+        .output()
+        .await
+        .ok()?;
+
+    if audio_output.status.success()
+        && String::from_utf8_lossy(&audio_output.stdout)
+            .lines()
+            .any(|line| line.trim() == "audio")
+    {
+        return Some("audio".to_string());
+    }
+
+    None
 }
 
 fn now_string() -> String {

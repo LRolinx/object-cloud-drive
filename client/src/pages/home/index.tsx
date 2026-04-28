@@ -6,14 +6,17 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './index.less';
 import { clearUserState, getUserState, setUserState } from '@/store/user';
 import { resetDriveNavigation } from '@/store/drive';
+import { clearSessionRoute, getSectionSessionRoute, rememberSessionRoute, SessionSection } from '@/store/session_route';
 import { UploadCenter } from '@/components/upload_center';
 import { updateavatarapi } from '@/api/user';
 
 const menuItems = [
-  { key: '/home/drive', label: '我的云盘', icon: <CloudOutlined /> },
-  { key: '/home/driveResourcePool', label: '资源池', icon: <DatabaseOutlined /> },
-  { key: '/home/streamingVideo', label: '视频流DEMO', icon: <PlaySquareOutlined /> },
+  { key: '/home/drive', section: 'drive' as SessionSection, label: '我的云盘', icon: <CloudOutlined /> },
+  { key: '/home/driveResourcePool', section: 'resourcePool' as SessionSection, label: '资源池', icon: <DatabaseOutlined /> },
+  { key: '/home/streamingVideo', section: 'streamingVideo' as SessionSection, label: '视频流DEMO', icon: <PlaySquareOutlined /> },
 ];
+
+const isMenuActive = (pathname: string, menuKey: string) => pathname === menuKey || pathname.startsWith(`${menuKey}/`);
 
 const AVATAR_CANVAS_WIDTH = 420;
 const AVATAR_CANVAS_HEIGHT = 300;
@@ -53,10 +56,15 @@ export default memo(() => {
   const user = useMemo(() => getUserState(), [location.pathname, userVersion]);
 
   const logout = () => {
+    clearSessionRoute(user.id);
     clearUserState();
     resetDriveNavigation();
     navigate('/login', { replace: true });
   };
+
+  useEffect(() => {
+    rememberSessionRoute(user.id, location.pathname);
+  }, [location.pathname, user.id]);
 
   const readAvatarFile = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -325,12 +333,12 @@ export default memo(() => {
 
           <ul className="siderbarUl">
             {menuItems.map((item) => {
-              const active = location.pathname.startsWith(item.key);
+              const active = isMenuActive(location.pathname, item.key);
               return (
                 <li
                   key={item.key}
                   className={active ? 'liOn' : ''}
-                  onClick={() => navigate(item.key)}
+                  onClick={() => navigate(getSectionSessionRoute(user.id, item.section))}
                 >
                   {item.icon}
                   <p>{item.label}</p>

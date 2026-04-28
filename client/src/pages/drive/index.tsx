@@ -1,4 +1,5 @@
 import {
+  CustomerServiceOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EyeOutlined,
@@ -28,9 +29,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import './index.less';
 import folderImg from '@/assets/img/folder.png';
-import { adduserfolderapi, batchAddUserFolderApi, deluserfileorfolderapi, getuserfileandfolderapi, getuserfileforfileidapi } from '@/api/drive';
-import { getvideosceenshotsapi } from '@/api/video';
+import { adduserfolderapi, batchAddUserFolderApi, deluserfileorfolderapi, downloaduserfolderapi, getuserfileandfolderapi, getuserfileforfileidapi } from '@/api/drive';
+import { getVideoStreamUrl, getvideosceenshotsapi } from '@/api/video';
 import { examinefileapi, uploadsecondpassapi, uploadstreamfileapi } from '@/api/update';
+import { StreamingAudio } from '@/components/streaming_audio';
 import { StreamingVideoPlayer } from '@/components/streaming_video_player';
 import { BatchAddUserFileType } from '@/types/BatchAddUserFileType';
 import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType';
@@ -39,6 +41,7 @@ import { UploadType } from '@/types/UploadType';
 import { GetFileTypeInItem } from '@/utils/FileType';
 import MathTools from '@/utils/MathTools';
 import { getDriveNavigation, setDriveNavigation } from '@/store/drive';
+import { getDriveSessionNavigation, saveDriveSessionNavigation } from '@/store/session_route';
 import { getUserState } from '@/store/user';
 import { addUploadTasks, updateUploadTask } from '@/store/upload';
 import { hashFileInWorker } from '@/utils/fileHash';
@@ -46,6 +49,16 @@ import { hashFileInWorker } from '@/utils/fileHash';
 type FileItem = FileAndFloderType & {
   blob?: string | null;
   pUUid?: string;
+};
+
+type UploadFile = File & {
+  uploadRelativePath?: string;
+  webkitRelativePath?: string;
+};
+
+type DroppedUploadItems = {
+  files: UploadFile[];
+  directoryPaths: string[];
 };
 
 const getFolderIdFromSplat = (splat: string | undefined) => {
@@ -79,17 +92,90 @@ const calculateSliceSize = (size: number) => {
   return ratio;
 };
 
-const createFolderPlan = (files: File[], currentFolderId: string) => {
+const attachRelativePath = (file: File, relativePath: string): UploadFile => {
+  const uploadFile = file as UploadFile;
+  uploadFile.uploadRelativePath = relativePath;
+  return uploadFile;
+};
+
+const readFileEntry = (entry: any, relativePath: string) =>
+  new Promise<UploadFile>((resolve, reject) => {
+    entry.file(
+      (file: File) => resolve(attachRelativePath(file, relativePath)),
+      (error: Error) => reject(error)
+    );
+  });
+
+const readDirectoryEntries = (reader: any) =>
+  new Promise<any[]>((resolve, reject) => {
+    reader.readEntries(resolve, reject);
+  });
+
+const collectEntryItems = async (entry: any, parentPath = ''): Promise<DroppedUploadItems> => {
+  const entryPath = `${parentPath}${entry.name}`;
+
+  if (entry.isFile) {
+    return {
+      files: [await readFileEntry(entry, entryPath)],
+      directoryPaths: [],
+    };
+  }
+
+  if (!entry.isDirectory) {
+    return { files: [], directoryPaths: [] };
+  }
+
+  const reader = entry.createReader();
+  const files: UploadFile[] = [];
+  const directoryPaths = [entryPath];
+
+  while (true) {
+    const entries = await readDirectoryEntries(reader);
+    if (!entries.length) {
+      break;
+    }
+
+    for (const childEntry of entries) {
+      const childItems = await collectEntryItems(childEntry, `${entryPath}/`);
+      files.push(...childItems.files);
+      directoryPaths.push(...childItems.directoryPaths);
+    }
+  }
+
+  return { files, directoryPaths };
+};
+
+const collectDroppedUploadItems = async (dataTransfer: DataTransfer): Promise<DroppedUploadItems> => {
+  const itemList = Array.from(dataTransfer.items ?? []);
+  const files: UploadFile[] = [];
+  const directoryPaths: string[] = [];
+
+  if (itemList.length && 'webkitGetAsEntry' in itemList[0]) {
+    for (const item of itemList) {
+      const entry = (item as DataTransferItem & { webkitGetAsEntry?: () => any }).webkitGetAsEntry?.();
+      if (!entry) {
+        continue;
+      }
+      const entryItems = await collectEntryItems(entry);
+      files.push(...entryItems.files);
+      directoryPaths.push(...entryItems.directoryPaths);
+    }
+
+    return { files, directoryPaths };
+  }
+
+  return {
+    files: Array.from(dataTransfer.files).map((file) => attachRelativePath(file, file.name)),
+    directoryPaths,
+  };
+};
+
+const createFolderPlan = (files: UploadFile[], currentFolderId: string, extraDirectoryPaths: string[] = []) => {
   const folders: BatchAddUserFolderType[] = [];
   const folderMap = new Map<string, string>();
   const tasks: BatchAddUserFileType[] = [];
 
-  for (const file of files) {
-    const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-    const parts = relativePath.split('/').filter(Boolean);
-    const fileName = parts[parts.length - 1];
-    const directoryParts = parts.slice(0, -1);
-
+  const ensureDirectory = (directoryParts: string[]) => {
     let parentFolderId = currentFolderId;
     let currentKey = '';
 
@@ -110,6 +196,23 @@ const createFolderPlan = (files: File[], currentFolderId: string) => {
       });
       parentFolderId = folderUuid;
     }
+
+    return parentFolderId;
+  };
+
+  [...new Set(extraDirectoryPaths)]
+    .map((path) => path.split('/').filter(Boolean))
+    .filter((parts) => parts.length > 0)
+    .sort((left, right) => left.length - right.length)
+    .forEach(ensureDirectory);
+
+  for (const file of files) {
+    const relativePath = file.uploadRelativePath || file.webkitRelativePath || file.name;
+    const parts = relativePath.split('/').filter(Boolean);
+    const fileName = parts[parts.length - 1];
+    const directoryParts = parts.slice(0, -1);
+
+    const parentFolderId = ensureDirectory(directoryParts);
 
     const { fname, fext } = getFileNameAndExt(fileName);
     tasks.push({
@@ -164,6 +267,9 @@ const DrivePage = () => {
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoList, setVideoList] = useState<{ src: string; title: string; poster?: string | null }[]>([]);
   const [videoIndex, setVideoIndex] = useState(0);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioList, setAudioList] = useState<{ src: string; title: string }[]>([]);
+  const [audioIndex, setAudioIndex] = useState(0);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState('');
   const previewUrlsRef = useRef<string[]>([]);
@@ -263,14 +369,20 @@ const DrivePage = () => {
   useEffect(() => {
     if (currentFolderId === MathTools.RootUUID()) {
       setDriveNavigation([]);
+      saveDriveSessionNavigation(user.id, []);
     } else {
-      const current = getDriveNavigation();
+      const current = getDriveNavigation().length ? getDriveNavigation() : getDriveSessionNavigation(user.id);
+      if (current.length) {
+        setDriveNavigation(current);
+      }
       const matchedIndex = current.findIndex((item) => item.id === currentFolderId);
       if (matchedIndex >= 0) {
-        setDriveNavigation(current.slice(0, matchedIndex + 1));
+        const nextNavigation = current.slice(0, matchedIndex + 1);
+        setDriveNavigation(nextNavigation);
+        saveDriveSessionNavigation(user.id, nextNavigation);
       }
     }
-  }, [currentFolderId]);
+  }, [currentFolderId, user.id]);
 
   const createFolder = async () => {
     const value = newFolderName.trim();
@@ -293,17 +405,6 @@ const DrivePage = () => {
   };
 
   const uploadSingleTask = async (task: BatchAddUserFileType) => {
-    if (task.file.size <= 0) {
-      if (task.taskId) {
-        updateUploadTask(task.taskId, {
-          uploadType: UploadType.Small,
-          errorMessage: '文件太小',
-          statusText: '文件太小',
-        });
-      }
-      return;
-    }
-
     if (task.taskId) {
       updateUploadTask(task.taskId, {
         uploadType: UploadType.Checkout,
@@ -346,9 +447,10 @@ const DrivePage = () => {
     }
 
     const chunkSize = calculateSliceSize(task.file.size) * 1024 ** 2;
-    const chunks = Math.ceil(task.file.size / chunkSize);
+    const chunks = Math.max(1, Math.ceil(task.file.size / chunkSize));
     const chunkLoadedMap = new Map<number, number>();
     let finishedChunkCount = 0;
+    const getProgress = (uploadedBytes: number) => (task.file.size === 0 ? 100 : Math.min(99, (uploadedBytes / task.file.size) * 100));
 
     if (task.taskId) {
       updateUploadTask(task.taskId, {
@@ -369,7 +471,7 @@ const DrivePage = () => {
       const end = Math.min(start + chunkSize, task.file.size);
       const currentChunkSize = end - start;
       const formData = new FormData();
-      formData.append('file', task.file.slice(start, end));
+      formData.append('file', task.file.slice(start, end), task.file.name);
 
       const response = await uploadstreamfileapi(
         formData,
@@ -387,7 +489,7 @@ const DrivePage = () => {
           if (task.taskId) {
             updateUploadTask(task.taskId, {
               uploadedBytes,
-              progress: Math.min(99, (uploadedBytes / task.file.size) * 100),
+              progress: getProgress(uploadedBytes),
               uploadType: UploadType.Conduct,
             });
           }
@@ -405,7 +507,7 @@ const DrivePage = () => {
         updateUploadTask(task.taskId, {
           uploadCurrentChunkNum: finishedChunkCount,
           uploadedBytes,
-          progress: Math.min(99, (uploadedBytes / task.file.size) * 100),
+          progress: getProgress(uploadedBytes),
           uploadType: UploadType.Conduct,
         });
       }
@@ -423,14 +525,14 @@ const DrivePage = () => {
     }
   };
 
-  const uploadFiles = async (files: File[]) => {
-    if (!files.length) {
+  const uploadFiles = async (files: UploadFile[], directoryPaths: string[] = []) => {
+    if (!files.length && !directoryPaths.length) {
       return;
     }
 
     setLoading(true);
     try {
-      const { folders, tasks } = createFolderPlan(files, currentFolderId);
+      const { folders, tasks } = createFolderPlan(files, currentFolderId, directoryPaths);
       const usedNamesByFolder = new Map<string, Set<string>>();
       const currentFolderNames = new Set(
         fileData
@@ -482,7 +584,9 @@ const DrivePage = () => {
 
   const openFolderOrFile = async (item: FileItem) => {
     if (item.type === 'folder') {
-      setDriveNavigation([...getDriveNavigation(), { id: item.id, text: item.name }]);
+      const nextNavigation = [...getDriveNavigation(), { id: item.id, text: item.name }];
+      setDriveNavigation(nextNavigation);
+      saveDriveSessionNavigation(user.id, nextNavigation);
       navigate(`/home/drive/${item.id}`);
       return;
     }
@@ -505,6 +609,17 @@ const DrivePage = () => {
       setVideoOpen(true);
       return;
     }
+    if (fileType === 'audio') {
+      const audios = fileData.filter((currentItem) => currentItem.type === 'file' && GetFileTypeInItem(currentItem).type === 'audio');
+      const audioItems = audios.map((currentItem) => ({
+        src: getVideoStreamUrl(currentItem.fileSha256 || currentItem.id),
+        title: `${currentItem.name}${currentItem.suffix ? `.${currentItem.suffix}` : ''}`,
+      }));
+      setAudioIndex(audioItems.findIndex((audioItem) => audioItem.src === getVideoStreamUrl(item.fileSha256 || item.id)));
+      setAudioList(audioItems);
+      setAudioOpen(true);
+      return;
+    }
 
     try {
       const response = await getuserfileforfileidapi(item.id);
@@ -518,11 +633,14 @@ const DrivePage = () => {
 
   const downloadFile = async (item: FileItem) => {
     try {
-      const response = await getuserfileforfileidapi(item.id);
+      const response =
+        item.type === 'folder'
+          ? await downloaduserfolderapi(user.id, item.id)
+          : await getuserfileforfileidapi(item.id);
       const url = URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${item.name}${item.suffix ? `.${item.suffix}` : ''}`;
+      link.download = item.type === 'folder' ? `${item.name}.zip` : `${item.name}${item.suffix ? `.${item.suffix}` : ''}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -562,12 +680,16 @@ const DrivePage = () => {
           setDragging(false);
         }
       }}
-      onDrop={(event) => {
+      onDrop={async (event) => {
         event.preventDefault();
         dragDepthRef.current = 0;
         setDragging(false);
-        const droppedFiles = Array.from(event.dataTransfer.files);
-        uploadFiles(droppedFiles);
+        try {
+          const droppedItems = await collectDroppedUploadItems(event.dataTransfer);
+          uploadFiles(droppedItems.files, droppedItems.directoryPaths);
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : '读取拖拽目录失败');
+        }
       }}
     >
       {dragging && (
@@ -588,14 +710,33 @@ const DrivePage = () => {
           <Breadcrumb
             items={[
               {
-                title: <a onClick={() => navigate('/home/drive')}>根目录</a>,
+                title: (
+                  <a
+                    onClick={() => {
+                      setDriveNavigation([]);
+                      saveDriveSessionNavigation(user.id, []);
+                      navigate('/home/drive');
+                    }}
+                  >
+                    根目录
+                  </a>
+                ),
               },
               ...navigation.map((item, index) => ({
                 title:
                   index === navigation.length - 1 ? (
                     item.text
                   ) : (
-                    <a onClick={() => navigate(`/home/drive/${item.id}`)}>{item.text}</a>
+                    <a
+                      onClick={() => {
+                        const nextNavigation = navigation.slice(0, index + 1);
+                        setDriveNavigation(nextNavigation);
+                        saveDriveSessionNavigation(user.id, nextNavigation);
+                        navigate(`/home/drive/${item.id}`);
+                      }}
+                    >
+                      {item.text}
+                    </a>
                   ),
               })),
             ]}
@@ -643,7 +784,8 @@ const DrivePage = () => {
                     )}
                     {item.type === 'file' && !item.blob && fileType === 'image' && <FileImageOutlined className="drive-file-icon" />}
                     {item.type === 'file' && !item.blob && fileType === 'video' && <PlayCircleOutlined className="drive-file-icon" />}
-                    {item.type === 'file' && fileType !== 'image' && fileType !== 'video' && fileType !== 'text' && (
+                    {item.type === 'file' && fileType === 'audio' && <CustomerServiceOutlined className="drive-file-icon" />}
+                    {item.type === 'file' && fileType !== 'image' && fileType !== 'video' && fileType !== 'audio' && fileType !== 'text' && (
                       <FileOutlined className="drive-file-icon" />
                     )}
                     {item.type === 'file' && fileType === 'text' && <FileTextOutlined className="drive-file-icon" />}
@@ -672,19 +814,17 @@ const DrivePage = () => {
                         }}
                       />
                     </Tooltip>
-                    {item.type === 'file' && (
-                      <Tooltip title="下载">
-                        <Button
-                          className="drive-card-action-btn"
-                          size="small"
-                          icon={<DownloadOutlined />}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            downloadFile(item);
-                          }}
-                        />
-                      </Tooltip>
-                    )}
+                    <Tooltip title={item.type === 'folder' ? '打包下载' : '下载'}>
+                      <Button
+                        className="drive-card-action-btn"
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          downloadFile(item);
+                        }}
+                      />
+                    </Tooltip>
                     <Tooltip title="删除">
                       <Button
                         className="drive-card-action-btn"
@@ -726,6 +866,14 @@ const DrivePage = () => {
         sourceType="drive"
         onClose={() => setVideoOpen(false)}
       />
+      <StreamingAudio
+        open={audioOpen}
+        data={audioList}
+        index={audioIndex}
+        onClose={() => {
+          setAudioOpen(false);
+        }}
+      />
       <Modal
         open={imagePreviewOpen}
         footer={null}
@@ -745,7 +893,7 @@ const DrivePage = () => {
         multiple
         style={{ display: 'none' }}
         onChange={(event) => {
-          const files = Array.from(event.target.files ?? []);
+          const files = Array.from(event.target.files ?? []).map((file) => attachRelativePath(file, file.name));
           uploadFiles(files);
           event.target.value = '';
         }}
@@ -756,7 +904,7 @@ const DrivePage = () => {
         multiple
         style={{ display: 'none' }}
         onChange={(event) => {
-          const files = Array.from(event.target.files ?? []);
+          const files = Array.from(event.target.files ?? []) as UploadFile[];
           uploadFiles(files);
           event.target.value = '';
         }}

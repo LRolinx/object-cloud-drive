@@ -5,6 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>对象云盘</title>
+    <script>
+        (function () {
+            var preference = localStorage.getItem('object-cloud-theme-preference') || 'system';
+            var systemTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            var theme = preference === 'dark' || preference === 'light' ? preference : systemTheme;
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.dataset.themePreference = preference;
+        })();
+    </script>
 </head>
 
 <body>
@@ -38,8 +47,13 @@
     body {
         margin: 0;
         padding: 0;
-        background: #fff;
+        background: #f8faff;
         color: #555;
+    }
+
+    html[data-theme='dark'] body {
+        background: #0a0e1a;
+        color: #e6ebff;
     }
 
     /* chrome 和Safari隐藏滚动条 */
@@ -101,10 +115,21 @@
         height: 100vh;
         width: 100vw;
         z-index: 5;
-
         display: flex;
         justify-content: center;
         align-items: center;
+        background:
+            radial-gradient(circle at 18% 18%, rgba(154, 160, 255, 0.24), transparent 28%),
+            radial-gradient(circle at 82% 22%, rgba(128, 221, 255, 0.18), transparent 26%),
+            linear-gradient(135deg, #f8faff, #eef4ff);
+        transition: background 500ms ease, opacity 300ms ease;
+    }
+
+    html[data-theme='dark'] .loading {
+        background:
+            radial-gradient(circle at 18% 18%, rgba(76, 86, 255, 0.3), transparent 30%),
+            radial-gradient(circle at 82% 22%, rgba(31, 209, 255, 0.18), transparent 28%),
+            linear-gradient(135deg, #0a0e1a, #11182b);
     }
 
     .loadingspinner {

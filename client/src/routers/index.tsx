@@ -3,6 +3,7 @@ import { Navigate, Outlet, RouteObject, useLocation, useRoutes } from 'react-rou
 import HomePage from '@/pages/home';
 import { LoginPage } from '@/pages/login';
 import { getUserState } from '@/store/user';
+import { getLastSessionRoute } from '@/store/session_route';
 import DrivePage from '@/pages/drive';
 import ResourcePoolPage from '@/pages/drive_resource_pool';
 import StreamingVideoDemoPage from '@/pages/streaming_video';
@@ -18,7 +19,12 @@ const RequireAuth = () => {
 
 const LoginRedirect = () => {
   const user = getUserState();
-  return <Navigate to={user.isLogin ? '/home/drive' : '/login'} replace />;
+  return <Navigate to={user.isLogin ? getLastSessionRoute(user.id) : '/login'} replace />;
+};
+
+const HomeRedirect = () => {
+  const user = getUserState();
+  return <Navigate to={getLastSessionRoute(user.id)} replace />;
 };
 
 const ROUTE_MAP: RouteObject[] = [
@@ -31,7 +37,7 @@ const ROUTE_MAP: RouteObject[] = [
         path: '/home',
         element: <HomePage />,
         children: [
-          { path: '', element: <Navigate to="drive" replace /> },
+          { path: '', element: <HomeRedirect /> },
           { path: 'drive', element: <DrivePage /> },
           { path: 'drive/*', element: <DrivePage /> },
           { path: 'driveResourcePool', element: <ResourcePoolPage /> },

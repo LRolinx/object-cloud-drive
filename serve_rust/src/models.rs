@@ -59,6 +59,8 @@ pub struct UserFileAndFolder {
     pub suffix: Option<String>,
     #[serde(rename = "fileSha256", skip_serializing_if = "Option::is_none")]
     pub file_sha256: Option<String>,
+    #[serde(rename = "mediaType", skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -77,6 +79,8 @@ pub struct ResourcePoolItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ext: Option<String>,
     pub path: String,
+    #[serde(rename = "mediaType", skip_serializing_if = "Option::is_none")]
+    pub media_type: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -138,6 +142,13 @@ pub struct UserFolderQueryBody {
 
 #[derive(Deserialize)]
 pub struct FileIdBody {
+    pub id: String,
+}
+
+#[derive(Deserialize)]
+pub struct FolderDownloadBody {
+    #[serde(rename = "userUuid")]
+    pub user_uuid: String,
     pub id: String,
 }
 

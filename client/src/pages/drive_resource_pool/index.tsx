@@ -1,11 +1,14 @@
-import { FolderOpenOutlined, LeftOutlined, PlayCircleOutlined, ReloadOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { CustomerServiceOutlined, FolderOpenOutlined, LeftOutlined, PlayCircleOutlined, ReloadOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { Breadcrumb, Button, Card, Empty, Space, Statistic, Tooltip, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 
 import './index.less';
 import folderImg from '@/assets/img/folder.png';
-import { getfolderandfileapi, getvideosceenshotsapi } from '@/api/resource_pool';
+import { getfolderandfileapi, getResourcePoolVideoStreamUrl, getvideosceenshotsapi } from '@/api/resource_pool';
+import { StreamingAudio } from '@/components/streaming_audio';
 import { StreamingVideoPlayer } from '@/components/streaming_video_player';
+import { getUserState } from '@/store/user';
+import { getResourcePoolSessionStack, saveResourcePoolSessionStack } from '@/store/session_route';
 
 type ResourceItem = {
   type: 'file' | 'folder';
@@ -13,14 +16,39 @@ type ResourceItem = {
   ext?: string;
   path: string;
   blob?: string | null;
+  mediaType?: 'video' | 'audio' | string | null;
+};
+
+const audioExtensions = new Set(['MP3', 'AAC', 'M4A', 'WAV', 'OGG', 'ALAC', 'FLAC', 'APE']);
+const videoExtensions = new Set(['MP4']);
+
+const getResourceItemMediaType = (item: ResourceItem) => {
+  if (item.mediaType === 'video' || item.mediaType === 'audio') {
+    return item.mediaType;
+  }
+  const ext = item.ext?.toUpperCase();
+  if (!ext) {
+    return 'other';
+  }
+  if (videoExtensions.has(ext)) {
+    return 'video';
+  }
+  if (audioExtensions.has(ext)) {
+    return 'audio';
+  }
+  return 'other';
 };
 
 const ResourcePoolPage = () => {
+  const user = getUserState();
   const [items, setItems] = useState<ResourceItem[]>([]);
-  const [pathStack, setPathStack] = useState<{ name: string; path?: string }[]>([]);
+  const [pathStack, setPathStack] = useState<{ name: string; path?: string }[]>(() => getResourcePoolSessionStack(getUserState().id));
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoIndex, setVideoIndex] = useState(0);
   const [videoList, setVideoList] = useState<{ src: string; title: string; poster?: string | null }[]>([]);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioIndex, setAudioIndex] = useState(0);
+  const [audioList, setAudioList] = useState<{ src: string; title: string }[]>([]);
 
   const currentPath = pathStack[pathStack.length - 1]?.path;
 
@@ -35,11 +63,11 @@ const ResourcePoolPage = () => {
     const nextItems: ResourceItem[] = data.map((item: ResourceItem) => ({ ...item, blob: null }));
     setItems(nextItems);
     nextItems.forEach(async (item, index) => {
-      if (item.type !== 'file' || item.ext?.toUpperCase() !== 'MP4') {
+      if (item.type !== 'file' || getResourceItemMediaType(item) !== 'video') {
         return;
       }
       try {
-        const blobResponse = await getvideosceenshotsapi(item.name, item.ext, item.path);
+        const blobResponse = await getvideosceenshotsapi(item.name, item.ext || '', item.path);
         const url = URL.createObjectURL(blobResponse.data);
         setItems((prev) =>
           prev.map((currentItem, currentIndex) =>
@@ -56,10 +84,14 @@ const ResourcePoolPage = () => {
     loadFolder(currentPath);
   }, [currentPath]);
 
+  useEffect(() => {
+    saveResourcePoolSessionStack(user.id, pathStack);
+  }, [pathStack, user.id]);
+
   const videoSources = useMemo(
     () =>
       items
-        .filter((item) => item.type === 'file' && item.ext?.toUpperCase() === 'MP4')
+        .filter((item) => item.type === 'file' && getResourceItemMediaType(item) === 'video')
         .map((item) => ({
           src: item.path,
           title: `${item.name}${item.ext ? `.${item.ext}` : ''}`,
@@ -68,19 +100,37 @@ const ResourcePoolPage = () => {
     [items]
   );
   const folderCount = useMemo(() => items.filter((item) => item.type === 'folder').length, [items]);
+  const audioSources = useMemo(
+    () =>
+      items
+        .filter((item) => item.type === 'file' && getResourceItemMediaType(item) === 'audio')
+        .map((item) => ({
+          src: getResourcePoolVideoStreamUrl(item.path),
+          title: `${item.name}${item.ext ? `.${item.ext}` : ''}`,
+        })),
+    [items]
+  );
 
   const openItem = (item: ResourceItem) => {
     if (item.type === 'folder') {
       setPathStack((prev) => [...prev, { name: item.name, path: item.path }]);
       return;
     }
-    if (item.ext?.toUpperCase() !== 'MP4') {
-      message.warning('当前资源池暂时只支持 MP4 预览');
+    const mediaType = getResourceItemMediaType(item);
+    if (mediaType === 'video') {
+      setVideoIndex(videoSources.findIndex((videoItem) => videoItem.src === item.path));
+      setVideoList(videoSources);
+      setVideoOpen(true);
       return;
     }
-    setVideoIndex(videoSources.findIndex((videoItem) => videoItem.src === item.path));
-    setVideoList(videoSources);
-    setVideoOpen(true);
+    if (mediaType === 'audio') {
+      const currentSrc = getResourcePoolVideoStreamUrl(item.path);
+      setAudioIndex(audioSources.findIndex((audioItem) => audioItem.src === currentSrc));
+      setAudioList(audioSources);
+      setAudioOpen(true);
+      return;
+    }
+    message.warning('当前资源池暂时只支持视频和音频预览');
   };
 
   return (
@@ -135,12 +185,14 @@ const ResourcePoolPage = () => {
         <div className="resource-grid">
           {items.map((item) => {
             const displayName = `${item.name}${item.ext ? `.${item.ext}` : ''}`;
+            const mediaType = getResourceItemMediaType(item);
             return (
               <div key={item.path} className="resource-card" onDoubleClick={() => openItem(item)}>
                 <div className="resource-thumb-frame">
                   {item.type === 'folder' && <img className="resource-thumb" src={folderImg} />}
-                  {item.type === 'file' && item.blob && <img className="resource-thumb" src={item.blob} />}
-                  {item.type === 'file' && !item.blob && <PlayCircleOutlined className="resource-file-icon" />}
+                  {item.type === 'file' && item.blob && mediaType === 'video' && <img className="resource-thumb" src={item.blob} />}
+                  {item.type === 'file' && mediaType === 'audio' && <CustomerServiceOutlined className="resource-file-icon" />}
+                  {item.type === 'file' && mediaType !== 'audio' && !item.blob && <PlayCircleOutlined className="resource-file-icon" />}
                 </div>
                 <Space direction="vertical" size={6} className="resource-card-meta">
                   <Tooltip title={displayName}>
@@ -161,6 +213,14 @@ const ResourcePoolPage = () => {
         index={videoIndex}
         sourceType="resourcepool"
         onClose={() => setVideoOpen(false)}
+      />
+      <StreamingAudio
+        open={audioOpen}
+        data={audioList}
+        index={audioIndex}
+        onClose={() => {
+          setAudioOpen(false);
+        }}
       />
     </div>
   );
