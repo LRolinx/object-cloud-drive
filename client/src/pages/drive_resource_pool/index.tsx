@@ -22,12 +22,12 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import { Breadcrumb, Button, Card, Empty, Modal, Space, Statistic, Tooltip, Typography, message } from 'antd';
-import type { ReactNode } from 'react';
+import type { ReactNode, UIEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import './index.less';
 import folderImg from '@/assets/img/folder.png';
-import { getfolderandfileapi, getResourcePoolVideoStreamUrl, getvideosceenshotsapi, playvideosteamapi } from '@/api/resource_pool';
+import { getfolderandfileapi, getResourcePoolAudioStreamUrl, getResourcePoolVideoStreamUrl, getvideosceenshotsapi, playvideosteamapi } from '@/api/resource_pool';
 import { StreamingAudio } from '@/components/streaming_audio';
 import { StreamingVideoPlayer } from '@/components/streaming_video_player';
 import { getUserState } from '@/store/user';
@@ -41,6 +41,7 @@ type ResourceItem = {
   path: string;
   blob?: string | null;
   mediaType?: 'video' | 'audio' | string | null;
+  duration?: number | null;
 };
 
 type ResourcePreviewState = {
@@ -59,6 +60,7 @@ const emptyResourcePreview: ResourcePreviewState = {
 
 const textPreviewTypes: PreviewFileType[] = ['text', 'code', 'markdown'];
 const browserPreviewTypes: PreviewFileType[] = ['pdf', 'html'];
+const RESOURCE_PAGE_SIZE = 40;
 
 const getResourceItemFileType = (item: ResourceItem) => GetFileTypeInItem({ ...item, suffix: item.ext }).type;
 
@@ -168,51 +170,85 @@ const ResourcePoolPage = () => {
   const [pathStack, setPathStack] = useState<{ name: string; path?: string }[]>(() => getResourcePoolSessionStack(getUserState().id));
   const [videoOpen, setVideoOpen] = useState(false);
   const [videoIndex, setVideoIndex] = useState(0);
-  const [videoList, setVideoList] = useState<{ src: string; title: string; poster?: string | null }[]>([]);
+  const [videoList, setVideoList] = useState<{ src: string; title: string; poster?: string | null; duration?: number | null }[]>([]);
   const [audioOpen, setAudioOpen] = useState(false);
   const [audioIndex, setAudioIndex] = useState(0);
   const [audioList, setAudioList] = useState<{ src: string; title: string }[]>([]);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState('');
   const [resourcePreview, setResourcePreview] = useState<ResourcePreviewState>(emptyResourcePreview);
+  const [folderPage, setFolderPage] = useState(1);
+  const [hasMoreItems, setHasMoreItems] = useState(false);
+  const [folderLoading, setFolderLoading] = useState(false);
   const resourcePreviewUrlRef = useRef<string | null>(null);
+  const folderRequestRef = useRef(0);
+  const folderLoadingRef = useRef(false);
 
   const currentPath = pathStack[pathStack.length - 1]?.path;
 
-  const loadFolder = async (path?: string) => {
-    const response = await getfolderandfileapi(path);
-    const { code, data, message: msg } = response.data;
-    if (code !== 200) {
-      message.error(msg);
+  const loadFolder = async (path?: string, nextPage = 1, reset = true) => {
+    if (!reset && folderLoadingRef.current) {
       return;
     }
 
-    const nextItems: ResourceItem[] = data.map((item: ResourceItem) => ({ ...item, blob: null }));
-    setItems(nextItems);
-    nextItems.forEach(async (item, index) => {
-      const fileType = getResourceItemFileType(item);
-      if (item.type !== 'file' || (fileType !== 'video' && fileType !== 'image')) {
+    const requestId = folderRequestRef.current + 1;
+    folderRequestRef.current = requestId;
+    folderLoadingRef.current = true;
+    setFolderLoading(true);
+    try {
+      const response = await getfolderandfileapi(path, nextPage, RESOURCE_PAGE_SIZE);
+      if (folderRequestRef.current !== requestId) {
         return;
       }
-      try {
-        const blobResponse =
-          fileType === 'video'
-            ? await getvideosceenshotsapi(item.name, item.ext || '', item.path)
-            : await playvideosteamapi(item.path);
-        const url = URL.createObjectURL(blobResponse.data);
-        setItems((prev) =>
-          prev.map((currentItem, currentIndex) =>
-            currentIndex === index ? { ...currentItem, blob: url } : currentItem
-          )
-        );
-      } catch {
-        //
+      const { code, data, message: msg } = response.data;
+      if (code !== 200) {
+        message.error(msg);
+        return;
       }
-    });
+
+      const pageData = Array.isArray(data)
+        ? { items: data, page: nextPage, hasMore: false }
+        : data;
+      const nextItems: ResourceItem[] = pageData.items.map((item: ResourceItem) => ({ ...item, blob: null }));
+      setItems((prev) => (reset ? nextItems : [...prev, ...nextItems]));
+      setFolderPage(pageData.page);
+      setHasMoreItems(pageData.hasMore);
+
+      nextItems.forEach(async (item) => {
+        const fileType = getResourceItemFileType(item);
+        if (item.type !== 'file' || (fileType !== 'video' && fileType !== 'image')) {
+          return;
+        }
+        try {
+          const blobResponse =
+            fileType === 'video'
+              ? await getvideosceenshotsapi(item.name, item.ext || '', item.path)
+              : await playvideosteamapi(item.path);
+          const url = URL.createObjectURL(blobResponse.data);
+          setItems((prev) =>
+            prev.map((currentItem) => (currentItem.path === item.path ? { ...currentItem, blob: url } : currentItem))
+          );
+        } catch {
+          //
+        }
+      });
+    } catch {
+      if (folderRequestRef.current === requestId) {
+        message.error('目录加载失败');
+      }
+    } finally {
+      if (folderRequestRef.current === requestId) {
+        folderLoadingRef.current = false;
+        setFolderLoading(false);
+      }
+    }
   };
 
   useEffect(() => {
-    loadFolder(currentPath);
+    setItems([]);
+    setFolderPage(1);
+    setHasMoreItems(false);
+    loadFolder(currentPath, 1, true);
   }, [currentPath]);
 
   useEffect(() => {
@@ -227,6 +263,7 @@ const ResourcePoolPage = () => {
           src: item.path,
           title: `${item.name}${item.ext ? `.${item.ext}` : ''}`,
           poster: item.blob,
+          duration: item.duration,
         })),
     [items]
   );
@@ -236,7 +273,7 @@ const ResourcePoolPage = () => {
       items
         .filter((item) => item.type === 'file' && getResourceItemFileType(item) === 'audio')
         .map((item) => ({
-          src: getResourcePoolVideoStreamUrl(item.path),
+          src: getResourcePoolAudioStreamUrl(item.path),
           title: `${item.name}${item.ext ? `.${item.ext}` : ''}`,
         })),
     [items]
@@ -248,6 +285,20 @@ const ResourcePoolPage = () => {
       resourcePreviewUrlRef.current = null;
     }
     setResourcePreview(emptyResourcePreview);
+  };
+
+  const loadMoreItems = () => {
+    if (folderLoadingRef.current || !hasMoreItems) {
+      return;
+    }
+    loadFolder(currentPath, folderPage + 1, false);
+  };
+
+  const handleGridScroll = (event: UIEvent<HTMLDivElement>) => {
+    const target = event.currentTarget;
+    if (target.scrollHeight - target.scrollTop - target.clientHeight < 360) {
+      loadMoreItems();
+    }
   };
 
   const openItem = async (item: ResourceItem) => {
@@ -270,7 +321,7 @@ const ResourcePoolPage = () => {
       return;
     }
     if (fileType === 'audio') {
-      const currentSrc = getResourcePoolVideoStreamUrl(item.path);
+      const currentSrc = getResourcePoolAudioStreamUrl(item.path);
       setVideoOpen(false);
       setAudioIndex(audioSources.findIndex((audioItem) => audioItem.src === currentSrc));
       setAudioList(audioSources);
@@ -346,7 +397,7 @@ const ResourcePoolPage = () => {
           />
         </div>
         <div className="resource-toolbar-actions">
-          <Button icon={<ReloadOutlined />} onClick={() => loadFolder(currentPath)}>
+          <Button icon={<ReloadOutlined />} loading={folderLoading} onClick={() => loadFolder(currentPath, 1, true)}>
             刷新
           </Button>
           {pathStack.length > 0 && (
@@ -359,19 +410,19 @@ const ResourcePoolPage = () => {
 
       <div className="resource-summary">
         <Card size="small" className="resource-summary-card">
-          <Statistic title="目录" value={folderCount} prefix={<FolderOpenOutlined />} />
+          <Statistic title="已加载目录" value={folderCount} prefix={<FolderOpenOutlined />} />
         </Card>
         <Card size="small" className="resource-summary-card">
-          <Statistic title="视频" value={videoSources.length} prefix={<VideoCameraOutlined />} />
+          <Statistic title="已加载视频" value={videoSources.length} prefix={<VideoCameraOutlined />} />
         </Card>
       </div>
 
-      {items.length === 0 ? (
+      {!folderLoading && items.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Empty description="这里啥也没有呢~" />
         </div>
       ) : (
-        <div className="resource-grid">
+        <div className="resource-grid" onScroll={handleGridScroll}>
           {items.map((item) => {
             const displayName = `${item.name}${item.ext ? `.${item.ext}` : ''}`;
             const fileType = getResourceItemFileType(item);
@@ -401,6 +452,11 @@ const ResourcePoolPage = () => {
               </div>
             );
           })}
+          {(folderLoading || hasMoreItems) && (
+            <div className="resource-grid-status">
+              {folderLoading ? '加载中...' : '向下滚动加载更多'}
+            </div>
+          )}
         </div>
       )}
 

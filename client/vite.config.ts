@@ -30,6 +30,18 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (
+          warning.code === "MODULE_LEVEL_DIRECTIVE" &&
+          warning.message.includes("'use client'")
+        ) {
+          return;
+        }
+        warn(warning);
+      },
+    },
   },
   resolve: {
     alias: {
@@ -43,14 +55,13 @@ export default defineConfig({
         // 前缀追加
         autoprefixer({
           overrideBrowserslist: [
-            'Android 4.1',
-            'iOS 7.1',
-            'Chrome > 31',
-            'ff > 31',
-            'ie >= 8',
-            '> 1%',
+            'Chrome >= 100',
+            'Safari >= 13',
+            'iOS >= 13',
+            'Firefox >= 91',
+            'Edge >= 100',
           ],
-          grid: true,
+          grid: false,
         }),
         PostcssFlexbugsFixes
       ],

@@ -26,6 +26,9 @@ export const playvideosteamapi = (path: string): Promise<AxiosResponse<Blob>> =>
 export const getResourcePoolVideoStreamUrl = (path: string) =>
   `${API_LIST.BASEURL}${API_LIST.RESOURCEPOOL.PLAY_VIDEOSTEAM}?path=${encodeURIComponent(path)}`
 
+export const getResourcePoolAudioStreamUrl = (path: string) =>
+  `${API_LIST.BASEURL}${API_LIST.RESOURCEPOOL.PLAY_AUDIOSTREAM}?path=${encodeURIComponent(path)}`
+
 //获取视频缩略图
 export const getvideosceenshotsapi = (name: string, ext: string, path: string): Promise<AxiosResponse> => {
   return $http.post(
@@ -41,12 +44,25 @@ export const getvideosceenshotsapi = (name: string, ext: string, path: string): 
   )
 }
 
+export type ResourcePoolFolderPage<T = any> = {
+  items: T[]
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
 //获取目录下的文件夹和文件
-export const getfolderandfileapi = (path?: string): Promise<AxiosResponse<Resp<any[]>>> => {
+export const getfolderandfileapi = (
+  path?: string,
+  page = 1,
+  pageSize = 60
+): Promise<AxiosResponse<Resp<ResourcePoolFolderPage>>> => {
   return $http.post(
     API_LIST.RESOURCEPOOL.GET_FOLDERANDFILE,
     {
       path,
+      page,
+      pageSize,
     }
     //   {
     // 	responseType: 'blob',

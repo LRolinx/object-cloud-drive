@@ -30,8 +30,12 @@ export const API_LIST = {
         GET_VIDEOSCEENSHOTS: '/video/getVideoSceenshots',
         PLAY_VIDEOSTEAM: '/video/playVideoSteam',
     },
+    AUDIO: {
+        PLAY_AUDIOSTREAM: '/audio/playAudioStream',
+    },
     RESOURCEPOOL: {
         PLAY_VIDEOSTEAM: '/resourcepool/playVideoSteam',
+        PLAY_AUDIOSTREAM: '/resourcepool/playAudioStream',
         GET_VIDEOSCEENSHOTS: '/resourcepool/getVideoSceenshots',
         GET_FOLDERANDFILE: '/resourcepool/getFolderAndFile',
     },

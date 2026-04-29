@@ -1,6 +1,7 @@
 use std::io;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::time::UNIX_EPOCH;
 
 use actix_files::NamedFile;
@@ -26,6 +27,7 @@ pub struct AppState {
 }
 
 const DEFAULT_AVATAR: &str = "https://storage.live.com/users/0xf2a82bac8d704404/myprofile/expressionprofile/profilephoto:UserTileStatic/p?ck=1&ex=720&sid=0CF8A907DF236BE1005BB80EDE136A1C&fofoff=1";
+const VIDEO_INITIAL_CHUNK_SIZE: u64 = 1024 * 1024;
 
 pub async fn hello() -> HttpResponse {
     HttpResponse::Ok().body("Hello World!")
@@ -146,7 +148,10 @@ pub async fn update_avatar(
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "用户不存在", 500)));
     }
 
-    Ok(HttpResponse::Ok().json(AjaxResult::success(Some(body.photo.clone()), "头像更新成功")))
+    Ok(HttpResponse::Ok().json(AjaxResult::success(
+        Some(body.photo.clone()),
+        "头像更新成功",
+    )))
 }
 
 pub async fn add_user_folder(
@@ -282,6 +287,7 @@ pub async fn get_user_file_and_folder(
             suffix: None,
             file_sha256: None,
             media_type: None,
+            duration: None,
         });
     }
 
@@ -297,6 +303,18 @@ pub async fn get_user_file_and_folder(
             None,
         )
         .await?;
+        let duration = if media_type.as_deref() == Some("video") {
+            detect_media_duration_cached(
+                &state.pool,
+                &state.config.upload_dir.join(&file_sha256),
+                "drive",
+                &file_sha256,
+                None,
+            )
+            .await?
+        } else {
+            None
+        };
         result.push(UserFileAndFolder {
             id: row.get::<i64, _>("id").to_string(),
             p_uuid: row.get("folder_uuid"),
@@ -307,6 +325,7 @@ pub async fn get_user_file_and_folder(
             suffix: Some(suffix),
             file_sha256: Some(file_sha256),
             media_type,
+            duration,
         });
     }
 
@@ -322,16 +341,14 @@ pub async fn get_user_file_for_file_id(
     }
 
     let mut row = None;
-    if let Ok(decrypted) = decrypt_base64_private(&state.config.private_key_path, &body.id) {
-        if let Ok(parsed_id) = decrypted.parse::<i64>() {
-            row = sqlx::query(
-                "SELECT file_sha256 FROM t_user_files WHERE id = ? AND del = 0 LIMIT 1",
-            )
+    if let Ok(decrypted) = decrypt_base64_private(&state.config.private_key_path, &body.id)
+        && let Ok(parsed_id) = decrypted.parse::<i64>()
+    {
+        row = sqlx::query("SELECT file_sha256 FROM t_user_files WHERE id = ? AND del = 0 LIMIT 1")
             .bind(parsed_id)
             .fetch_optional(&state.pool)
             .await
             .map_err(error::ErrorInternalServerError)?;
-        }
     }
 
     if row.is_none() {
@@ -410,7 +427,11 @@ pub async fn del_user_file_or_folder(
     let rows_affected = if body.item_type == "file" {
         let file_id = decrypt_or_original(&state.config, &body.id);
         let Ok(parsed_id) = file_id.trim().parse::<i64>() else {
-            return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "文件记录不存在", 500)));
+            return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(
+                None,
+                "文件记录不存在",
+                500,
+            )));
         };
         sqlx::query("UPDATE t_user_files SET del = 1, del_time = ? WHERE id = ? AND del = 0")
             .bind(&date)
@@ -542,10 +563,10 @@ pub async fn upload_stream_file(
         .await
         .map_err(error::ErrorInternalServerError)?
     {
-        if let Some(name) = entry.file_name().to_str() {
-            if let Ok(index) = name.parse::<usize>() {
-                chunk_indexes.push(index);
-            }
+        if let Some(name) = entry.file_name().to_str()
+            && let Ok(index) = name.parse::<usize>()
+        {
+            chunk_indexes.push(index);
         }
     }
 
@@ -683,29 +704,33 @@ pub async fn upload_second_pass(
 
 pub async fn play_video_stream(
     state: web::Data<AppState>,
+    request: HttpRequest,
     body: web::Json<VideoPlayBody>,
 ) -> Result<HttpResponse> {
     if !has_text(&body.id) {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
     }
 
-    let row = sqlx::query("SELECT file_sha256 FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
-        .bind(body.id.trim())
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(error::ErrorInternalServerError)?;
+    let row =
+        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+            .bind(body.id.trim())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(error::ErrorInternalServerError)?;
 
     let Some(row) = row else {
         return Ok(HttpResponse::NotFound().finish());
     };
 
     let file_sha256: String = row.get("file_sha256");
-    stream_file_response(
-        state.config.upload_dir.join(file_sha256),
-        body.range.as_deref(),
-        None,
-    )
-    .await
+    let suffix: String = row.get("suffix");
+    let mime = mime_from_extension(Some(&suffix));
+    let range = request
+        .headers()
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok())
+        .or(body.range.as_deref());
+    stream_video_file_response(state.config.upload_dir.join(file_sha256), range, mime).await
 }
 
 pub async fn play_video_stream_by_query(
@@ -717,29 +742,135 @@ pub async fn play_video_stream_by_query(
         return Ok(HttpResponse::BadRequest().finish());
     }
 
-    let row = sqlx::query("SELECT file_sha256 FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
-        .bind(query.id.trim())
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(error::ErrorInternalServerError)?;
+    let row =
+        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+            .bind(query.id.trim())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(error::ErrorInternalServerError)?;
 
     let Some(row) = row else {
         return Ok(HttpResponse::NotFound().finish());
     };
 
     let file_sha256: String = row.get("file_sha256");
+    let suffix: String = row.get("suffix");
+    let mime = mime_from_extension(Some(&suffix));
     let range = request
         .headers()
         .get(header::RANGE)
         .and_then(|value| value.to_str().ok());
-    stream_file_response(state.config.upload_dir.join(file_sha256), range, None).await
+    stream_video_file_response(state.config.upload_dir.join(file_sha256), range, mime).await
+}
+
+pub async fn play_audio_stream(
+    state: web::Data<AppState>,
+    request: HttpRequest,
+    body: web::Json<VideoPlayBody>,
+) -> Result<HttpResponse> {
+    if !has_text(&body.id) {
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
+    }
+
+    let row =
+        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+            .bind(body.id.trim())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(error::ErrorInternalServerError)?;
+
+    let Some(row) = row else {
+        return Ok(HttpResponse::NotFound().finish());
+    };
+
+    let file_sha256: String = row.get("file_sha256");
+    let suffix: String = row.get("suffix");
+    let range = request
+        .headers()
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok())
+        .or(body.range.as_deref());
+    stream_audio_file_response(
+        state.config.upload_dir.join(file_sha256),
+        range,
+        mime_from_extension(Some(&suffix)),
+    )
+    .await
+}
+
+pub async fn play_audio_stream_by_query(
+    state: web::Data<AppState>,
+    request: HttpRequest,
+    query: web::Query<VideoPlayQuery>,
+) -> Result<HttpResponse> {
+    if !has_text(&query.id) {
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    let row =
+        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+            .bind(query.id.trim())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(error::ErrorInternalServerError)?;
+
+    let Some(row) = row else {
+        return Ok(HttpResponse::NotFound().finish());
+    };
+
+    let file_sha256: String = row.get("file_sha256");
+    let suffix: String = row.get("suffix");
+    let audio_start = query.audio_start.unwrap_or(0.0);
+    if audio_start.is_finite() && audio_start > 0.0 {
+        return stream_audio_seek_response(state.config.upload_dir.join(file_sha256), audio_start)
+            .await;
+    }
+
+    let range = request
+        .headers()
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok());
+    stream_audio_file_response(
+        state.config.upload_dir.join(file_sha256),
+        range,
+        mime_from_extension(Some(&suffix)),
+    )
+    .await
+}
+
+pub async fn head_audio_stream_by_query(
+    state: web::Data<AppState>,
+    query: web::Query<VideoPlayQuery>,
+) -> Result<HttpResponse> {
+    if !has_text(&query.id) {
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    let row =
+        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+            .bind(query.id.trim())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(error::ErrorInternalServerError)?;
+
+    let Some(row) = row else {
+        return Ok(HttpResponse::NotFound().finish());
+    };
+
+    let file_sha256: String = row.get("file_sha256");
+    let suffix: String = row.get("suffix");
+    head_file_response(
+        state.config.upload_dir.join(file_sha256),
+        mime_from_extension(Some(&suffix)),
+    )
+    .await
 }
 
 pub async fn play_local_video_stream(
     state: web::Data<AppState>,
     query: web::Query<LocalVideoQuery>,
 ) -> Result<HttpResponse> {
-    stream_file_response(
+    stream_video_file_response(
         state.config.upload_dir.join(query.file_name.trim()),
         None,
         None,
@@ -788,7 +919,55 @@ pub async fn resource_pool_play_video_by_query(
         .headers()
         .get(header::RANGE)
         .and_then(|value| value.to_str().ok());
-    stream_file_response(PathBuf::from(query.path.trim()), range, None).await
+    let path = PathBuf::from(query.path.trim());
+    let mime = mime_guess::from_path(&path).first();
+    stream_video_file_response(path, range, mime).await
+}
+
+pub async fn resource_pool_play_audio(
+    body: web::Json<ResourcePoolPlayBody>,
+) -> Result<HttpResponse> {
+    if !has_text(&body.path) {
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
+    }
+
+    let path = PathBuf::from(body.path.trim());
+    let mime = mime_guess::from_path(&path).first();
+    stream_audio_file_response(path, None, mime).await
+}
+
+pub async fn resource_pool_play_audio_by_query(
+    request: HttpRequest,
+    query: web::Query<ResourcePoolPlayQuery>,
+) -> Result<HttpResponse> {
+    if !has_text(&query.path) {
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    let range = request
+        .headers()
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok());
+    let path = PathBuf::from(query.path.trim());
+    let audio_start = query.audio_start.unwrap_or(0.0);
+    if audio_start.is_finite() && audio_start > 0.0 {
+        return stream_audio_seek_response(path, audio_start).await;
+    }
+
+    let mime = mime_guess::from_path(&path).first();
+    stream_audio_file_response(path, range, mime).await
+}
+
+pub async fn resource_pool_head_audio_by_query(
+    query: web::Query<ResourcePoolPlayQuery>,
+) -> Result<HttpResponse> {
+    if !has_text(&query.path) {
+        return Ok(HttpResponse::BadRequest().finish());
+    }
+
+    let path = PathBuf::from(query.path.trim());
+    let mime = mime_guess::from_path(&path).first();
+    head_file_response(path, mime).await
 }
 
 pub async fn resource_pool_screenshots(
@@ -821,6 +1000,9 @@ pub async fn resource_pool_get_folder_and_file(
     state: web::Data<AppState>,
     body: web::Json<ResourcePoolFolderBody>,
 ) -> Result<HttpResponse> {
+    let page = body.page.unwrap_or(1).max(1);
+    let page_size = body.page_size.unwrap_or(60).clamp(20, 120);
+    let offset = page.saturating_sub(1).saturating_mul(page_size);
     let target = body
         .path
         .as_deref()
@@ -831,32 +1013,49 @@ pub async fn resource_pool_get_folder_and_file(
     let mut entries = fs::read_dir(&target)
         .await
         .map_err(error::ErrorInternalServerError)?;
-    let mut result = Vec::new();
+    let mut visible_entries: Vec<(String, PathBuf, bool)> = Vec::new();
 
     while let Some(entry) = entries
         .next_entry()
         .await
         .map_err(error::ErrorInternalServerError)?
     {
-        let entry_path = entry.path();
-        let metadata = entry
-            .metadata()
-            .await
-            .map_err(error::ErrorInternalServerError)?;
         let name = entry.file_name().to_string_lossy().to_string();
         if name.starts_with('.') {
             continue;
         }
+        let file_type = entry
+            .file_type()
+            .await
+            .map_err(error::ErrorInternalServerError)?;
+        visible_entries.push((name, entry.path(), file_type.is_dir()));
+    }
 
-        if metadata.is_dir() {
+    visible_entries.sort_by(|left, right| {
+        right
+            .2
+            .cmp(&left.2)
+            .then_with(|| left.0.to_lowercase().cmp(&right.0.to_lowercase()))
+    });
+
+    let has_more = visible_entries.len() > offset.saturating_add(page_size);
+    let page_entries = visible_entries.into_iter().skip(offset).take(page_size);
+    let mut result = Vec::new();
+
+    for (name, entry_path, is_dir) in page_entries {
+        if is_dir {
             result.push(ResourcePoolItem {
                 item_type: "folder".to_string(),
                 name,
                 ext: None,
                 path: entry_path.to_string_lossy().to_string(),
                 media_type: None,
+                duration: None,
             });
         } else {
+            let metadata = fs::metadata(&entry_path)
+                .await
+                .map_err(error::ErrorInternalServerError)?;
             let (file_name, file_ext) = split_file_name_and_ext(&name);
             let source_key = entry_path.to_string_lossy().to_string();
             let media_type = detect_media_type_cached(
@@ -868,17 +1067,38 @@ pub async fn resource_pool_get_folder_and_file(
                 Some(&metadata),
             )
             .await?;
+            let duration = if media_type.as_deref() == Some("video") {
+                detect_media_duration_cached(
+                    &state.pool,
+                    &entry_path,
+                    "resourcepool",
+                    &source_key,
+                    Some(&metadata),
+                )
+                .await?
+            } else {
+                None
+            };
             result.push(ResourcePoolItem {
                 item_type: "file".to_string(),
                 name: file_name.to_string(),
                 ext: Some(file_ext.to_string()),
                 path: entry_path.to_string_lossy().to_string(),
                 media_type,
+                duration,
             });
         }
     }
 
-    Ok(HttpResponse::Ok().json(AjaxResult::success(Some(result), "查询成功")))
+    Ok(HttpResponse::Ok().json(AjaxResult::success(
+        Some(ResourcePoolFolderPage {
+            items: result,
+            page,
+            page_size,
+            has_more,
+        }),
+        "查询成功",
+    )))
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -902,10 +1122,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                     "/getUserFileForFileId",
                     web::post().to(get_user_file_for_file_id),
                 )
-                .route(
-                    "/downloadUserFolder",
-                    web::post().to(download_user_folder),
-                )
+                .route("/downloadUserFolder", web::post().to(download_user_folder))
                 .route(
                     "/delUserFileOrFolder",
                     web::post().to(del_user_file_or_folder),
@@ -928,11 +1145,32 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 .route("/getVideoSceenshots", web::post().to(get_video_screenshots)),
         )
         .service(
+            web::scope("/audio")
+                .route("/playAudioStream", web::post().to(play_audio_stream))
+                .route(
+                    "/playAudioStream",
+                    web::head().to(head_audio_stream_by_query),
+                )
+                .route(
+                    "/playAudioStream",
+                    web::get().to(play_audio_stream_by_query),
+                ),
+        )
+        .service(
             web::scope("/resourcepool")
                 .route("/playVideoSteam", web::post().to(resource_pool_play_video))
                 .route(
                     "/playVideoSteam",
                     web::get().to(resource_pool_play_video_by_query),
+                )
+                .route("/playAudioStream", web::post().to(resource_pool_play_audio))
+                .route(
+                    "/playAudioStream",
+                    web::head().to(resource_pool_head_audio_by_query),
+                )
+                .route(
+                    "/playAudioStream",
+                    web::get().to(resource_pool_play_audio_by_query),
                 )
                 .route(
                     "/getVideoSceenshots",
@@ -986,7 +1224,11 @@ async fn collect_folder_zip_entries(
         for row in child_folders {
             let child_uuid: String = row.get("folder_uuid");
             let child_name: String = row.get("name");
-            let child_zip_path = format!("{}/{}", current_zip_path, sanitize_zip_path_part(&child_name));
+            let child_zip_path = format!(
+                "{}/{}",
+                current_zip_path,
+                sanitize_zip_path_part(&child_name)
+            );
             entries.push(ZipInputEntry {
                 name: format!("{}/", child_zip_path),
                 data: Vec::new(),
@@ -1017,7 +1259,11 @@ async fn collect_folder_zip_entries(
                 .await
                 .map_err(error::ErrorInternalServerError)?;
             entries.push(ZipInputEntry {
-                name: format!("{}/{}", current_zip_path, sanitize_zip_path_part(&display_name)),
+                name: format!(
+                    "{}/{}",
+                    current_zip_path,
+                    sanitize_zip_path_part(&display_name)
+                ),
                 data,
                 is_dir: false,
             });
@@ -1028,11 +1274,7 @@ async fn collect_folder_zip_entries(
 }
 
 fn sanitize_zip_path_part(value: &str) -> String {
-    let sanitized = value
-        .trim()
-        .replace('\\', "_")
-        .replace('/', "_")
-        .replace('\0', "");
+    let sanitized = value.trim().replace(['\\', '/'], "_").replace('\0', "");
 
     if sanitized.is_empty() {
         "未命名".to_string()
@@ -1109,7 +1351,11 @@ fn build_store_zip(entries: Vec<ZipInputEntry>) -> io::Result<Vec<u8>> {
         push_u32(&mut output, crc);
         push_u32(&mut output, size);
         push_u32(&mut output, size);
-        push_u16(&mut output, u16::try_from(name_bytes.len()).map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?);
+        push_u16(
+            &mut output,
+            u16::try_from(name_bytes.len())
+                .map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?,
+        );
         push_u16(&mut output, 0);
         output.extend_from_slice(name_bytes);
         output.extend_from_slice(&entry.data);
@@ -1136,7 +1382,11 @@ fn build_store_zip(entries: Vec<ZipInputEntry>) -> io::Result<Vec<u8>> {
         push_u32(&mut output, entry.crc32);
         push_u32(&mut output, entry.size);
         push_u32(&mut output, entry.size);
-        push_u16(&mut output, u16::try_from(name_bytes.len()).map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?);
+        push_u16(
+            &mut output,
+            u16::try_from(name_bytes.len())
+                .map_err(|_| io::Error::new(ErrorKind::InvalidData, "文件名过长"))?,
+        );
         push_u16(&mut output, 0);
         push_u16(&mut output, 0);
         push_u16(&mut output, 0);
@@ -1172,8 +1422,12 @@ async fn stream_file_response(
     let mime = content_type.unwrap_or_else(|| mime_guess::from_path(&path).first_or_octet_stream());
 
     if let Some(range) = range.filter(|value| has_text(value)) {
-        let (start, end) =
-            parse_range(range, file_size).ok_or_else(|| error::ErrorBadRequest("无效 range"))?;
+        let Some((start, end)) = parse_range(range, file_size) else {
+            return Ok(HttpResponse::RangeNotSatisfiable()
+                .append_header((header::CONTENT_RANGE, format!("bytes */{}", file_size)))
+                .append_header((header::ACCEPT_RANGES, "bytes"))
+                .finish());
+        };
         let chunk_size = end - start + 1;
         let mut file = fs::File::open(&path)
             .await
@@ -1206,23 +1460,172 @@ async fn stream_file_response(
     }
 }
 
-fn parse_range(range: &str, file_size: u64) -> Option<(u64, u64)> {
-    let cleaned = range.trim().strip_prefix("bytes=")?;
-    let mut parts = cleaned.splitn(2, '-');
-    let start = parts.next()?.parse::<u64>().ok()?;
-    let requested_end = parts.next().and_then(|value| {
-        if value.is_empty() {
-            None
-        } else {
-            value.parse::<u64>().ok()
-        }
+async fn head_file_response(
+    path: PathBuf,
+    content_type: Option<mime::Mime>,
+) -> Result<HttpResponse> {
+    let metadata = fs::metadata(&path).await.map_err(error::ErrorNotFound)?;
+    let file_size = metadata.len();
+    let mime = content_type.unwrap_or_else(|| mime_guess::from_path(&path).first_or_octet_stream());
+
+    Ok(HttpResponse::Ok()
+        .append_header((header::CONTENT_TYPE, mime.to_string()))
+        .append_header((header::ACCEPT_RANGES, "bytes"))
+        .append_header((header::CONTENT_LENGTH, file_size.to_string()))
+        .finish())
+}
+
+async fn stream_video_file_response(
+    path: PathBuf,
+    range: Option<&str>,
+    content_type: Option<mime::Mime>,
+) -> Result<HttpResponse> {
+    let metadata = fs::metadata(&path).await.map_err(error::ErrorNotFound)?;
+    let file_size = metadata.len();
+    let mime = content_type.unwrap_or_else(|| mime_guess::from_path(&path).first_or_octet_stream());
+    if file_size == 0 {
+        return stream_file_response(path, None, Some(mime)).await;
+    }
+
+    if mime.type_() != mime::VIDEO {
+        return stream_file_response(path, range, Some(mime)).await;
+    }
+
+    if let Some(range) = range.filter(|value| has_text(value)) {
+        let normalized_range = cap_open_ended_range(range, file_size, VIDEO_INITIAL_CHUNK_SIZE);
+        return stream_file_response(
+            path,
+            Some(normalized_range.as_deref().unwrap_or(range)),
+            Some(mime),
+        )
+        .await;
+    }
+
+    let initial_end = file_size.min(VIDEO_INITIAL_CHUNK_SIZE) - 1;
+    let initial_range = format!("bytes=0-{}", initial_end);
+    stream_file_response(path, Some(&initial_range), Some(mime)).await
+}
+
+async fn stream_audio_file_response(
+    path: PathBuf,
+    range: Option<&str>,
+    content_type: Option<mime::Mime>,
+) -> Result<HttpResponse> {
+    let metadata = fs::metadata(&path).await.map_err(error::ErrorNotFound)?;
+    let file_size = metadata.len();
+    let mime = content_type.unwrap_or_else(|| mime_guess::from_path(&path).first_or_octet_stream());
+
+    if file_size == 0 {
+        return stream_file_response(path, None, Some(mime)).await;
+    }
+
+    stream_file_response(path, range, Some(mime)).await
+}
+
+async fn stream_audio_seek_response(path: PathBuf, start_time: f64) -> Result<HttpResponse> {
+    let start_time = start_time.max(0.0);
+    let mut child = tokio::process::Command::new("ffmpeg")
+        .arg("-ss")
+        .arg(format!("{start_time:.3}"))
+        .arg("-i")
+        .arg(path)
+        .arg("-vn")
+        .arg("-f")
+        .arg("mp3")
+        .arg("-codec:a")
+        .arg("libmp3lame")
+        .arg("-")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(error::ErrorInternalServerError)?;
+
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| error::ErrorInternalServerError("音频流启动失败"))?;
+    tokio::spawn(async move {
+        let _ = child.wait().await;
     });
-    let mut end = requested_end.unwrap_or(start.saturating_add(999_999));
-    end = end.min(file_size.saturating_sub(1));
+
+    Ok(HttpResponse::Ok()
+        .append_header((header::CONTENT_TYPE, "audio/mpeg"))
+        .append_header((header::CACHE_CONTROL, "no-store"))
+        .streaming(ReaderStream::new(stdout)))
+}
+
+fn cap_open_ended_range(range: &str, file_size: u64, max_chunk_size: u64) -> Option<String> {
+    let cleaned = range.trim().strip_prefix("bytes=")?;
+    if cleaned.contains(',') {
+        return None;
+    }
+
+    let mut parts = cleaned.splitn(2, '-');
+    let start_part = parts.next()?.trim();
+    let end_part = parts.next()?.trim();
+    if start_part.is_empty() || !end_part.is_empty() {
+        return None;
+    }
+
+    let start = start_part.parse::<u64>().ok()?;
+    if start >= file_size {
+        return None;
+    }
+
+    let end = start
+        .saturating_add(max_chunk_size.saturating_sub(1))
+        .min(file_size - 1);
+    Some(format!("bytes={}-{}", start, end))
+}
+
+fn parse_range(range: &str, file_size: u64) -> Option<(u64, u64)> {
+    if file_size == 0 {
+        return None;
+    }
+
+    let cleaned = range.trim().strip_prefix("bytes=")?;
+    if cleaned.contains(',') {
+        return None;
+    }
+
+    let mut parts = cleaned.splitn(2, '-');
+    let start_part = parts.next()?.trim();
+    let end_part = parts.next()?.trim();
+
+    if start_part.is_empty() {
+        let suffix_length = end_part.parse::<u64>().ok()?;
+        if suffix_length == 0 {
+            return None;
+        }
+        let start = file_size.saturating_sub(suffix_length);
+        return Some((start, file_size - 1));
+    }
+
+    let start = start_part.parse::<u64>().ok()?;
+    if start >= file_size {
+        return None;
+    }
+    let requested_end = if end_part.is_empty() {
+        None
+    } else {
+        end_part.parse::<u64>().ok()
+    };
+    let end = requested_end.unwrap_or(file_size - 1).min(file_size - 1);
     if start > end {
         return None;
     }
     Some((start, end))
+}
+
+fn mime_from_extension(ext: Option<&str>) -> Option<mime::Mime> {
+    ext.and_then(|value| {
+        let cleaned = value.trim().trim_start_matches('.');
+        if cleaned.is_empty() {
+            None
+        } else {
+            mime_guess::from_ext(cleaned).first()
+        }
+    })
 }
 
 async fn ensure_screenshot(video_path: &Path, screenshot_path: &Path) -> io::Result<()> {
@@ -1341,6 +1744,85 @@ async fn detect_media_type_cached(
     .map_err(error::ErrorInternalServerError)?;
 
     Ok(detected)
+}
+
+async fn detect_media_duration_cached(
+    pool: &SqlitePool,
+    path: &Path,
+    source_type: &str,
+    source_key: &str,
+    metadata: Option<&std::fs::Metadata>,
+) -> Result<Option<f64>> {
+    let (file_size, modified_time) = match metadata {
+        Some(value) => metadata_cache_key(value),
+        None => match fs::metadata(path).await {
+            Ok(value) => metadata_cache_key(&value),
+            Err(_) => (0, 0),
+        },
+    };
+
+    if let Some(row) = sqlx::query(
+        "SELECT duration FROM t_media_duration_cache
+         WHERE source_type = ? AND source_key = ? AND file_size = ? AND modified_time = ?
+         LIMIT 1",
+    )
+    .bind(source_type)
+    .bind(source_key)
+    .bind(file_size)
+    .bind(modified_time)
+    .fetch_optional(pool)
+    .await
+    .map_err(error::ErrorInternalServerError)?
+    {
+        let duration: f64 = row.get("duration");
+        return Ok(if duration > 0.0 { Some(duration) } else { None });
+    }
+
+    let detected = detect_media_duration(path).await;
+    sqlx::query(
+        "INSERT INTO t_media_duration_cache (source_type, source_key, file_size, modified_time, duration, update_time)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(source_type, source_key) DO UPDATE SET
+             file_size = excluded.file_size,
+             modified_time = excluded.modified_time,
+             duration = excluded.duration,
+             update_time = excluded.update_time",
+    )
+    .bind(source_type)
+    .bind(source_key)
+    .bind(file_size)
+    .bind(modified_time)
+    .bind(detected.unwrap_or(0.0))
+    .bind(now_string())
+    .execute(pool)
+    .await
+    .map_err(error::ErrorInternalServerError)?;
+
+    Ok(detected)
+}
+
+async fn detect_media_duration(path: &Path) -> Option<f64> {
+    let output = tokio::process::Command::new("ffprobe")
+        .arg("-v")
+        .arg("error")
+        .arg("-show_entries")
+        .arg("format=duration")
+        .arg("-of")
+        .arg("default=noprint_wrappers=1:nokey=1")
+        .arg(path)
+        .output()
+        .await
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|value| value.is_finite() && *value > 0.0)
 }
 
 async fn detect_media_type(path: &Path, ext: Option<&str>) -> Option<String> {

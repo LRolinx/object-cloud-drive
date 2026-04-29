@@ -75,11 +75,23 @@ pub async fn open_sql(config: &AppConfig) -> Result<SqlitePool, sqlx::Error> {
             UNIQUE(source_type, source_key)
         );
 
+        CREATE TABLE IF NOT EXISTS t_media_duration_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_type TEXT NOT NULL,
+            source_key TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            modified_time INTEGER NOT NULL,
+            duration REAL NOT NULL,
+            update_time TEXT NOT NULL,
+            UNIQUE(source_type, source_key)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_user_account ON t_user(account);
         CREATE INDEX IF NOT EXISTS idx_folder_user_parent ON t_folder(user_uuid, p_uuid, del);
         CREATE INDEX IF NOT EXISTS idx_user_files_folder ON t_user_files(user_uuid, folder_uuid, del);
         CREATE INDEX IF NOT EXISTS idx_user_files_sha ON t_user_files(file_sha256, del);
         CREATE INDEX IF NOT EXISTS idx_media_type_cache_source ON t_media_type_cache(source_type, source_key);
+        CREATE INDEX IF NOT EXISTS idx_media_duration_cache_source ON t_media_duration_cache(source_type, source_key);
         "#,
     )
     .execute(&pool)

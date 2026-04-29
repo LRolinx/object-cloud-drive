@@ -6,7 +6,7 @@ import { getVideoStreamUrl } from '@/api/video';
 import './index.less';
 
 type SourceType = 'drive' | 'resourcepool';
-type VideoSourceItem = string | { src: string; title?: string; poster?: string | null };
+type VideoSourceItem = string | { src: string; title?: string; poster?: string | null; duration?: number | null };
 
 type Props = {
   open?: boolean;
@@ -18,11 +18,30 @@ type Props = {
 
 const getSourceValue = (item?: VideoSourceItem) => (typeof item === 'string' ? item : item?.src || '');
 const getSourcePoster = (item?: VideoSourceItem) => (typeof item === 'string' ? '' : item?.poster || '');
+const getSourceDuration = (item?: VideoSourceItem) => (typeof item === 'string' ? undefined : item?.duration);
 const getSourceTitle = (item: VideoSourceItem | undefined, index: number) => {
   if (!item) {
     return `视频 ${index + 1}`;
   }
   return typeof item === 'string' ? `视频 ${index + 1}` : item.title || `视频 ${index + 1}`;
+};
+const getVideoUrl = (source: string, sourceType: SourceType) =>
+  sourceType === 'drive' ? getVideoStreamUrl(source) : getResourcePoolVideoStreamUrl(source);
+const formatDuration = (duration?: number | null) => {
+  if (!Number.isFinite(duration) || !duration || duration <= 0) {
+    return '--:--';
+  }
+
+  const totalSeconds = Math.floor(duration);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
 export const StreamingVideoPlayer = ({
@@ -33,8 +52,11 @@ export const StreamingVideoPlayer = ({
   onClose,
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const wasOpenRef = useRef(false);
   const [currentIndex, setCurrentIndex] = useState(index);
   const [minimized, setMinimized] = useState(false);
+  const [previewSession, setPreviewSession] = useState(0);
+  const [durations, setDurations] = useState<Record<string, number>>({});
 
   const unloadVideo = () => {
     const video = videoRef.current;
@@ -49,13 +71,13 @@ export const StreamingVideoPlayer = ({
   const currentSource = useMemo(() => getSourceValue(data[currentIndex]), [currentIndex, data]);
   const currentTitle = useMemo(() => getSourceTitle(data[currentIndex], currentIndex), [currentIndex, data]);
   const videoUrl = useMemo(() => {
-    if (!open || !currentSource) {
+    if (!open || !currentSource || !previewSession) {
       return '';
     }
-    return sourceType === 'drive'
-      ? getVideoStreamUrl(currentSource)
-      : getResourcePoolVideoStreamUrl(currentSource);
-  }, [currentSource, open, sourceType]);
+    const streamUrl = getVideoUrl(currentSource, sourceType);
+    const separator = streamUrl.includes('?') ? '&' : '?';
+    return `${streamUrl}${separator}_previewSession=${previewSession}`;
+  }, [currentSource, open, previewSession, sourceType]);
 
   useEffect(() => {
     setCurrentIndex(index);
@@ -65,6 +87,13 @@ export const StreamingVideoPlayer = ({
     if (!open) {
       setMinimized(false);
       unloadVideo();
+      wasOpenRef.current = false;
+      return;
+    }
+
+    if (!wasOpenRef.current) {
+      wasOpenRef.current = true;
+      setPreviewSession(Date.now());
     }
   }, [open]);
 
@@ -73,9 +102,44 @@ export const StreamingVideoPlayer = ({
     if (!video || !videoUrl) {
       return;
     }
+    if (video.currentSrc === videoUrl) {
+      video.play().catch(() => undefined);
+      return;
+    }
+    video.src = videoUrl;
     video.load();
     video.play().catch(() => undefined);
   }, [videoUrl]);
+
+  useEffect(() => {
+    if (!open) {
+      setDurations({});
+      return;
+    }
+
+    const knownDurations: Record<string, number> = {};
+    data.forEach((item) => {
+      const source = getSourceValue(item);
+      const duration = getSourceDuration(item);
+      if (source && Number.isFinite(duration)) {
+        knownDurations[source] = duration as number;
+      }
+    });
+    setDurations(knownDurations);
+  }, [data, open]);
+
+  const recordCurrentDuration = () => {
+    const video = videoRef.current;
+    if (!currentSource || !video || !Number.isFinite(video.duration) || video.duration <= 0) {
+      return;
+    }
+    setDurations((value) => ({ ...value, [currentSource]: video.duration }));
+  };
+
+  const getDisplayDuration = (item: VideoSourceItem) => {
+    const source = getSourceValue(item);
+    return formatDuration(durations[source] ?? getSourceDuration(item));
+  };
 
   const closePreview = () => {
     unloadVideo();
@@ -101,7 +165,14 @@ export const StreamingVideoPlayer = ({
       >
         <div className="streaming-video-layout">
           <div className="streaming-video-main">
-            <video ref={videoRef} controls autoPlay preload="metadata" src={videoUrl} className="streaming-video-element" />
+            <video
+              ref={videoRef}
+              controls
+              autoPlay
+              preload="metadata"
+              className="streaming-video-element"
+              onLoadedMetadata={recordCurrentDuration}
+            />
             {data.length > 1 && (
               <div className="streaming-video-actions">
                 <Button
@@ -138,7 +209,9 @@ export const StreamingVideoPlayer = ({
                   </span>
                   <span className="streaming-video-playlist-meta">
                     <span className="streaming-video-playlist-name">{getSourceTitle(item, itemIndex)}</span>
-                    <span className="streaming-video-playlist-subtitle">同目录视频</span>
+                    <span className="streaming-video-playlist-subtitle">
+                      {getDisplayDuration(item)}
+                    </span>
                   </span>
                 </button>
               ))}

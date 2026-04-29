@@ -38,3 +38,6 @@ export const playvideosteamapi = (id: string): Promise<AxiosResponse> => {
 
 export const getVideoStreamUrl = (id: string) =>
   `${API_LIST.BASEURL}${API_LIST.VIDEO.PLAY_VIDEOSTEAM}?id=${encodeURIComponent(id)}`
+
+export const getAudioStreamUrl = (id: string) =>
+  `${API_LIST.BASEURL}${API_LIST.AUDIO.PLAY_AUDIOSTREAM}?id=${encodeURIComponent(id)}`

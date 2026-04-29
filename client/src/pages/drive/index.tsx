@@ -43,7 +43,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './index.less';
 import folderImg from '@/assets/img/folder.png';
 import { adduserfolderapi, batchAddUserFolderApi, deluserfileorfolderapi, downloaduserfolderapi, getuserfileandfolderapi, getuserfileforfileidapi } from '@/api/drive';
-import { getVideoStreamUrl, getvideosceenshotsapi } from '@/api/video';
+import { getAudioStreamUrl, getVideoStreamUrl, getvideosceenshotsapi } from '@/api/video';
 import { examinefileapi, uploadsecondpassapi, uploadstreamfileapi } from '@/api/update';
 import { StreamingAudio } from '@/components/streaming_audio';
 import { StreamingVideoPlayer } from '@/components/streaming_video_player';
@@ -757,6 +757,7 @@ const DrivePage = () => {
         src: currentItem.fileSha256 || currentItem.id,
         title: `${currentItem.name}${currentItem.suffix ? `.${currentItem.suffix}` : ''}`,
         poster: currentItem.blob,
+        duration: currentItem.duration,
       }));
       setAudioOpen(false);
       setVideoIndex(videoItems.findIndex((videoItem) => videoItem.src === (item.fileSha256 || item.id)));
@@ -767,11 +768,11 @@ const DrivePage = () => {
     if (fileType === 'audio') {
       const audios = fileData.filter((currentItem) => currentItem.type === 'file' && GetFileTypeInItem(currentItem).type === 'audio');
       const audioItems = audios.map((currentItem) => ({
-        src: getVideoStreamUrl(currentItem.fileSha256 || currentItem.id),
+        src: getAudioStreamUrl(currentItem.fileSha256 || currentItem.id),
         title: `${currentItem.name}${currentItem.suffix ? `.${currentItem.suffix}` : ''}`,
       }));
       setVideoOpen(false);
-      setAudioIndex(audioItems.findIndex((audioItem) => audioItem.src === getVideoStreamUrl(item.fileSha256 || item.id)));
+      setAudioIndex(audioItems.findIndex((audioItem) => audioItem.src === getAudioStreamUrl(item.fileSha256 || item.id)));
       setAudioList(audioItems);
       setAudioOpen(true);
       return;

@@ -61,6 +61,8 @@ pub struct UserFileAndFolder {
     pub file_sha256: Option<String>,
     #[serde(rename = "mediaType", skip_serializing_if = "Option::is_none")]
     pub media_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -81,6 +83,8 @@ pub struct ResourcePoolItem {
     pub path: String,
     #[serde(rename = "mediaType", skip_serializing_if = "Option::is_none")]
     pub media_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -222,6 +226,8 @@ pub struct LocalVideoQuery {
 #[derive(Deserialize)]
 pub struct VideoPlayQuery {
     pub id: String,
+    #[serde(rename = "audioStart")]
+    pub audio_start: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -238,6 +244,8 @@ pub struct ResourcePoolPlayBody {
 #[derive(Deserialize)]
 pub struct ResourcePoolPlayQuery {
     pub path: String,
+    #[serde(rename = "audioStart")]
+    pub audio_start: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -250,4 +258,17 @@ pub struct ResourcePoolScreenshotBody {
 #[derive(Deserialize)]
 pub struct ResourcePoolFolderBody {
     pub path: Option<String>,
+    pub page: Option<usize>,
+    #[serde(rename = "pageSize")]
+    pub page_size: Option<usize>,
+}
+
+#[derive(Serialize)]
+pub struct ResourcePoolFolderPage {
+    pub items: Vec<ResourcePoolItem>,
+    pub page: usize,
+    #[serde(rename = "pageSize")]
+    pub page_size: usize,
+    #[serde(rename = "hasMore")]
+    pub has_more: bool,
 }

@@ -29,6 +29,10 @@ const formatTime = (value: number) => {
 };
 
 const clampIndex = (nextIndex: number, length: number) => Math.min(Math.max(nextIndex, 0), Math.max(length - 1, 0));
+const withSeekReloadParam = (source: string, time: number) => {
+  const separator = source.includes('?') ? '&' : '?';
+  return `${source}${separator}audioStart=${Math.max(0, time).toFixed(3)}&audioSeek=${Date.now()}_${Math.round(time * 1000)}`;
+};
 
 export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClose }: Props) => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -37,26 +41,49 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const audioGraphPromiseRef = useRef<Promise<void> | null>(null);
-  const autoplayRef = useRef(false);
+  const audioGraphTimerRef = useRef<number | null>(null);
+  const seekingRef = useRef(false);
+  const resumeAfterSeekRef = useRef(false);
+  const suppressEndedUntilRef = useRef(0);
+  const userSeekedUntilRef = useRef(0);
+  const recoveringSeekRef = useRef(false);
+  const pendingSeekTimeRef = useRef<number | null>(null);
+  const pendingSeekResumeRef = useRef(false);
+  const streamOffsetRef = useRef(0);
   const [currentIndex, setCurrentIndex] = useState(index);
   const [minimized, setMinimized] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubTime, setScrubTime] = useState(0);
   const [volume, setVolume] = useState(0.86);
   const sourceList = useMemo(() => (data.length ? data : src ? [{ src, title: '音频预览' }] : []), [data, src]);
   const currentSource = getSourceValue(sourceList[currentIndex]);
   const currentTitle = getSourceTitle(sourceList[currentIndex], currentIndex);
+  const displayedTime = isScrubbing ? scrubTime : currentTime;
 
   useEffect(() => {
     if (!open) {
       setMinimized(false);
-      audioRef.current?.pause();
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      }
+      if (audioGraphTimerRef.current !== null) {
+        window.clearTimeout(audioGraphTimerRef.current);
+        audioGraphTimerRef.current = null;
+      }
       setIsPlaying(false);
     }
   }, [open]);
 
   useEffect(() => () => {
+    if (audioGraphTimerRef.current !== null) {
+      window.clearTimeout(audioGraphTimerRef.current);
+    }
     audioContextRef.current?.close().catch(() => undefined);
   }, []);
 
@@ -68,9 +95,27 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
     if (!open || !currentSource) {
       return;
     }
-    autoplayRef.current = true;
+    seekingRef.current = false;
+    resumeAfterSeekRef.current = false;
+    suppressEndedUntilRef.current = 0;
+    userSeekedUntilRef.current = 0;
+    recoveringSeekRef.current = false;
+    pendingSeekTimeRef.current = null;
+    pendingSeekResumeRef.current = false;
+    streamOffsetRef.current = 0;
     setCurrentTime(0);
+    setScrubTime(0);
+    setIsScrubbing(false);
     setDuration(0);
+
+    const audio = audioRef.current;
+    if (audioGraphTimerRef.current !== null) {
+      window.clearTimeout(audioGraphTimerRef.current);
+      audioGraphTimerRef.current = null;
+    }
+    audio?.pause();
+    audio?.removeAttribute('src');
+    audio?.load();
   }, [currentSource, open]);
 
   useEffect(() => {
@@ -254,7 +299,26 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
     if (!audio || !currentSource) {
       return;
     }
-    await ensureAudioGraph();
+    if (!audio.src) {
+      audio.src = currentSource;
+      streamOffsetRef.current = 0;
+    }
+    await audio.play();
+    setIsPlaying(true);
+    if (audioGraphTimerRef.current !== null) {
+      window.clearTimeout(audioGraphTimerRef.current);
+    }
+    audioGraphTimerRef.current = window.setTimeout(() => {
+      audioGraphTimerRef.current = null;
+      ensureAudioGraph().catch(() => undefined);
+    }, 500);
+  };
+
+  const resumeCurrentAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
     await audio.play();
     setIsPlaying(true);
   };
@@ -274,9 +338,56 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
 
   const switchAudio = (nextIndex: number) => {
     const safeIndex = clampIndex(nextIndex, sourceList.length);
+    seekingRef.current = false;
+    resumeAfterSeekRef.current = false;
+    suppressEndedUntilRef.current = 0;
+    userSeekedUntilRef.current = 0;
+    recoveringSeekRef.current = false;
+    pendingSeekTimeRef.current = null;
+    pendingSeekResumeRef.current = false;
+    streamOffsetRef.current = 0;
     setCurrentIndex(safeIndex);
     setCurrentTime(0);
+    setScrubTime(0);
+    setIsScrubbing(false);
     setDuration(0);
+  };
+
+  const seekTo = (nextTime: number) => {
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(nextTime)) {
+      return;
+    }
+
+    const maxSeekTime = duration > 1 ? duration - 0.25 : duration || nextTime;
+    const safeTime = Math.min(Math.max(nextTime, 0), maxSeekTime);
+    seekingRef.current = true;
+    resumeAfterSeekRef.current = !audio.paused;
+    suppressEndedUntilRef.current = Date.now() + 6000;
+    userSeekedUntilRef.current = Date.now() + 30000;
+    recoveringSeekRef.current = true;
+    pendingSeekTimeRef.current = safeTime;
+    pendingSeekResumeRef.current = resumeAfterSeekRef.current;
+    if (audioGraphTimerRef.current !== null) {
+      window.clearTimeout(audioGraphTimerRef.current);
+      audioGraphTimerRef.current = null;
+    }
+    audio.pause();
+    streamOffsetRef.current = safeTime;
+    audio.src = withSeekReloadParam(currentSource, safeTime);
+    audio.load();
+    if (pendingSeekResumeRef.current) {
+      audio.play().catch(() => {
+        setIsPlaying(false);
+      });
+    }
+    setCurrentTime(safeTime);
+    setScrubTime(safeTime);
+  };
+
+  const commitSeek = (nextTime = scrubTime) => {
+    setIsScrubbing(false);
+    seekTo(nextTime);
   };
 
   const closePreview = () => {
@@ -290,30 +401,72 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
     <>
       <audio
         ref={audioRef}
-        src={currentSource}
         crossOrigin="anonymous"
-        autoPlay
-        preload="metadata"
-        onCanPlay={() => {
-          if (!autoplayRef.current) {
-            return;
-          }
-          autoplayRef.current = false;
-          playCurrentAudio().catch(() => {
-            setIsPlaying(false);
-          });
-        }}
+        preload="none"
         onLoadedMetadata={(event) => {
-          const nextDuration = event.currentTarget.duration;
+          const audio = event.currentTarget;
+          const nextDuration = audio.duration;
           setDuration(Number.isFinite(nextDuration) ? nextDuration : 0);
         }}
-        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
+        onTimeUpdate={(event) => {
+          const audio = event.currentTarget;
+          if (!isScrubbing) {
+            setCurrentTime(streamOffsetRef.current + (audio.currentTime || 0));
+          }
+          if (recoveringSeekRef.current && !audio.paused && audio.readyState >= 2) {
+            recoveringSeekRef.current = false;
+            userSeekedUntilRef.current = 0;
+          }
+        }}
+        onSeeking={() => {
+          seekingRef.current = true;
+          suppressEndedUntilRef.current = Date.now() + 6000;
+        }}
+        onSeeked={() => {
+          seekingRef.current = false;
+          const shouldResume = pendingSeekResumeRef.current || resumeAfterSeekRef.current;
+          pendingSeekTimeRef.current = null;
+          pendingSeekResumeRef.current = false;
+          if (shouldResume && audioRef.current?.paused) {
+            resumeCurrentAudio().catch(() => {
+              setIsPlaying(false);
+            });
+          }
+          resumeAfterSeekRef.current = false;
+        }}
         onPlay={() => {
-          ensureAudioGraph().catch(() => undefined);
           setIsPlaying(true);
         }}
         onPause={() => setIsPlaying(false)}
-        onEnded={() => {
+        onError={() => {
+          seekingRef.current = false;
+          resumeAfterSeekRef.current = false;
+          suppressEndedUntilRef.current = Date.now() + 6000;
+          recoveringSeekRef.current = false;
+          setIsPlaying(false);
+        }}
+        onStalled={() => {
+          suppressEndedUntilRef.current = Date.now() + 6000;
+        }}
+        onWaiting={() => {
+          suppressEndedUntilRef.current = Date.now() + 6000;
+        }}
+        onEnded={(event) => {
+          const audio = event.currentTarget;
+          const hasEndedAtTail =
+            Number.isFinite(audio.duration) &&
+            audio.duration > 0 &&
+            audio.currentTime >= audio.duration - 0.35;
+          if (
+            seekingRef.current ||
+            Date.now() < suppressEndedUntilRef.current ||
+            Date.now() < userSeekedUntilRef.current ||
+            recoveringSeekRef.current ||
+            !hasEndedAtTail
+          ) {
+            return;
+          }
+
           if (currentIndex < sourceList.length - 1) {
             switchAudio(currentIndex + 1);
           } else {
@@ -349,19 +502,36 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
               </section>
               <div className="streaming-audio-control-panel">
                 <div className="streaming-audio-time">
-                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(displayedTime)}</span>
                   <input
                     type="range"
                     min={0}
                     max={duration || 0}
                     step={0.1}
-                    value={Math.min(currentTime, duration || 0)}
+                    value={Math.min(displayedTime, duration || 0)}
+                    onPointerDown={() => {
+                      setIsScrubbing(true);
+                      setScrubTime(currentTime);
+                    }}
                     onChange={(event) => {
-                      const nextTime = Number(event.target.value);
-                      if (audioRef.current) {
-                        audioRef.current.currentTime = nextTime;
+                      setIsScrubbing(true);
+                      setScrubTime(Number(event.target.value));
+                    }}
+                    onPointerUp={(event) => {
+                      commitSeek(Number(event.currentTarget.value));
+                    }}
+                    onPointerCancel={(event) => {
+                      commitSeek(Number(event.currentTarget.value));
+                    }}
+                    onKeyUp={(event) => {
+                      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+                        commitSeek(Number(event.currentTarget.value));
                       }
-                      setCurrentTime(nextTime);
+                    }}
+                    onBlur={(event) => {
+                      if (isScrubbing) {
+                        commitSeek(Number(event.currentTarget.value));
+                      }
                     }}
                   />
                   <span>{formatTime(duration)}</span>
