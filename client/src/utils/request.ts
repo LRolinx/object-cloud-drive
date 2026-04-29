@@ -12,6 +12,10 @@ axios.interceptors.request.use(config => {
 axios.interceptors.response.use(resp => {
   return resp;
 }, err => {
+  if (!err.response) {
+    return Promise.reject(err)
+  }
+
   if (err.response.status === 200 || err.response.status === 406) {
     return Promise.resolve(err.response);
   }

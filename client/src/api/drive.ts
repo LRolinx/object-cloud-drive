@@ -6,7 +6,7 @@
  * @create 2024-03-31 13:26
  */
 import $http from '$http'
-import { AxiosResponse } from 'axios'
+import { AxiosProgressEvent, AxiosResponse } from 'axios'
 import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType'
@@ -37,20 +37,30 @@ export const batchAddUserFolderApi = (userUuid: string, data: BatchAddUserFolder
 }
 
 //通过文件id获取用户文件
-export const getuserfileforfileidapi = (id: string): Promise<Resp> => {
+export const getuserfileforfileidapi = (
+  id: string,
+  range?: string,
+  onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
+): Promise<AxiosResponse<Blob>> => {
   return $http.post(
     API_LIST.DRIVE.GET_USERFILEFORFILEID,
     {
       id,
     },
     {
+      headers: range ? { Range: range } : undefined,
+      onDownloadProgress,
       responseType: 'blob',
     }
   )
 }
 
 //下载用户文件夹
-export const downloaduserfolderapi = (userUuid: string, id: string): Promise<AxiosResponse<Blob>> => {
+export const downloaduserfolderapi = (
+  userUuid: string,
+  id: string,
+  onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void
+): Promise<AxiosResponse<Blob>> => {
   return $http.post(
     API_LIST.DRIVE.DOWNLOAD_USERFOLDER,
     {
@@ -58,6 +68,7 @@ export const downloaduserfolderapi = (userUuid: string, id: string): Promise<Axi
       id,
     },
     {
+      onDownloadProgress,
       responseType: 'blob',
     }
   )

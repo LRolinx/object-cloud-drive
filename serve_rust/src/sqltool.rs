@@ -19,8 +19,11 @@ pub async fn open_sql(config: &AppConfig) -> Result<SqlitePool, sqlx::Error> {
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS t_files (
-            file_sha256 TEXT PRIMARY KEY,
-            url TEXT NOT NULL,
+            file_hash TEXT PRIMARY KEY,
+            hash_algorithm TEXT NOT NULL,
+            file_size INTEGER NOT NULL,
+            storage_path TEXT NOT NULL,
+            create_time TEXT NOT NULL,
             disable INTEGER NOT NULL DEFAULT 0,
             disable_time TEXT
         );
@@ -53,15 +56,17 @@ pub async fn open_sql(config: &AppConfig) -> Result<SqlitePool, sqlx::Error> {
 
         CREATE TABLE IF NOT EXISTS t_user_files (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_sha256 TEXT NOT NULL,
+            file_hash TEXT NOT NULL,
             folder_uuid TEXT NOT NULL,
             user_uuid TEXT NOT NULL,
             file_name TEXT NOT NULL,
             suffix TEXT NOT NULL,
+            file_size INTEGER NOT NULL DEFAULT 0,
             open INTEGER NOT NULL DEFAULT 0,
             create_time TEXT NOT NULL,
             del INTEGER NOT NULL DEFAULT 0,
-            del_time TEXT
+            del_time TEXT,
+            FOREIGN KEY(file_hash) REFERENCES t_files(file_hash)
         );
 
         CREATE TABLE IF NOT EXISTS t_media_type_cache (
@@ -89,7 +94,9 @@ pub async fn open_sql(config: &AppConfig) -> Result<SqlitePool, sqlx::Error> {
         CREATE INDEX IF NOT EXISTS idx_user_account ON t_user(account);
         CREATE INDEX IF NOT EXISTS idx_folder_user_parent ON t_folder(user_uuid, p_uuid, del);
         CREATE INDEX IF NOT EXISTS idx_user_files_folder ON t_user_files(user_uuid, folder_uuid, del);
-        CREATE INDEX IF NOT EXISTS idx_user_files_sha ON t_user_files(file_sha256, del);
+        CREATE INDEX IF NOT EXISTS idx_files_algorithm ON t_files(hash_algorithm);
+        CREATE INDEX IF NOT EXISTS idx_user_files_hash ON t_user_files(file_hash, del);
+        CREATE UNIQUE INDEX IF NOT EXISTS uk_user_file_name_active ON t_user_files(user_uuid, folder_uuid, file_name, suffix) WHERE del = 0;
         CREATE INDEX IF NOT EXISTS idx_media_type_cache_source ON t_media_type_cache(source_type, source_key);
         CREATE INDEX IF NOT EXISTS idx_media_duration_cache_source ON t_media_duration_cache(source_type, source_key);
         "#,

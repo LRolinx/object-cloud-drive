@@ -9,6 +9,7 @@ actix-files = "0.6"
 actix-multipart = "0.7"
 actix-web = "4"
 base64 = "0.22"
+blake3 = "1"
 chrono = { version = "0.4", features = ["clock"] }
 env_logger = "0.11"
 futures-util = "0.3"

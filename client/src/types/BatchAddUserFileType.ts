@@ -14,6 +14,7 @@ export type BatchAddUserFileType = {
   userFileExist: boolean
   fileExist: boolean
   uploadedBytes?: number
+  speedBytesPerSecond?: number
   progress?: number
   statusText?: string
   errorMessage?: string

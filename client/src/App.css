@@ -111,6 +111,77 @@ body,
   font-weight: 650;
 }
 
+.upload-center-drawer .ant-list-item {
+  align-items: flex-start;
+}
+
+.upload-center-drawer .ant-list-item-meta,
+.upload-center-drawer .ant-list-item .ant-space {
+  min-width: 0;
+}
+
+.transfer-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.transfer-task-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.transfer-status-tag {
+  flex: 0 0 auto;
+  margin-inline-end: 0;
+  white-space: nowrap;
+}
+
+.upload-center-float-button-active {
+  animation: transfer-button-pulse 1.4s ease-in-out infinite;
+}
+
+.upload-center-float-button-active .ant-float-btn-body {
+  overflow: visible;
+  box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.42);
+}
+
+.upload-center-float-button-active .ant-float-btn-body::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1px solid rgba(22, 119, 255, 0.34);
+  border-radius: 50%;
+  animation: transfer-button-ring 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes transfer-button-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+
+@keyframes transfer-button-ring {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.82);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
 .streaming-audio-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;

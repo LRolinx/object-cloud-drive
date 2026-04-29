@@ -11,14 +11,25 @@ import { API_LIST } from '../script/api'
 import { AxiosProgressEvent } from 'axios'
 
 // 检查文件
-export const examinefileapi = (userUuid: string, folderUuid: string, fileSha256: string, filename: string, fileext: string): Promise<Resp> => {
-  return $http.post(API_LIST.UPDATE.EXAMINE_FILE, {
-    userUuid,
-    folderUuid,
-    fileSha256,
-    filename,
-    fileext,
-  })
+export const examinefileapi = (
+  userUuid: string,
+  folderUuid: string,
+  fileSha256: string,
+  filename: string,
+  fileext: string,
+  signal?: AbortSignal
+): Promise<Resp> => {
+  return $http.post(
+    API_LIST.UPDATE.EXAMINE_FILE,
+    {
+      userUuid,
+      folderUuid,
+      fileSha256,
+      filename,
+      fileext,
+    },
+    { signal }
+  )
 }
 
 // 片段流上传
@@ -32,7 +43,9 @@ export const uploadstreamfileapi = (
   fileSha256: string,
   currentChunkMax: number,
   currentChunkIndex: number,
-  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
+  fileSize: number,
+  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
+  signal?: AbortSignal
 ): Promise<Resp> => {
   return $http.put(API_LIST.UPDATE.UPLOAD_STREAMFILE, fileslice, {
 	params: {
@@ -45,8 +58,10 @@ export const uploadstreamfileapi = (
       fileSha256,
       currentChunkMax,
       currentChunkIndex,
+      fileSize,
     },
     onUploadProgress,
+    signal,
   })
 }
 
@@ -56,14 +71,19 @@ export const uploadsecondpassapi = (
   fileName: string,
   filePath: string,
   fileExt: string,
-  fileSha256: string
+  fileSha256: string,
+  signal?: AbortSignal
 ): Promise<Resp> => {
-  return $http.post(API_LIST.UPDATE.UPLOAD_SECONDPASS, {
-    userUuid,
-    folderUuid,
-    fileName,
-    filePath,
-    fileExt,
-    fileSha256,
-  })
+  return $http.post(
+    API_LIST.UPDATE.UPLOAD_SECONDPASS,
+    {
+      userUuid,
+      folderUuid,
+      fileName,
+      filePath,
+      fileExt,
+      fileSha256,
+    },
+    { signal }
+  )
 }

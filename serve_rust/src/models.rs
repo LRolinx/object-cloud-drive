@@ -58,7 +58,7 @@ pub struct UserFileAndFolder {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
     #[serde(rename = "fileSha256", skip_serializing_if = "Option::is_none")]
-    pub file_sha256: Option<String>,
+    pub file_hash: Option<String>,
     #[serde(rename = "mediaType", skip_serializing_if = "Option::is_none")]
     pub media_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -71,6 +71,8 @@ pub struct ExamineFileResult {
     pub user_file_exist: bool,
     #[serde(rename = "fileExist")]
     pub file_exist: bool,
+    #[serde(rename = "uploadedChunkIndexes")]
+    pub uploaded_chunk_indexes: Vec<usize>,
 }
 
 #[derive(Serialize)]
@@ -170,7 +172,7 @@ pub struct ExamineFileBody {
     #[serde(rename = "folderUuid")]
     pub folder_uuid: String,
     #[serde(rename = "fileSha256")]
-    pub file_sha256: String,
+    pub file_hash: String,
     pub filename: String,
     pub fileext: String,
 }
@@ -188,7 +190,7 @@ pub struct UploadSecondPassBody {
     #[serde(rename = "fileExt")]
     pub file_ext: String,
     #[serde(rename = "fileSha256")]
-    pub file_sha256: String,
+    pub file_hash: String,
 }
 
 #[derive(Deserialize)]
@@ -204,11 +206,13 @@ pub struct UploadStreamQuery {
     #[serde(rename = "fileExt")]
     pub file_ext: String,
     #[serde(rename = "fileSha256")]
-    pub file_sha256: String,
+    pub file_hash: String,
     #[serde(rename = "currentChunkMax")]
     pub current_chunk_max: String,
     #[serde(rename = "currentChunkIndex")]
     pub current_chunk_index: String,
+    #[serde(rename = "fileSize")]
+    pub file_size: String,
 }
 
 #[derive(Deserialize)]
@@ -233,7 +237,7 @@ pub struct VideoPlayQuery {
 #[derive(Deserialize)]
 pub struct ScreenshotBody {
     #[serde(rename = "fileSha256")]
-    pub file_sha256: String,
+    pub file_hash: String,
 }
 
 #[derive(Deserialize)]

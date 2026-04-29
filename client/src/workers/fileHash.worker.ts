@@ -1,135 +1,120 @@
-const CHUNK_SIZE = 4 * 1024 * 1024;
+import { createBLAKE3 } from 'hash-wasm';
 
-const K = [
-  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
-];
+const PART_SIZE = 64 * 1024 * 1024;
+const MAX_PARALLEL_WORKERS = 12;
+const TREE_HASH_VERSION = 'object-cloud-drive-blake3-tree-v1';
 
-const rotr = (value: number, shift: number) => (value >>> shift) | (value << (32 - shift));
-const toHex = (value: number) => (value >>> 0).toString(16).padStart(8, '0');
+type HashWorkerRequest = {
+  taskId: string;
+  file: File;
+};
 
-class Sha256 {
-  private state = [
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-  ];
-  private buffer = new Uint8Array(64);
-  private bufferLength = 0;
-  private bytesHashed = 0;
-  private temp = new Uint32Array(64);
+type HashWorkerResponse = {
+  taskId: string;
+  hash?: string;
+  loaded?: number;
+  total?: number;
+  error?: string;
+};
 
-  update(data: Uint8Array) {
-    let position = 0;
-    this.bytesHashed += data.length;
+type HashPartResponse = {
+  taskId: string;
+  partIndex: number;
+  hash?: string;
+  loaded?: number;
+  error?: string;
+};
 
-    while (position < data.length) {
-      const take = Math.min(data.length - position, 64 - this.bufferLength);
-      this.buffer.set(data.subarray(position, position + take), this.bufferLength);
-      this.bufferLength += take;
-      position += take;
+const hashTree = async (taskId: string, file: File) => {
+  const workerCount = Math.min(
+    MAX_PARALLEL_WORKERS,
+    Math.max(2, self.navigator?.hardwareConcurrency || 4)
+  );
+  const partCount = Math.max(1, Math.ceil(file.size / PART_SIZE));
+  const partHashes: string[] = new Array(partCount);
+  const partLoaded = new Array<number>(partCount).fill(0);
+  const workers: Worker[] = [];
+  let nextPartIndex = 0;
 
-      if (this.bufferLength === 64) {
-        this.processBlock(this.buffer);
-        this.bufferLength = 0;
-      }
-    }
+  try {
+    await Promise.all(
+      Array.from({ length: Math.min(workerCount, partCount) }, () => {
+        const worker = new Worker(new URL('./fileHashPart.worker.ts', import.meta.url), {
+          type: 'module',
+        });
+        workers.push(worker);
+
+        return new Promise<void>((resolve, reject) => {
+          const runNext = () => {
+            if (nextPartIndex >= partCount) {
+              resolve();
+              return;
+            }
+
+            const partIndex = nextPartIndex;
+            nextPartIndex += 1;
+            const start = partIndex * PART_SIZE;
+            const end = Math.min(start + PART_SIZE, file.size);
+            worker.postMessage({ taskId, partIndex, file, start, end });
+          };
+
+          worker.onmessage = (event: MessageEvent<HashPartResponse>) => {
+            const data = event.data;
+            if (data.taskId !== taskId) {
+              return;
+            }
+
+            if (typeof data.loaded === 'number') {
+              partLoaded[data.partIndex] = data.loaded;
+              self.postMessage({
+                taskId,
+                loaded: partLoaded.reduce((sum, value) => sum + value, 0),
+                total: file.size,
+              } satisfies HashWorkerResponse);
+              return;
+            }
+
+            if (data.error) {
+              reject(new Error(data.error));
+              return;
+            }
+
+            partHashes[data.partIndex] = data.hash || '';
+            runNext();
+          };
+
+          worker.onerror = () => reject(new Error('哈希计算失败'));
+          runNext();
+        });
+      })
+    );
+
+    const blake3 = await createBLAKE3();
+    const encoder = new TextEncoder();
+    blake3.init();
+    blake3.update(encoder.encode(`${TREE_HASH_VERSION}:${file.size}:${PART_SIZE}:${partCount}:`));
+    partHashes.forEach((hash, partIndex) => {
+      const start = partIndex * PART_SIZE;
+      const end = Math.min(start + PART_SIZE, file.size);
+      blake3.update(encoder.encode(`${partIndex}:${start}:${end}:${hash};`));
+    });
+    return blake3.digest();
+  } finally {
+    workers.forEach((worker) => worker.terminate());
   }
+};
 
-  digest() {
-    const bytesHashed = this.bytesHashed;
-    this.buffer[this.bufferLength++] = 0x80;
-
-    if (this.bufferLength > 56) {
-      this.buffer.fill(0, this.bufferLength, 64);
-      this.processBlock(this.buffer);
-      this.bufferLength = 0;
-    }
-
-    this.buffer.fill(0, this.bufferLength, 56);
-    const bitLengthHigh = Math.floor(bytesHashed / 0x20000000);
-    const bitLengthLow = (bytesHashed << 3) >>> 0;
-
-    this.buffer[56] = bitLengthHigh >>> 24;
-    this.buffer[57] = bitLengthHigh >>> 16;
-    this.buffer[58] = bitLengthHigh >>> 8;
-    this.buffer[59] = bitLengthHigh;
-    this.buffer[60] = bitLengthLow >>> 24;
-    this.buffer[61] = bitLengthLow >>> 16;
-    this.buffer[62] = bitLengthLow >>> 8;
-    this.buffer[63] = bitLengthLow;
-    this.processBlock(this.buffer);
-
-    return this.state.map(toHex).join('');
-  }
-
-  private processBlock(chunk: Uint8Array) {
-    const w = this.temp;
-    for (let i = 0; i < 16; i += 1) {
-      const offset = i * 4;
-      w[i] = ((chunk[offset] << 24) | (chunk[offset + 1] << 16) | (chunk[offset + 2] << 8) | chunk[offset + 3]) >>> 0;
-    }
-
-    for (let i = 16; i < 64; i += 1) {
-      const s0 = (rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3)) >>> 0;
-      const s1 = (rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10)) >>> 0;
-      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
-    }
-
-    let [a, b, c, d, e, f, g, h] = this.state;
-
-    for (let i = 0; i < 64; i += 1) {
-      const s1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
-      const ch = ((e & f) ^ (~e & g)) >>> 0;
-      const temp1 = (h + s1 + ch + K[i] + w[i]) >>> 0;
-      const s0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
-      const maj = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
-      const temp2 = (s0 + maj) >>> 0;
-
-      h = g;
-      g = f;
-      f = e;
-      e = (d + temp1) >>> 0;
-      d = c;
-      c = b;
-      b = a;
-      a = (temp1 + temp2) >>> 0;
-    }
-
-    this.state[0] = (this.state[0] + a) >>> 0;
-    this.state[1] = (this.state[1] + b) >>> 0;
-    this.state[2] = (this.state[2] + c) >>> 0;
-    this.state[3] = (this.state[3] + d) >>> 0;
-    this.state[4] = (this.state[4] + e) >>> 0;
-    this.state[5] = (this.state[5] + f) >>> 0;
-    this.state[6] = (this.state[6] + g) >>> 0;
-    this.state[7] = (this.state[7] + h) >>> 0;
-  }
-}
-
-const readChunk = (file: File, start: number, end: number) => file.slice(start, end).arrayBuffer();
-
-self.onmessage = async (event: MessageEvent<{ taskId: string; file: File }>) => {
+self.onmessage = async (event: MessageEvent<HashWorkerRequest>) => {
   const { taskId, file } = event.data;
 
   try {
-    const sha256 = new Sha256();
-    for (let start = 0; start < file.size; start += CHUNK_SIZE) {
-      const buffer = await readChunk(file, start, Math.min(start + CHUNK_SIZE, file.size));
-      sha256.update(new Uint8Array(buffer));
-    }
-
-    self.postMessage({ taskId, hash: sha256.digest() });
+    const hash = await hashTree(taskId, file);
+    self.postMessage({ taskId, hash } satisfies HashWorkerResponse);
   } catch (error) {
     self.postMessage({
       taskId,
       error: error instanceof Error ? error.message : '哈希计算失败',
-    });
+    } satisfies HashWorkerResponse);
   }
 };
 

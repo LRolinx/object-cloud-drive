@@ -30,7 +30,7 @@ impl AppConfig {
             upload_temp_dir: objectcloud_root.join("temp"),
             upload_dir: objectcloud_root.join("upload"),
             preview_dir: objectcloud_root.join("preview"),
-            resource_pool_dir: PathBuf::from("/Volumes/Data/"),
+            resource_pool_dir: PathBuf::from("/Volumes/Data/Movies"),
             static_dir: PathBuf::from("src/"),
         }
     }

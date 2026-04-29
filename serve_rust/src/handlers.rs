@@ -28,6 +28,8 @@ pub struct AppState {
 
 const DEFAULT_AVATAR: &str = "https://storage.live.com/users/0xf2a82bac8d704404/myprofile/expressionprofile/profilephoto:UserTileStatic/p?ck=1&ex=720&sid=0CF8A907DF236BE1005BB80EDE136A1C&fofoff=1";
 const VIDEO_INITIAL_CHUNK_SIZE: u64 = 1024 * 1024;
+const FAST_HASH_PART_SIZE: u64 = 64 * 1024 * 1024;
+const FAST_HASH_VERSION: &str = "object-cloud-drive-blake3-tree-v1";
 
 pub async fn hello() -> HttpResponse {
     HttpResponse::Ok().body("Hello World!")
@@ -266,7 +268,7 @@ pub async fn get_user_file_and_folder(
     .map_err(error::ErrorInternalServerError)?;
 
     let files = sqlx::query(
-        "SELECT id, file_sha256, folder_uuid, file_name, suffix, create_time FROM t_user_files WHERE user_uuid = ? AND folder_uuid = ? AND del = 0",
+        "SELECT id, file_hash, folder_uuid, file_name, suffix, file_size, create_time FROM t_user_files WHERE user_uuid = ? AND folder_uuid = ? AND del = 0",
     )
     .bind(body.user_uuid.trim())
     .bind(body.folder_uuid.trim())
@@ -285,30 +287,31 @@ pub async fn get_user_file_and_folder(
             size: row.get::<f64, _>("size"),
             update_time: row.get("create_time"),
             suffix: None,
-            file_sha256: None,
+            file_hash: None,
             media_type: None,
             duration: None,
         });
     }
 
     for row in files {
-        let file_sha256: String = row.get("file_sha256");
+        let file_hash: String = row.get("file_hash");
         let suffix: String = row.get("suffix");
+        let file_size = row.get::<i64, _>("file_size") as f64;
         let media_type = detect_media_type_cached(
             &state.pool,
-            &state.config.upload_dir.join(&file_sha256),
+            &state.config.upload_dir.join(&file_hash),
             Some(&suffix),
             "drive",
-            &file_sha256,
+            &file_hash,
             None,
         )
         .await?;
         let duration = if media_type.as_deref() == Some("video") {
             detect_media_duration_cached(
                 &state.pool,
-                &state.config.upload_dir.join(&file_sha256),
+                &state.config.upload_dir.join(&file_hash),
                 "drive",
-                &file_sha256,
+                &file_hash,
                 None,
             )
             .await?
@@ -320,10 +323,10 @@ pub async fn get_user_file_and_folder(
             p_uuid: row.get("folder_uuid"),
             item_type: "file".to_string(),
             name: row.get("file_name"),
-            size: 0.0,
+            size: file_size,
             update_time: row.get("create_time"),
             suffix: Some(suffix),
-            file_sha256: Some(file_sha256),
+            file_hash: Some(file_hash),
             media_type,
             duration,
         });
@@ -334,17 +337,17 @@ pub async fn get_user_file_and_folder(
 
 pub async fn get_user_file_for_file_id(
     state: web::Data<AppState>,
+    req: HttpRequest,
     body: web::Json<FileIdBody>,
 ) -> Result<HttpResponse> {
     if !has_text(&body.id) {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
     }
 
+    let file_id = decrypt_or_original(&state.config, &body.id);
     let mut row = None;
-    if let Ok(decrypted) = decrypt_base64_private(&state.config.private_key_path, &body.id)
-        && let Ok(parsed_id) = decrypted.parse::<i64>()
-    {
-        row = sqlx::query("SELECT file_sha256 FROM t_user_files WHERE id = ? AND del = 0 LIMIT 1")
+    if let Ok(parsed_id) = file_id.trim().parse::<i64>() {
+        row = sqlx::query("SELECT file_hash FROM t_user_files WHERE id = ? AND del = 0 LIMIT 1")
             .bind(parsed_id)
             .fetch_optional(&state.pool)
             .await
@@ -353,7 +356,7 @@ pub async fn get_user_file_for_file_id(
 
     if row.is_none() {
         row = sqlx::query(
-            "SELECT file_sha256 FROM t_user_files WHERE file_sha256 = ? AND del = 0 LIMIT 1",
+            "SELECT file_hash FROM t_user_files WHERE file_hash = ? AND del = 0 LIMIT 1",
         )
         .bind(body.id.trim())
         .fetch_optional(&state.pool)
@@ -365,8 +368,12 @@ pub async fn get_user_file_for_file_id(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
-    stream_file_response(state.config.upload_dir.join(file_sha256), None, None).await
+    let file_hash: String = row.get("file_hash");
+    let range = req
+        .headers()
+        .get(header::RANGE)
+        .and_then(|value| value.to_str().ok());
+    stream_file_response(state.config.upload_dir.join(file_hash), range, None).await
 }
 
 pub async fn download_user_folder(
@@ -469,14 +476,14 @@ pub async fn examine_file(
 ) -> Result<HttpResponse> {
     if !has_text(&body.user_uuid)
         || !has_text(&body.folder_uuid)
-        || !has_text(&body.file_sha256)
+        || !has_text(&body.file_hash)
         || (!has_text(&body.filename) && !has_text(&body.fileext))
     {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
     }
 
-    let file_exists = sqlx::query("SELECT file_sha256 FROM t_files WHERE file_sha256 = ? LIMIT 1")
-        .bind(body.file_sha256.trim())
+    let file_exists = sqlx::query("SELECT file_hash FROM t_files WHERE file_hash = ? LIMIT 1")
+        .bind(body.file_hash.trim())
         .fetch_optional(&state.pool)
         .await
         .map_err(error::ErrorInternalServerError)?
@@ -494,10 +501,29 @@ pub async fn examine_file(
     .map_err(error::ErrorInternalServerError)?
     .is_some();
 
+    let mut uploaded_chunk_indexes = Vec::new();
+    let upload_temp_dir = state.config.upload_temp_dir.join(body.file_hash.trim());
+    if let Ok(mut entries) = fs::read_dir(&upload_temp_dir).await {
+        while let Some(entry) = entries
+            .next_entry()
+            .await
+            .map_err(error::ErrorInternalServerError)?
+        {
+            if let Some(name) = entry.file_name().to_str()
+                && let Ok(index) = name.parse::<usize>()
+                && upload_temp_dir.join(format!("{index}.hash")).exists()
+            {
+                uploaded_chunk_indexes.push(index);
+            }
+        }
+        uploaded_chunk_indexes.sort_unstable();
+    }
+
     Ok(HttpResponse::Ok().json(AjaxResult::success(
         Some(ExamineFileResult {
             user_file_exist: user_file_exists,
             file_exist: file_exists,
+            uploaded_chunk_indexes,
         }),
         "操作成功",
     )))
@@ -511,9 +537,10 @@ pub async fn upload_stream_file(
     if !has_text(&query.user_uuid)
         || !has_text(&query.folder_uuid)
         || !has_text(&query.file_path)
-        || !has_text(&query.file_sha256)
+        || !has_text(&query.file_hash)
         || !has_text(&query.current_chunk_max)
         || !has_text(&query.current_chunk_index)
+        || !has_text(&query.file_size)
         || (!has_text(&query.file_name) && !has_text(&query.file_ext))
     {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
@@ -529,6 +556,11 @@ pub async fn upload_stream_file(
         .trim()
         .parse::<usize>()
         .map_err(error::ErrorBadRequest)?;
+    let file_size = query
+        .file_size
+        .trim()
+        .parse::<u64>()
+        .map_err(error::ErrorBadRequest)?;
 
     let mut file_bytes = Vec::new();
     while let Some(field) = payload.next().await {
@@ -539,7 +571,7 @@ pub async fn upload_stream_file(
         }
     }
 
-    let sha256_dir = state.config.upload_temp_dir.join(query.file_sha256.trim());
+    let sha256_dir = state.config.upload_temp_dir.join(query.file_hash.trim());
     fs::create_dir_all(&state.config.upload_temp_dir)
         .await
         .map_err(error::ErrorInternalServerError)?;
@@ -550,7 +582,48 @@ pub async fn upload_stream_file(
         .await
         .map_err(error::ErrorInternalServerError)?;
 
-    fs::write(sha256_dir.join(current_chunk_index.to_string()), file_bytes)
+    let expected_part_size = if current_chunk_index + 1 == current_chunk_max {
+        file_size.saturating_sub(current_chunk_index as u64 * FAST_HASH_PART_SIZE)
+    } else {
+        FAST_HASH_PART_SIZE
+    };
+    if expected_part_size != file_bytes.len() as u64 {
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(
+            None,
+            "分片大小错误，请重新上传",
+            500,
+        )));
+    }
+
+    let part_hash = blake3::hash(&file_bytes).to_hex().to_string();
+    let merge_target_path = sha256_dir.join(".merged");
+    let mut merged_file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&merge_target_path)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+    merged_file
+        .seek(std::io::SeekFrom::Start(
+            current_chunk_index as u64 * FAST_HASH_PART_SIZE,
+        ))
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+    tokio::io::AsyncWriteExt::write_all(&mut merged_file, &file_bytes)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+    tokio::io::AsyncWriteExt::flush(&mut merged_file)
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+    drop(merged_file);
+
+    fs::write(
+        sha256_dir.join(format!("{current_chunk_index}.hash")),
+        part_hash.as_bytes(),
+    )
+    .await
+    .map_err(error::ErrorInternalServerError)?;
+    fs::write(sha256_dir.join(current_chunk_index.to_string()), file_bytes.len().to_string())
         .await
         .map_err(error::ErrorInternalServerError)?;
 
@@ -588,30 +661,38 @@ pub async fn upload_stream_file(
         Err(err) => return Err(error::ErrorInternalServerError(err)),
     }
 
-    chunk_indexes.sort_unstable();
-    let target_path = state.config.upload_dir.join(query.file_sha256.trim());
-    let mut target = fs::File::create(&target_path)
+    let expected_hash = query.file_hash.trim();
+    let target_path = state.config.upload_dir.join(expected_hash);
+    let mut part_hashes = Vec::with_capacity(current_chunk_max);
+    for index in 0..current_chunk_max {
+        let hash = fs::read_to_string(sha256_dir.join(format!("{index}.hash")))
+            .await
+            .map_err(error::ErrorInternalServerError)?;
+        part_hashes.push(hash);
+    }
+    let actual_hash = compute_object_cloud_drive_blake3_tree_root(file_size, &part_hashes);
+    if actual_hash != expected_hash {
+        let _ = fs::remove_file(&merge_target_path).await;
+        let _ = fs::remove_file(&merge_lock_path).await;
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(
+            None,
+            "文件校验失败，请重新上传",
+            500,
+        )));
+    }
+
+    fs::rename(&merge_target_path, &target_path)
         .await
         .map_err(error::ErrorInternalServerError)?;
 
-    for index in chunk_indexes {
-        let chunk_path = sha256_dir.join(index.to_string());
-        let mut chunk_file = fs::File::open(&chunk_path)
-            .await
-            .map_err(error::ErrorInternalServerError)?;
-        let mut buffer = Vec::new();
-        chunk_file
-            .read_to_end(&mut buffer)
-            .await
-            .map_err(error::ErrorInternalServerError)?;
-        tokio::io::AsyncWriteExt::write_all(&mut target, &buffer)
-            .await
-            .map_err(error::ErrorInternalServerError)?;
-    }
-
-    sqlx::query("INSERT OR IGNORE INTO t_files (file_sha256, url, disable) VALUES (?, ?, 0)")
-        .bind(query.file_sha256.trim())
+    sqlx::query(
+        "INSERT OR IGNORE INTO t_files (file_hash, hash_algorithm, file_size, storage_path, create_time, disable) VALUES (?, ?, ?, ?, ?, 0)",
+    )
+        .bind(expected_hash)
+        .bind(FAST_HASH_VERSION)
+        .bind(i64::try_from(file_size).unwrap_or(i64::MAX))
         .bind(target_path.to_string_lossy().to_string())
+        .bind(now_string())
         .execute(&state.pool)
         .await
         .map_err(error::ErrorInternalServerError)?;
@@ -627,18 +708,19 @@ pub async fn upload_stream_file(
     .map_err(error::ErrorInternalServerError)?;
 
     sqlx::query(
-        "INSERT INTO t_user_files (file_sha256, folder_uuid, user_uuid, file_name, suffix, open, create_time, del)
-         SELECT ?, ?, ?, ?, ?, 0, ?, 0
+        "INSERT INTO t_user_files (file_hash, folder_uuid, user_uuid, file_name, suffix, file_size, open, create_time, del)
+         SELECT ?, ?, ?, ?, ?, ?, 0, ?, 0
          WHERE NOT EXISTS (
              SELECT 1 FROM t_user_files
              WHERE user_uuid = ? AND folder_uuid = ? AND file_name = ? AND suffix = ? AND del = 0
          )",
     )
-    .bind(query.file_sha256.trim())
+    .bind(expected_hash)
     .bind(query.folder_uuid.trim())
     .bind(query.user_uuid.trim())
     .bind(&file_name)
     .bind(query.file_ext.trim())
+    .bind(i64::try_from(file_size).unwrap_or(i64::MAX))
     .bind(now_string())
     .bind(query.user_uuid.trim())
     .bind(query.folder_uuid.trim())
@@ -661,7 +743,7 @@ pub async fn upload_second_pass(
     if !has_text(&body.user_uuid)
         || !has_text(&body.folder_uuid)
         || !has_text(&body.file_path)
-        || !has_text(&body.file_sha256)
+        || !has_text(&body.file_hash)
         || (!has_text(&body.file_name) && !has_text(&body.file_ext))
     {
         return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(None, "参数错误", 500)));
@@ -677,19 +759,34 @@ pub async fn upload_second_pass(
     .await
     .map_err(error::ErrorInternalServerError)?;
 
+    let Some(file_row) = sqlx::query("SELECT file_size FROM t_files WHERE file_hash = ? LIMIT 1")
+        .bind(body.file_hash.trim())
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(error::ErrorInternalServerError)?
+    else {
+        return Ok(HttpResponse::Ok().json(AjaxResult::<()>::fail(
+            None,
+            "文件不存在，无法秒传",
+            500,
+        )));
+    };
+    let file_size: i64 = file_row.get("file_size");
+
     sqlx::query(
-        "INSERT INTO t_user_files (file_sha256, folder_uuid, user_uuid, file_name, suffix, open, create_time, del)
-         SELECT ?, ?, ?, ?, ?, 0, ?, 0
+        "INSERT INTO t_user_files (file_hash, folder_uuid, user_uuid, file_name, suffix, file_size, open, create_time, del)
+         SELECT ?, ?, ?, ?, ?, ?, 0, ?, 0
          WHERE NOT EXISTS (
              SELECT 1 FROM t_user_files
              WHERE user_uuid = ? AND folder_uuid = ? AND file_name = ? AND suffix = ? AND del = 0
          )",
     )
-    .bind(body.file_sha256.trim())
+    .bind(body.file_hash.trim())
     .bind(body.folder_uuid.trim())
     .bind(body.user_uuid.trim())
     .bind(&file_name)
     .bind(body.file_ext.trim())
+    .bind(file_size)
     .bind(now_string())
     .bind(body.user_uuid.trim())
     .bind(body.folder_uuid.trim())
@@ -712,7 +809,7 @@ pub async fn play_video_stream(
     }
 
     let row =
-        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+        sqlx::query("SELECT file_hash, suffix FROM t_user_files WHERE file_hash = ? LIMIT 1")
             .bind(body.id.trim())
             .fetch_optional(&state.pool)
             .await
@@ -722,7 +819,7 @@ pub async fn play_video_stream(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
+    let file_hash: String = row.get("file_hash");
     let suffix: String = row.get("suffix");
     let mime = mime_from_extension(Some(&suffix));
     let range = request
@@ -730,7 +827,7 @@ pub async fn play_video_stream(
         .get(header::RANGE)
         .and_then(|value| value.to_str().ok())
         .or(body.range.as_deref());
-    stream_video_file_response(state.config.upload_dir.join(file_sha256), range, mime).await
+    stream_video_file_response(state.config.upload_dir.join(file_hash), range, mime).await
 }
 
 pub async fn play_video_stream_by_query(
@@ -743,7 +840,7 @@ pub async fn play_video_stream_by_query(
     }
 
     let row =
-        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+        sqlx::query("SELECT file_hash, suffix FROM t_user_files WHERE file_hash = ? LIMIT 1")
             .bind(query.id.trim())
             .fetch_optional(&state.pool)
             .await
@@ -753,14 +850,14 @@ pub async fn play_video_stream_by_query(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
+    let file_hash: String = row.get("file_hash");
     let suffix: String = row.get("suffix");
     let mime = mime_from_extension(Some(&suffix));
     let range = request
         .headers()
         .get(header::RANGE)
         .and_then(|value| value.to_str().ok());
-    stream_video_file_response(state.config.upload_dir.join(file_sha256), range, mime).await
+    stream_video_file_response(state.config.upload_dir.join(file_hash), range, mime).await
 }
 
 pub async fn play_audio_stream(
@@ -773,7 +870,7 @@ pub async fn play_audio_stream(
     }
 
     let row =
-        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+        sqlx::query("SELECT file_hash, suffix FROM t_user_files WHERE file_hash = ? LIMIT 1")
             .bind(body.id.trim())
             .fetch_optional(&state.pool)
             .await
@@ -783,7 +880,7 @@ pub async fn play_audio_stream(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
+    let file_hash: String = row.get("file_hash");
     let suffix: String = row.get("suffix");
     let range = request
         .headers()
@@ -791,7 +888,7 @@ pub async fn play_audio_stream(
         .and_then(|value| value.to_str().ok())
         .or(body.range.as_deref());
     stream_audio_file_response(
-        state.config.upload_dir.join(file_sha256),
+        state.config.upload_dir.join(file_hash),
         range,
         mime_from_extension(Some(&suffix)),
     )
@@ -808,7 +905,7 @@ pub async fn play_audio_stream_by_query(
     }
 
     let row =
-        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+        sqlx::query("SELECT file_hash, suffix FROM t_user_files WHERE file_hash = ? LIMIT 1")
             .bind(query.id.trim())
             .fetch_optional(&state.pool)
             .await
@@ -818,11 +915,11 @@ pub async fn play_audio_stream_by_query(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
+    let file_hash: String = row.get("file_hash");
     let suffix: String = row.get("suffix");
     let audio_start = query.audio_start.unwrap_or(0.0);
     if audio_start.is_finite() && audio_start > 0.0 {
-        return stream_audio_seek_response(state.config.upload_dir.join(file_sha256), audio_start)
+        return stream_audio_seek_response(state.config.upload_dir.join(file_hash), audio_start)
             .await;
     }
 
@@ -831,7 +928,7 @@ pub async fn play_audio_stream_by_query(
         .get(header::RANGE)
         .and_then(|value| value.to_str().ok());
     stream_audio_file_response(
-        state.config.upload_dir.join(file_sha256),
+        state.config.upload_dir.join(file_hash),
         range,
         mime_from_extension(Some(&suffix)),
     )
@@ -847,7 +944,7 @@ pub async fn head_audio_stream_by_query(
     }
 
     let row =
-        sqlx::query("SELECT file_sha256, suffix FROM t_user_files WHERE file_sha256 = ? LIMIT 1")
+        sqlx::query("SELECT file_hash, suffix FROM t_user_files WHERE file_hash = ? LIMIT 1")
             .bind(query.id.trim())
             .fetch_optional(&state.pool)
             .await
@@ -857,10 +954,10 @@ pub async fn head_audio_stream_by_query(
         return Ok(HttpResponse::NotFound().finish());
     };
 
-    let file_sha256: String = row.get("file_sha256");
+    let file_hash: String = row.get("file_hash");
     let suffix: String = row.get("suffix");
     head_file_response(
-        state.config.upload_dir.join(file_sha256),
+        state.config.upload_dir.join(file_hash),
         mime_from_extension(Some(&suffix)),
     )
     .await
@@ -882,11 +979,11 @@ pub async fn get_video_screenshots(
     state: web::Data<AppState>,
     body: web::Json<ScreenshotBody>,
 ) -> Result<NamedFile> {
-    if !has_text(&body.file_sha256) {
+    if !has_text(&body.file_hash) {
         return Err(error::ErrorBadRequest("参数错误"));
     }
 
-    let video_path = state.config.upload_dir.join(body.file_sha256.trim());
+    let video_path = state.config.upload_dir.join(body.file_hash.trim());
     let screenshot_path = PathBuf::from(format!("{}.png", video_path.to_string_lossy()));
     ensure_screenshot(&video_path, &screenshot_path)
         .await
@@ -1238,7 +1335,7 @@ async fn collect_folder_zip_entries(
         }
 
         let files = sqlx::query(
-            "SELECT file_name, suffix, file_sha256 FROM t_user_files WHERE user_uuid = ? AND folder_uuid = ? AND del = 0 ORDER BY file_name",
+            "SELECT file_name, suffix, file_hash FROM t_user_files WHERE user_uuid = ? AND folder_uuid = ? AND del = 0 ORDER BY file_name",
         )
         .bind(user_uuid)
         .bind(&current_folder_uuid)
@@ -1249,13 +1346,13 @@ async fn collect_folder_zip_entries(
         for row in files {
             let file_name: String = row.get("file_name");
             let suffix: String = row.get("suffix");
-            let file_sha256: String = row.get("file_sha256");
+            let file_hash: String = row.get("file_hash");
             let display_name = if suffix.trim().is_empty() {
                 file_name
             } else {
                 format!("{}.{}", file_name, suffix)
             };
-            let data = fs::read(upload_dir.join(file_sha256))
+            let data = fs::read(upload_dir.join(file_hash))
                 .await
                 .map_err(error::ErrorInternalServerError)?;
             entries.push(ZipInputEntry {
@@ -1443,6 +1540,10 @@ async fn stream_file_response(
                 header::CONTENT_RANGE,
                 format!("bytes {}-{}/{}", start, end, file_size),
             ))
+            .append_header((
+                header::ACCESS_CONTROL_EXPOSE_HEADERS,
+                "Content-Range, Content-Length, Accept-Ranges, Content-Type",
+            ))
             .append_header((header::ACCEPT_RANGES, "bytes"))
             .append_header((header::CONTENT_LENGTH, chunk_size.to_string()))
             .streaming(stream))
@@ -1454,10 +1555,29 @@ async fn stream_file_response(
 
         Ok(HttpResponse::Ok()
             .append_header((header::CONTENT_TYPE, mime.to_string()))
+            .append_header((
+                header::ACCESS_CONTROL_EXPOSE_HEADERS,
+                "Content-Range, Content-Length, Accept-Ranges, Content-Type",
+            ))
             .append_header((header::ACCEPT_RANGES, "bytes"))
             .append_header((header::CONTENT_LENGTH, file_size.to_string()))
             .streaming(stream))
     }
+}
+
+fn compute_object_cloud_drive_blake3_tree_root(file_size: u64, part_hashes: &[String]) -> String {
+    let part_count = std::cmp::max(1, file_size.div_ceil(FAST_HASH_PART_SIZE));
+    let mut root_hasher = blake3::Hasher::new();
+    root_hasher.update(
+        format!("{FAST_HASH_VERSION}:{file_size}:{FAST_HASH_PART_SIZE}:{part_count}:").as_bytes(),
+    );
+    for (part_index, hash) in part_hashes.iter().enumerate() {
+        let start = part_index as u64 * FAST_HASH_PART_SIZE;
+        let end = std::cmp::min(start + FAST_HASH_PART_SIZE, file_size);
+        root_hasher.update(format!("{part_index}:{start}:{end}:{hash};").as_bytes());
+    }
+
+    root_hasher.finalize().to_hex().to_string()
 }
 
 async fn head_file_response(

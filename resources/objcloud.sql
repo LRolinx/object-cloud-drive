@@ -22,11 +22,14 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ----------------------------
 DROP TABLE IF EXISTS `t_files`;
 CREATE TABLE `t_files`  (
-  `file_sha256` varchar(512) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件SHA256',
-  `url` varchar(512) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件路径',
+  `file_hash` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件内容哈希',
+  `hash_algorithm` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '哈希算法',
+  `file_size` bigint NOT NULL COMMENT '文件大小',
+  `storage_path` varchar(512) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件路径',
+  `create_time` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '创建时间',
   `disable` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否禁止,违规文件',
   `disable_time` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NULL DEFAULT NULL COMMENT '禁止时间',
-  PRIMARY KEY (`file_sha256`) USING BTREE
+  PRIMARY KEY (`file_hash`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb3 COLLATE = utf8mb3_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
@@ -71,11 +74,12 @@ CREATE TABLE `t_user`  (
 DROP TABLE IF EXISTS `t_user_files`;
 CREATE TABLE `t_user_files`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '用户文件ID',
-  `file_sha256` varchar(512) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件SHA256',
+  `file_hash` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件内容哈希',
   `folder_uuid` varchar(36) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件夹UUID',
   `user_uuid` varchar(36) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '用户UUID',
   `file_name` varchar(256) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '文件名',
   `suffix` varchar(45) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '后缀名',
+  `file_size` bigint NOT NULL DEFAULT 0 COMMENT '文件大小',
   `open` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否共享',
   `create_time` varchar(20) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL COMMENT '创建时间',
   `del` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否删除',
