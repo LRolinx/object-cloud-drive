@@ -194,6 +194,7 @@
   flex-shrink: 1;
   flex-grow: 1;
   min-width: 0;
+  min-height: 0;
   background: transparent;
 }
 
@@ -214,16 +215,45 @@ html[data-theme='dark'] .home .siderbarUl li:hover {
 }
 
 @media (max-width: 750px) {
+  .home {
+    height: 100dvh;
+  }
+
+  .home .topbar {
+    height: 0.34rem;
+    min-width: 0;
+    padding: 0 0.56rem 0 0.12rem;
+    justify-content: flex-start;
+    font-size: 0.12rem;
+  }
+
+  .home .main {
+    min-height: 0;
+  }
+
   .home .logo {
     display: none;
   }
 
   .home .siderbar {
     min-width: inherit;
-    max-width: 0.6rem;
+    width: 0.62rem;
+    max-width: 0.62rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+
+  .home .siderbarUl {
+    width: 100%;
+    padding: 0.08rem 0.08rem 0.74rem;
+  }
+
+  .home .siderbarUl li {
+    width: 0.44rem;
+    height: 0.44rem;
+    margin: 0.08rem auto;
+    padding: 0;
   }
 
   .home .anticon {
@@ -243,7 +273,7 @@ html[data-theme='dark'] .home .siderbarUl li:hover {
   }
 
   .home .headChildBox {
-    padding: 0.2rem 0;
+    padding: 0.14rem 0;
     justify-content: center;
   }
 
@@ -252,6 +282,47 @@ html[data-theme='dark'] .home .siderbarUl li:hover {
   }
 
   .home .headChildBox p {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .home .topbar {
+    display: none;
+  }
+
+  .home .main {
+    flex-direction: column-reverse;
+  }
+
+  .home .siderbar {
+    width: 100%;
+    max-width: none;
+    height: 0.66rem;
+    flex-direction: row;
+    border-top: 1px solid var(--app-border);
+    border-right: 0;
+    box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .home .siderbarUl {
+    display: flex;
+    align-items: center;
+    gap: 0.06rem;
+    width: 100%;
+    padding: 0.08rem max(0.1rem, env(safe-area-inset-left)) calc(0.08rem + env(safe-area-inset-bottom)) max(0.1rem, env(safe-area-inset-right));
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .home .siderbarUl li {
+    flex: 0 0 0.48rem;
+    width: 0.48rem;
+    height: 0.48rem;
+    margin: 0;
+  }
+
+  .home .headBox {
     display: none;
   }
 }

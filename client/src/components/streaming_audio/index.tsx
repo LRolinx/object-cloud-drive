@@ -85,6 +85,7 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
     let disposed = false;
     let pixiApp: any;
     let bars: any[] = [];
+    let ambience: any;
 
     const boot = async () => {
       const container = visualizerRef.current;
@@ -112,10 +113,12 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
       }
 
       container.appendChild(pixiApp.canvas);
+      ambience = new PIXI.Graphics();
+      pixiApp.stage.addChild(ambience);
       const layer = new PIXI.Container();
       pixiApp.stage.addChild(layer);
 
-      const barCount = 44;
+      const barCount = 52;
       bars = Array.from({ length: barCount }, () => {
         const graphic = new PIXI.Graphics();
         layer.addChild(graphic);
@@ -131,22 +134,75 @@ export const StreamingAudio = ({ open = false, src, data = [], index = 0, onClos
           analyser.getByteFrequencyData(values);
         }
 
+        const time = performance.now() * 0.001;
+        const centerY = height * 0.43;
+
+        ambience.clear();
+        ambience.rect(0, 0, width, height);
+        ambience.fill({ color: 0xffffff, alpha: 0.025 });
+        ambience.roundRect(width * 0.08, centerY - 1, width * 0.84, 2, 2);
+        ambience.fill({ color: 0xdbeafe, alpha: 0.22 });
+        ambience.roundRect(width * 0.18, height * 0.18, width * 0.64, 1, 1);
+        ambience.fill({ color: 0xffffff, alpha: 0.08 + Math.sin(time * 1.3) * 0.025 });
+
+        const getBandLevel = (barIndex: number) => {
+          if (!analyser) {
+            return 0;
+          }
+          const bandStart = barIndex / bars.length;
+          const bandEnd = (barIndex + 1) / bars.length;
+          const curve = 2.35;
+          const startIndex = Math.floor(Math.pow(bandStart, curve) * (values.length - 1));
+          const endIndex = Math.max(startIndex + 1, Math.ceil(Math.pow(bandEnd, curve) * values.length));
+          let total = 0;
+          let weightTotal = 0;
+
+          for (let index = startIndex; index <= Math.min(endIndex, values.length - 1); index += 1) {
+            const distance = Math.abs(index - (startIndex + endIndex) / 2);
+            const weight = 1 / (1 + distance);
+            total += values[index] * weight;
+            weightTotal += weight;
+          }
+
+          const normalized = weightTotal ? total / weightTotal / 255 : 0;
+          const highFrequencyLift = 1 + bandStart * 0.72;
+          return Math.min(1, normalized * highFrequencyLift);
+        };
+
         bars.forEach((bar, barIndex) => {
-          const valueIndex = Math.floor((barIndex / bars.length) * values.length);
-          const idle = 0.18 + Math.sin(performance.now() * 0.002 + barIndex * 0.42) * 0.08;
-          const level = analyser ? values[valueIndex] / 255 : idle;
-          const barWidth = width / bars.length;
-          const visualHeight = Math.max(10, level * height * 0.86);
-          const x = barIndex * barWidth + barWidth * 0.18;
-          const y = (height - visualHeight) / 2;
-          const radius = Math.min(9, barWidth * 0.32);
+          const rawLevel = getBandLevel(barIndex);
+          const idle = 0.16 + Math.sin(time * 1.8 + barIndex * 0.38) * 0.05;
+          const bandPhase = barIndex / Math.max(1, bars.length - 1);
+          const glassFloor =
+            0.045 +
+            bandPhase * 0.026 +
+            Math.sin(time * 2.1 + barIndex * 0.73) * 0.012 +
+            Math.sin(time * 0.9 + barIndex * 1.17) * 0.008;
+          const level = analyser ? Math.max(Math.max(0.035, glassFloor), rawLevel) : idle;
+          const easedLevel = Math.pow(level, 0.72);
+          const slotWidth = width / bars.length;
+          const barWidth = Math.max(3, Math.min(8, slotWidth * 0.42));
+          const x = barIndex * slotWidth + (slotWidth - barWidth) / 2;
+          const maxHeight = height * 0.34;
+          const upperHeight = Math.max(8, easedLevel * maxHeight);
+          const lowerHeight = Math.max(4, upperHeight * 0.42);
+          const radius = barWidth / 2;
+          const palettePhase = barIndex / Math.max(1, bars.length - 1);
+          const color =
+            palettePhase < 0.34 ? 0xbfd7ff : palettePhase < 0.68 ? 0xd4fbff : 0xf5d7ff;
+          const pulse = 0.52 + easedLevel * 0.44;
 
           bar.clear();
-          bar.roundRect(x, y, barWidth * 0.58, visualHeight, radius);
-          bar.fill({
-            color: barIndex % 3 === 0 ? 0x8b93ff : barIndex % 3 === 1 ? 0x1fd1ff : 0xff8bd1,
-            alpha: analyser ? 0.32 + level * 0.68 : 0.28,
-          });
+          bar.roundRect(x - barWidth * 0.52, centerY - upperHeight - 2, barWidth * 2.04, upperHeight + lowerHeight + 4, radius * 1.8);
+          bar.fill({ color, alpha: 0.045 + easedLevel * 0.08 });
+          bar.roundRect(x, centerY - upperHeight, barWidth, upperHeight, radius);
+          bar.fill({ color, alpha: 0.34 * pulse });
+          bar.roundRect(x + barWidth * 0.18, centerY - upperHeight + 4, Math.max(1.2, barWidth * 0.22), Math.max(5, upperHeight - 8), radius);
+          bar.fill({ color: 0xffffff, alpha: 0.18 + easedLevel * 0.16 });
+          bar.roundRect(x, centerY + 4, barWidth, lowerHeight, radius);
+          bar.fill({ color, alpha: 0.09 + easedLevel * 0.11 });
+          bar.roundRect(x + barWidth * 0.2, centerY + 6, Math.max(1, barWidth * 0.18), Math.max(2, lowerHeight - 4), radius);
+          bar.fill({ color: 0xffffff, alpha: 0.08 });
         });
       });
     };

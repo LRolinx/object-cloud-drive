@@ -36,6 +36,16 @@ export const StreamingVideoPlayer = ({
   const [currentIndex, setCurrentIndex] = useState(index);
   const [minimized, setMinimized] = useState(false);
 
+  const unloadVideo = () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  };
+
   const currentSource = useMemo(() => getSourceValue(data[currentIndex]), [currentIndex, data]);
   const currentTitle = useMemo(() => getSourceTitle(data[currentIndex], currentIndex), [currentIndex, data]);
   const videoUrl = useMemo(() => {
@@ -54,12 +64,21 @@ export const StreamingVideoPlayer = ({
   useEffect(() => {
     if (!open) {
       setMinimized(false);
-      videoRef.current?.pause();
+      unloadVideo();
     }
   }, [open]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl) {
+      return;
+    }
+    video.load();
+    video.play().catch(() => undefined);
+  }, [videoUrl]);
+
   const closePreview = () => {
-    videoRef.current?.pause();
+    unloadVideo();
     setMinimized(false);
     onClose?.();
   };

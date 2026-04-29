@@ -57,6 +57,7 @@ export const UploadCenter = () => {
     <>
       <Badge count={activeCount} overflowCount={999}>
         <FloatButton
+          className="upload-center-float-button"
           icon={<CloudUploadOutlined />}
           onClick={() => setOpen(true)}
           style={{ right: 32 }}
@@ -64,6 +65,7 @@ export const UploadCenter = () => {
       </Badge>
 
       <Drawer
+        className="upload-center-drawer"
         open={open}
         title="上传任务"
         width={440}

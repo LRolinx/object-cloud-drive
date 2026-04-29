@@ -1,283 +1,199 @@
+export type PreviewFileType =
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'pdf'
+  | 'text'
+  | 'code'
+  | 'markdown'
+  | 'html'
+  | 'word'
+  | 'excel'
+  | 'ppt'
+  | 'archive'
+  | 'package'
+  | 'database'
+  | 'design'
+  | 'torrent'
+  | 'unknown';
 
-export const GetFileTypeInItem = (item: any) => {
-	let typeStr = {
-	  type: '',
-	  iconStr: 'icon-unknown',
-	}
-	if (item.mediaType === 'video') {
-	  return {
-		type: 'video',
-		iconStr: 'icon-video',
-	  }
-	}
-	if (item.mediaType === 'audio') {
-	  return {
-		type: 'audio',
-		iconStr: 'icon-music',
-	  }
-	}
-	if (item.fileType == null) {
-	  //使用后缀判断
-	  if (item.suffix != null) {
-		switch (item.suffix.toLowerCase()) {
-		  // 图片
-		  case 'png': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'jpg': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'jpeg': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'gif': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'eps': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'exr': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'svg': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'tga': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'bmp': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
-		  case 'tiff': {
-			typeStr.type = 'image'
-			typeStr.iconStr = 'icon-pic'
-			break
-		  }
+type FileTypeInfo = {
+  type: PreviewFileType;
+  iconStr: string;
+};
 
-		  // 视频
-		  case 'mp4': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'avi': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'wmv': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'm4v': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'mov': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'asf': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'flv': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'f4v': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'rmvb': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'rm': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case '3gp': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
-		  case 'vob': {
-			typeStr.type = 'video'
-			typeStr.iconStr = 'icon-video'
-			break
-		  }
+const FILE_TYPE_BY_EXTENSION: Record<string, FileTypeInfo> = {
+  // Images
+  png: { type: 'image', iconStr: 'icon-pic' },
+  jpg: { type: 'image', iconStr: 'icon-pic' },
+  jpeg: { type: 'image', iconStr: 'icon-pic' },
+  gif: { type: 'image', iconStr: 'icon-pic' },
+  webp: { type: 'image', iconStr: 'icon-pic' },
+  avif: { type: 'image', iconStr: 'icon-pic' },
+  svg: { type: 'image', iconStr: 'icon-pic' },
+  bmp: { type: 'image', iconStr: 'icon-pic' },
+  ico: { type: 'image', iconStr: 'icon-pic' },
+  tif: { type: 'image', iconStr: 'icon-pic' },
+  tiff: { type: 'image', iconStr: 'icon-pic' },
+  eps: { type: 'image', iconStr: 'icon-pic' },
+  exr: { type: 'image', iconStr: 'icon-pic' },
+  tga: { type: 'image', iconStr: 'icon-pic' },
 
-		  // 音频
-		  case 'mp3': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'aac': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'm4a': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'wav': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'ogg': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'alac': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'flac': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
-		  case 'ape': {
-			typeStr.type = 'audio'
-			typeStr.iconStr = 'icon-music'
-			break
-		  }
+  // Video
+  mp4: { type: 'video', iconStr: 'icon-video' },
+  webm: { type: 'video', iconStr: 'icon-video' },
+  mkv: { type: 'video', iconStr: 'icon-video' },
+  avi: { type: 'video', iconStr: 'icon-video' },
+  wmv: { type: 'video', iconStr: 'icon-video' },
+  m4v: { type: 'video', iconStr: 'icon-video' },
+  mov: { type: 'video', iconStr: 'icon-video' },
+  asf: { type: 'video', iconStr: 'icon-video' },
+  flv: { type: 'video', iconStr: 'icon-video' },
+  f4v: { type: 'video', iconStr: 'icon-video' },
+  rmvb: { type: 'video', iconStr: 'icon-video' },
+  rm: { type: 'video', iconStr: 'icon-video' },
+  '3gp': { type: 'video', iconStr: 'icon-video' },
+  vob: { type: 'video', iconStr: 'icon-video' },
+  mpeg: { type: 'video', iconStr: 'icon-video' },
+  mpg: { type: 'video', iconStr: 'icon-video' },
 
-		  // 文本
-		  case 'txt': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-txt'
-			break
-		  }
-		  case 'html': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-html'
-			break
-		  }
-		  case 'css': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-css'
-			break
-		  }
-		  case 'xlsx': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-excel'
-			break
-		  }
-		  case 'doc': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-word'
-			break
-		  }
-		  case 'docx': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-word'
-			break
-		  }
-		  case 'pdf': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-pdf'
-			break
-		  }
-		  case 'ppt': {
-			typeStr.type = 'text'
-			typeStr.iconStr = 'icon-ppt'
-			break
-		  }
+  // Audio
+  mp3: { type: 'audio', iconStr: 'icon-music' },
+  aac: { type: 'audio', iconStr: 'icon-music' },
+  m4a: { type: 'audio', iconStr: 'icon-music' },
+  wav: { type: 'audio', iconStr: 'icon-music' },
+  ogg: { type: 'audio', iconStr: 'icon-music' },
+  oga: { type: 'audio', iconStr: 'icon-music' },
+  opus: { type: 'audio', iconStr: 'icon-music' },
+  alac: { type: 'audio', iconStr: 'icon-music' },
+  flac: { type: 'audio', iconStr: 'icon-music' },
+  ape: { type: 'audio', iconStr: 'icon-music' },
+  wma: { type: 'audio', iconStr: 'icon-music' },
 
-		  //压缩
-		  case 'zip': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-zip'
-			break
-		  }
-		  case 'jar': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-zip'
-			break
-		  }
-		  case '7z': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-zip'
-			break
-		  }
-		  case 'rar': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-zip'
-			break
-		  }
+  // Text and source code
+  txt: { type: 'text', iconStr: 'icon-txt' },
+  log: { type: 'text', iconStr: 'icon-txt' },
+  csv: { type: 'text', iconStr: 'icon-txt' },
+  json: { type: 'code', iconStr: 'icon-code' },
+  xml: { type: 'code', iconStr: 'icon-code' },
+  yaml: { type: 'code', iconStr: 'icon-code' },
+  yml: { type: 'code', iconStr: 'icon-code' },
+  js: { type: 'code', iconStr: 'icon-code' },
+  jsx: { type: 'code', iconStr: 'icon-code' },
+  ts: { type: 'code', iconStr: 'icon-code' },
+  tsx: { type: 'code', iconStr: 'icon-code' },
+  css: { type: 'code', iconStr: 'icon-css' },
+  less: { type: 'code', iconStr: 'icon-css' },
+  scss: { type: 'code', iconStr: 'icon-css' },
+  sass: { type: 'code', iconStr: 'icon-css' },
+  py: { type: 'code', iconStr: 'icon-code' },
+  cs: { type: 'code', iconStr: 'icon-code' },
+  java: { type: 'code', iconStr: 'icon-code' },
+  kt: { type: 'code', iconStr: 'icon-code' },
+  go: { type: 'code', iconStr: 'icon-code' },
+  rs: { type: 'code', iconStr: 'icon-code' },
+  c: { type: 'code', iconStr: 'icon-code' },
+  cpp: { type: 'code', iconStr: 'icon-code' },
+  cc: { type: 'code', iconStr: 'icon-code' },
+  cxx: { type: 'code', iconStr: 'icon-code' },
+  h: { type: 'code', iconStr: 'icon-code' },
+  hpp: { type: 'code', iconStr: 'icon-code' },
+  sh: { type: 'code', iconStr: 'icon-code' },
+  bash: { type: 'code', iconStr: 'icon-code' },
+  zsh: { type: 'code', iconStr: 'icon-code' },
+  ps1: { type: 'code', iconStr: 'icon-code' },
+  php: { type: 'code', iconStr: 'icon-code' },
+  rb: { type: 'code', iconStr: 'icon-code' },
+  swift: { type: 'code', iconStr: 'icon-code' },
+  dart: { type: 'code', iconStr: 'icon-code' },
+  lua: { type: 'code', iconStr: 'icon-code' },
+  vue: { type: 'code', iconStr: 'icon-code' },
+  svelte: { type: 'code', iconStr: 'icon-code' },
+  sql: { type: 'code', iconStr: 'icon-code' },
+  md: { type: 'markdown', iconStr: 'icon-md' },
+  markdown: { type: 'markdown', iconStr: 'icon-md' },
+  html: { type: 'html', iconStr: 'icon-html' },
+  htm: { type: 'html', iconStr: 'icon-html' },
 
-		  //其他文件
-		  case 'psd': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-unknown'
-			break
-		  }
-		  case 'xmind': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-xmind'
-			break
-		  }
-		  case 'bt': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-bt'
-			break
-		  }
-		  case 'exe': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-windows'
-			break
-		  }
-		  case 'msi': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-windows'
-			break
-		  }
-		  case 'apk': {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-Android-hover'
-			break
-		  }
+  // Databases
+  db: { type: 'database', iconStr: 'icon-database' },
+  db3: { type: 'database', iconStr: 'icon-database' },
+  sqlite: { type: 'database', iconStr: 'icon-database' },
+  sqlite3: { type: 'database', iconStr: 'icon-database' },
 
-		  default: {
-			typeStr.type = '*'
-			typeStr.iconStr = 'icon-unknown'
-		  }
-		}
-	  }
-	}
-	return typeStr
+  // Documents
+  pdf: { type: 'pdf', iconStr: 'icon-pdf' },
+  doc: { type: 'word', iconStr: 'icon-word' },
+  docx: { type: 'word', iconStr: 'icon-word' },
+  rtf: { type: 'word', iconStr: 'icon-word' },
+  xls: { type: 'excel', iconStr: 'icon-excel' },
+  xlsx: { type: 'excel', iconStr: 'icon-excel' },
+  ods: { type: 'excel', iconStr: 'icon-excel' },
+  ppt: { type: 'ppt', iconStr: 'icon-ppt' },
+  pptx: { type: 'ppt', iconStr: 'icon-ppt' },
+  odp: { type: 'ppt', iconStr: 'icon-ppt' },
+
+  // Archives and installers
+  zip: { type: 'archive', iconStr: 'icon-zip' },
+  jar: { type: 'archive', iconStr: 'icon-zip' },
+  '7z': { type: 'archive', iconStr: 'icon-zip' },
+  rar: { type: 'archive', iconStr: 'icon-zip' },
+  tar: { type: 'archive', iconStr: 'icon-zip' },
+  gz: { type: 'archive', iconStr: 'icon-zip' },
+  bz2: { type: 'archive', iconStr: 'icon-zip' },
+  xz: { type: 'archive', iconStr: 'icon-zip' },
+  dmg: { type: 'package', iconStr: 'icon-package' },
+  exe: { type: 'package', iconStr: 'icon-windows' },
+  msi: { type: 'package', iconStr: 'icon-windows' },
+  apk: { type: 'package', iconStr: 'icon-Android-hover' },
+  deb: { type: 'package', iconStr: 'icon-package' },
+  rpm: { type: 'package', iconStr: 'icon-package' },
+
+  // Other common formats
+  psd: { type: 'design', iconStr: 'icon-design' },
+  ai: { type: 'design', iconStr: 'icon-design' },
+  sketch: { type: 'design', iconStr: 'icon-design' },
+  fig: { type: 'design', iconStr: 'icon-design' },
+  xmind: { type: 'design', iconStr: 'icon-xmind' },
+  torrent: { type: 'torrent', iconStr: 'icon-bt' },
+  bt: { type: 'torrent', iconStr: 'icon-bt' },
+};
+
+const getExtension = (item: any) =>
+  String(item?.suffix || item?.ext || item?.fileExt || item?.file_ext || '')
+    .trim()
+    .replace(/^\./, '')
+    .toLowerCase();
+
+export const GetFileTypeInItem = (item: any): FileTypeInfo => {
+  const extension = getExtension(item);
+  if (extension && FILE_TYPE_BY_EXTENSION[extension]) {
+    return FILE_TYPE_BY_EXTENSION[extension];
   }
+
+  if (item?.mediaType === 'video') {
+    return { type: 'video', iconStr: 'icon-video' };
+  }
+  if (item?.mediaType === 'audio') {
+    return { type: 'audio', iconStr: 'icon-music' };
+  }
+
+  const mime = String(item?.fileType || '').toLowerCase();
+  if (mime.startsWith('image/')) {
+    return { type: 'image', iconStr: 'icon-pic' };
+  }
+  if (mime.startsWith('video/')) {
+    return { type: 'video', iconStr: 'icon-video' };
+  }
+  if (mime.startsWith('audio/')) {
+    return { type: 'audio', iconStr: 'icon-music' };
+  }
+  if (mime === 'application/pdf') {
+    return { type: 'pdf', iconStr: 'icon-pdf' };
+  }
+  if (mime.startsWith('text/')) {
+    return { type: 'text', iconStr: 'icon-txt' };
+  }
+
+  return { type: 'unknown', iconStr: 'icon-unknown' };
+};

@@ -18,6 +18,27 @@
   padding: 28px 32px 12px;
 }
 
+.drive-toolbar-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drive-toolbar-info .ant-breadcrumb {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.drive-toolbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .drive-list {
   flex: 1;
   min-height: 0;
@@ -104,6 +125,179 @@
   color: #6372d8;
 }
 
+.drive-file-icon-image {
+  color: #1f8f6a;
+}
+
+.drive-file-icon-video {
+  color: #5f6bea;
+}
+
+.drive-file-icon-audio {
+  color: #d97822;
+}
+
+.drive-file-icon-pdf {
+  color: #e5484d;
+}
+
+.drive-file-icon-word {
+  color: #2f6fdb;
+}
+
+.drive-file-icon-excel {
+  color: #1f8f55;
+}
+
+.drive-file-icon-ppt {
+  color: #d65a31;
+}
+
+.drive-file-icon-archive {
+  color: #9667d6;
+}
+
+.drive-file-icon-code,
+.drive-file-icon-markdown,
+.drive-file-icon-html {
+  color: #3d7b91;
+}
+
+.drive-file-icon-package,
+.drive-file-icon-database,
+.drive-file-icon-design,
+.drive-file-icon-torrent {
+  color: #7d6a55;
+}
+
+.drive-language-icon {
+  width: 54px;
+  height: 62px;
+  border-radius: 9px;
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 5px 10px;
+  box-sizing: border-box;
+  color: #fff;
+  background: #3d7b91;
+  box-shadow: inset 0 -12px 0 rgba(0, 0, 0, 0.12);
+}
+
+.drive-language-icon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 17px;
+  height: 17px;
+  border-radius: 0 9px 0 6px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.drive-language-icon-label {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.drive-language-icon-python {
+  background: #3572a5;
+}
+
+.drive-language-icon-csharp {
+  background: #68217a;
+}
+
+.drive-language-icon-javascript {
+  background: #c9a227;
+}
+
+.drive-language-icon-typescript {
+  background: #3178c6;
+}
+
+.drive-language-icon-java {
+  background: #b07219;
+}
+
+.drive-language-icon-kotlin {
+  background: #7f52ff;
+}
+
+.drive-language-icon-go {
+  background: #00add8;
+}
+
+.drive-language-icon-rust {
+  background: #8b4f2f;
+}
+
+.drive-language-icon-c,
+.drive-language-icon-cpp {
+  background: #4f5d95;
+}
+
+.drive-language-icon-php {
+  background: #777bb4;
+}
+
+.drive-language-icon-ruby {
+  background: #cc342d;
+}
+
+.drive-language-icon-swift {
+  background: #f05138;
+}
+
+.drive-language-icon-dart {
+  background: #0175c2;
+}
+
+.drive-language-icon-lua {
+  background: #000080;
+}
+
+.drive-language-icon-shell,
+.drive-language-icon-powershell {
+  background: #4e8f3d;
+}
+
+.drive-language-icon-sql {
+  background: #336791;
+}
+
+.drive-language-icon-json,
+.drive-language-icon-yaml,
+.drive-language-icon-xml {
+  background: #6b7280;
+}
+
+.drive-language-icon-vue {
+  background: #42b883;
+}
+
+.drive-language-icon-svelte {
+  background: #ff3e00;
+}
+
+.drive-language-icon-css {
+  background: #2965f1;
+}
+
+.drive-language-icon-markdown,
+.drive-language-icon-html {
+  background: #3d7b91;
+}
+
 .drive-card-meta {
   width: 100%;
   min-width: 0;
@@ -187,6 +381,31 @@
   backdrop-filter: blur(4px);
 }
 
+.drive-text-preview {
+  height: min(70vh, 720px);
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--app-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.drive-browser-preview {
+  width: 100%;
+  height: min(72vh, 760px);
+  display: block;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
 html[data-theme='dark'] .drive-card {
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2);
 }
@@ -199,9 +418,62 @@ html[data-theme='dark'] .drive-file-icon {
   color: #98a2ff;
 }
 
+html[data-theme='dark'] .drive-file-icon-image {
+  color: #63c7a3;
+}
+
+html[data-theme='dark'] .drive-file-icon-video {
+  color: #98a2ff;
+}
+
+html[data-theme='dark'] .drive-file-icon-audio {
+  color: #f0a45d;
+}
+
+html[data-theme='dark'] .drive-file-icon-pdf {
+  color: #ff8a8f;
+}
+
+html[data-theme='dark'] .drive-file-icon-word {
+  color: #84b5ff;
+}
+
+html[data-theme='dark'] .drive-file-icon-excel {
+  color: #73d99f;
+}
+
+html[data-theme='dark'] .drive-file-icon-ppt {
+  color: #ff9a73;
+}
+
+html[data-theme='dark'] .drive-file-icon-archive {
+  color: #c5a3ff;
+}
+
+html[data-theme='dark'] .drive-file-icon-code,
+html[data-theme='dark'] .drive-file-icon-markdown,
+html[data-theme='dark'] .drive-file-icon-html {
+  color: #77c9df;
+}
+
+html[data-theme='dark'] .drive-file-icon-package,
+html[data-theme='dark'] .drive-file-icon-database,
+html[data-theme='dark'] .drive-file-icon-design,
+html[data-theme='dark'] .drive-file-icon-torrent {
+  color: #d0b79b;
+}
+
+html[data-theme='dark'] .drive-language-icon {
+  color: #fff;
+}
+
 html[data-theme='dark'] .drive-drop-mask {
   background: rgba(31, 41, 91, 0.62);
   border-color: rgba(139, 147, 255, 0.75);
+}
+
+html[data-theme='dark'] .drive-text-preview {
+  background: rgba(2, 6, 23, 0.32);
 }
 
 @media (max-width: 920px) {
@@ -223,5 +495,155 @@ html[data-theme='dark'] .drive-drop-mask {
 
   .drive-card {
     height: 202px;
+  }
+
+  .drive-toolbar-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .drive-page {
+    height: 100%;
+  }
+
+  .drive-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    flex: 0 0 auto;
+    gap: 10px;
+    justify-content: flex-start;
+    padding: 16px 12px 10px;
+  }
+
+  .drive-toolbar-info {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: 64px;
+    gap: 8px;
+  }
+
+  .drive-toolbar-info .ant-typography {
+    font-size: 20px !important;
+    line-height: 1.25;
+    margin: 0 !important;
+  }
+
+  .drive-toolbar-info .ant-breadcrumb {
+    line-height: 20px;
+  }
+
+  .drive-toolbar-actions {
+    flex: 0 0 auto;
+    width: 100%;
+    display: grid;
+    align-content: start;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+
+  .drive-toolbar-actions .ant-btn {
+    width: 100%;
+  }
+
+  .drive-list {
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .drive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 176px;
+    gap: 10px;
+  }
+
+  .drive-card {
+    height: 176px;
+    padding: 12px 8px 10px;
+    gap: 7px;
+    border-radius: 12px;
+  }
+
+  .drive-card:hover {
+    transform: none;
+  }
+
+  .drive-thumb-frame {
+    width: 64px;
+    height: 60px;
+    flex-basis: 60px;
+  }
+
+  .drive-thumb,
+  .drive-folder,
+  .drive-video-thumb {
+    width: 60px;
+    height: 60px;
+  }
+
+  .drive-file-icon {
+    font-size: 46px;
+  }
+
+  .drive-language-icon {
+    width: 46px;
+    height: 54px;
+    padding-bottom: 8px;
+  }
+
+  .drive-card-meta {
+    flex-basis: 40px;
+  }
+
+  .drive-card-actions {
+    min-height: 30px;
+    gap: 6px;
+    flex-basis: 30px;
+  }
+
+  .drive-card-action-btn.ant-btn-sm {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+
+  .drive-drop-mask {
+    padding: 24px;
+    text-align: center;
+  }
+
+  .drive-text-preview,
+  .drive-browser-preview {
+    height: 68dvh;
+  }
+
+  .drive-image-modal,
+  .drive-preview-modal,
+  .drive-create-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px);
+    margin: 12px auto;
+  }
+
+  .drive-image-modal .ant-modal-content,
+  .drive-preview-modal .ant-modal-content,
+  .drive-create-modal .ant-modal-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .drive-grid {
+    grid-auto-rows: 168px;
+    gap: 8px;
+  }
+
+  .drive-card {
+    height: 168px;
+  }
+
+  .drive-toolbar-actions {
+    grid-template-columns: 1fr;
   }
 }

@@ -11,7 +11,7 @@ import { Resp } from '../interface/common'
 import { API_LIST } from '../script/api'
 
 //播放视频流
-export const playvideosteamapi = (path: string): Promise<Resp> => {
+export const playvideosteamapi = (path: string): Promise<AxiosResponse<Blob>> => {
   return $http.post(
     API_LIST.RESOURCEPOOL.PLAY_VIDEOSTEAM,
     {

@@ -1,11 +1,23 @@
 import {
+  CodeOutlined,
   CustomerServiceOutlined,
+  DatabaseOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EyeOutlined,
+  FileExcelOutlined,
   FileImageOutlined,
+  FileMarkdownOutlined,
   FileOutlined,
+  FilePdfOutlined,
+  FilePptOutlined,
+  FileProtectOutlined,
+  FileSyncOutlined,
   FileTextOutlined,
+  FileUnknownOutlined,
+  FileWordOutlined,
+  FileZipOutlined,
+  Html5Outlined,
   InboxOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -24,6 +36,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -38,7 +51,7 @@ import { BatchAddUserFileType } from '@/types/BatchAddUserFileType';
 import { BatchAddUserFolderType } from '@/types/BatchAddUserFolderType';
 import { FileAndFloderType } from '@/types/FileAndFolderType';
 import { UploadType } from '@/types/UploadType';
-import { GetFileTypeInItem } from '@/utils/FileType';
+import { GetFileTypeInItem, PreviewFileType } from '@/utils/FileType';
 import MathTools from '@/utils/MathTools';
 import { getDriveNavigation, setDriveNavigation } from '@/store/drive';
 import { getDriveSessionNavigation, saveDriveSessionNavigation } from '@/store/session_route';
@@ -59,6 +72,20 @@ type UploadFile = File & {
 type DroppedUploadItems = {
   files: UploadFile[];
   directoryPaths: string[];
+};
+
+type FilePreviewState = {
+  open: boolean;
+  title: string;
+  type: 'pdf' | 'html' | 'text';
+  url?: string;
+  text?: string;
+};
+
+const emptyFilePreview: FilePreviewState = {
+  open: false,
+  title: '',
+  type: 'text',
 };
 
 const getFolderIdFromSplat = (splat: string | undefined) => {
@@ -241,6 +268,115 @@ const createFolderPlan = (files: UploadFile[], currentFolderId: string, extraDir
 
 const getFileDisplayName = (name: string, suffix?: string) => `${name}${suffix ? `.${suffix}` : ''}`.toLowerCase();
 
+const textPreviewTypes: PreviewFileType[] = ['text', 'code', 'markdown'];
+const browserPreviewTypes: PreviewFileType[] = ['pdf', 'html'];
+
+const canPreviewFileType = (fileType: PreviewFileType) =>
+  ['image', 'video', 'audio', ...textPreviewTypes, ...browserPreviewTypes].includes(fileType);
+
+const isCoarsePointer = () =>
+  typeof window !== 'undefined' && window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
+const languageIconMap: Record<string, { label: string; className: string }> = {
+  py: { label: 'PY', className: 'python' },
+  cs: { label: 'CS', className: 'csharp' },
+  js: { label: 'JS', className: 'javascript' },
+  jsx: { label: 'JSX', className: 'javascript' },
+  ts: { label: 'TS', className: 'typescript' },
+  tsx: { label: 'TSX', className: 'typescript' },
+  java: { label: 'JAVA', className: 'java' },
+  kt: { label: 'KT', className: 'kotlin' },
+  go: { label: 'GO', className: 'go' },
+  rs: { label: 'RS', className: 'rust' },
+  c: { label: 'C', className: 'c' },
+  cpp: { label: 'C++', className: 'cpp' },
+  cc: { label: 'C++', className: 'cpp' },
+  cxx: { label: 'C++', className: 'cpp' },
+  h: { label: 'H', className: 'c' },
+  hpp: { label: 'H++', className: 'cpp' },
+  php: { label: 'PHP', className: 'php' },
+  rb: { label: 'RB', className: 'ruby' },
+  swift: { label: 'SW', className: 'swift' },
+  dart: { label: 'DART', className: 'dart' },
+  lua: { label: 'LUA', className: 'lua' },
+  sh: { label: 'SH', className: 'shell' },
+  bash: { label: 'SH', className: 'shell' },
+  zsh: { label: 'ZSH', className: 'shell' },
+  ps1: { label: 'PS', className: 'powershell' },
+  sql: { label: 'SQL', className: 'sql' },
+  json: { label: 'JSON', className: 'json' },
+  xml: { label: 'XML', className: 'xml' },
+  yaml: { label: 'YAML', className: 'yaml' },
+  yml: { label: 'YAML', className: 'yaml' },
+  md: { label: 'MD', className: 'markdown' },
+  markdown: { label: 'MD', className: 'markdown' },
+  html: { label: 'HTML', className: 'html' },
+  htm: { label: 'HTML', className: 'html' },
+  vue: { label: 'VUE', className: 'vue' },
+  svelte: { label: 'SV', className: 'svelte' },
+  css: { label: 'CSS', className: 'css' },
+  less: { label: 'LESS', className: 'css' },
+  scss: { label: 'SCSS', className: 'css' },
+  sass: { label: 'SASS', className: 'css' },
+};
+
+const getItemExtension = (item: { suffix?: string; ext?: string }) =>
+  String(item.suffix || item.ext || '').trim().replace(/^\./, '').toLowerCase();
+
+const getLanguageIcon = (extension: string, baseClassName: string) => {
+  const language = languageIconMap[extension];
+  if (!language) {
+    return null;
+  }
+
+  return (
+    <span className={`${baseClassName} drive-language-icon drive-language-icon-${language.className}`}>
+      <span className="drive-language-icon-label">{language.label}</span>
+    </span>
+  );
+};
+
+const getFileIcon = (fileType: PreviewFileType, item?: { suffix?: string; ext?: string }): ReactNode => {
+  const className = `drive-file-icon drive-file-icon-${fileType}`;
+
+  switch (fileType) {
+    case 'image':
+      return <FileImageOutlined className={className} />;
+    case 'video':
+      return <PlayCircleOutlined className={className} />;
+    case 'audio':
+      return <CustomerServiceOutlined className={className} />;
+    case 'pdf':
+      return <FilePdfOutlined className={className} />;
+    case 'word':
+      return <FileWordOutlined className={className} />;
+    case 'excel':
+      return <FileExcelOutlined className={className} />;
+    case 'ppt':
+      return <FilePptOutlined className={className} />;
+    case 'archive':
+      return <FileZipOutlined className={className} />;
+    case 'code':
+      return getLanguageIcon(getItemExtension(item || {}), className) || <CodeOutlined className={className} />;
+    case 'markdown':
+      return getLanguageIcon('md', className) || <FileMarkdownOutlined className={className} />;
+    case 'html':
+      return getLanguageIcon('html', className) || <Html5Outlined className={className} />;
+    case 'package':
+      return <FileSyncOutlined className={className} />;
+    case 'database':
+      return <DatabaseOutlined className={className} />;
+    case 'design':
+      return <FileProtectOutlined className={className} />;
+    case 'text':
+      return <FileTextOutlined className={className} />;
+    case 'unknown':
+      return <FileUnknownOutlined className={className} />;
+    default:
+      return <FileOutlined className={className} />;
+  }
+};
+
 const getUniqueFileName = (baseName: string, suffix: string, usedNames: Set<string>) => {
   let candidate = baseName;
   let index = 1;
@@ -272,7 +408,9 @@ const DrivePage = () => {
   const [audioIndex, setAudioIndex] = useState(0);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [imagePreviewSrc, setImagePreviewSrc] = useState('');
+  const [filePreview, setFilePreview] = useState<FilePreviewState>(emptyFilePreview);
   const previewUrlsRef = useRef<string[]>([]);
+  const filePreviewUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const directoryInputRef = useRef<HTMLInputElement>(null);
   const dragDepthRef = useRef(0);
@@ -304,6 +442,18 @@ const DrivePage = () => {
     previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     previewUrlsRef.current = [];
   }, []);
+
+  const cleanupFilePreviewUrl = useCallback(() => {
+    if (filePreviewUrlRef.current) {
+      URL.revokeObjectURL(filePreviewUrlRef.current);
+      filePreviewUrlRef.current = null;
+    }
+  }, []);
+
+  const closeFilePreview = useCallback(() => {
+    cleanupFilePreviewUrl();
+    setFilePreview(emptyFilePreview);
+  }, [cleanupFilePreviewUrl]);
 
   const loadPreview = useCallback(async (item: FileItem) => {
     const fileType = GetFileTypeInItem(item).type;
@@ -356,8 +506,11 @@ const DrivePage = () => {
 
   useEffect(() => {
     loadFiles();
-    return cleanupPreviewUrls;
-  }, [cleanupPreviewUrls, loadFiles]);
+    return () => {
+      cleanupPreviewUrls();
+      cleanupFilePreviewUrl();
+    };
+  }, [cleanupFilePreviewUrl, cleanupPreviewUrls, loadFiles]);
 
   useEffect(() => {
     if (directoryInputRef.current) {
@@ -592,6 +745,7 @@ const DrivePage = () => {
     }
 
     const fileType = GetFileTypeInItem(item).type;
+    const title = `${item.name}${item.suffix ? `.${item.suffix}` : ''}`;
     if (fileType === 'image' && item.blob) {
       setImagePreviewSrc(item.blob);
       setImagePreviewOpen(true);
@@ -604,6 +758,7 @@ const DrivePage = () => {
         title: `${currentItem.name}${currentItem.suffix ? `.${currentItem.suffix}` : ''}`,
         poster: currentItem.blob,
       }));
+      setAudioOpen(false);
       setVideoIndex(videoItems.findIndex((videoItem) => videoItem.src === (item.fileSha256 || item.id)));
       setVideoList(videoItems);
       setVideoOpen(true);
@@ -615,6 +770,7 @@ const DrivePage = () => {
         src: getVideoStreamUrl(currentItem.fileSha256 || currentItem.id),
         title: `${currentItem.name}${currentItem.suffix ? `.${currentItem.suffix}` : ''}`,
       }));
+      setVideoOpen(false);
       setAudioIndex(audioItems.findIndex((audioItem) => audioItem.src === getVideoStreamUrl(item.fileSha256 || item.id)));
       setAudioList(audioItems);
       setAudioOpen(true);
@@ -623,9 +779,47 @@ const DrivePage = () => {
 
     try {
       const response = await getuserfileforfileidapi(item.id);
-      const url = URL.createObjectURL(response.data);
+      const blob = response.data;
+
+      if (fileType === 'image') {
+        const url = URL.createObjectURL(blob);
+        previewUrlsRef.current.push(url);
+        setImagePreviewSrc(url);
+        setImagePreviewOpen(true);
+        return;
+      }
+
+      if (textPreviewTypes.includes(fileType)) {
+        const text = await blob.text();
+        cleanupFilePreviewUrl();
+        setFilePreview({
+          open: true,
+          title,
+          type: 'text',
+          text,
+        });
+        return;
+      }
+
+      if (browserPreviewTypes.includes(fileType)) {
+        cleanupFilePreviewUrl();
+        const url = URL.createObjectURL(blob);
+        filePreviewUrlRef.current = url;
+        setFilePreview({
+          open: true,
+          title,
+          type: fileType === 'pdf' ? 'pdf' : 'html',
+          url,
+        });
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!canPreviewFileType(fileType)) {
+        message.info('该格式已尝试用浏览器打开，若浏览器不支持可直接下载');
+      }
     } catch {
       message.warning('当前文件暂不支持预览');
     }
@@ -703,7 +897,7 @@ const DrivePage = () => {
       )}
 
       <div className="drive-toolbar">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="drive-toolbar-info">
           <Typography.Title level={3} style={{ margin: 0 }}>
             我的云盘
           </Typography.Title>
@@ -743,7 +937,7 @@ const DrivePage = () => {
           />
         </div>
 
-        <Space>
+        <div className="drive-toolbar-actions">
           <Button icon={<ReloadOutlined />} onClick={loadFiles}>
             刷新
           </Button>
@@ -756,7 +950,7 @@ const DrivePage = () => {
           <Button icon={<PlusOutlined />} type="primary" onClick={() => setCreatingFolder(true)}>
             新建文件夹
           </Button>
-        </Space>
+        </div>
       </div>
 
       <div className="drive-list">
@@ -770,7 +964,16 @@ const DrivePage = () => {
               const fileType = GetFileTypeInItem(item).type;
               const displayName = `${item.name}${item.suffix ? `.${item.suffix}` : ''}`;
               return (
-                <div key={`${item.type}-${item.id}`} className="drive-card" onDoubleClick={() => openFolderOrFile(item)}>
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className="drive-card"
+                  onClick={() => {
+                    if (isCoarsePointer()) {
+                      openFolderOrFile(item);
+                    }
+                  }}
+                  onDoubleClick={() => openFolderOrFile(item)}
+                >
                   <div className="drive-thumb-frame">
                     {item.type === 'folder' && <img className="drive-folder" src={folderImg} />}
                     {item.type === 'file' && item.blob && fileType === 'image' && (
@@ -782,13 +985,7 @@ const DrivePage = () => {
                         <PlayCircleOutlined className="drive-video-play" />
                       </div>
                     )}
-                    {item.type === 'file' && !item.blob && fileType === 'image' && <FileImageOutlined className="drive-file-icon" />}
-                    {item.type === 'file' && !item.blob && fileType === 'video' && <PlayCircleOutlined className="drive-file-icon" />}
-                    {item.type === 'file' && fileType === 'audio' && <CustomerServiceOutlined className="drive-file-icon" />}
-                    {item.type === 'file' && fileType !== 'image' && fileType !== 'video' && fileType !== 'audio' && fileType !== 'text' && (
-                      <FileOutlined className="drive-file-icon" />
-                    )}
-                    {item.type === 'file' && fileType === 'text' && <FileTextOutlined className="drive-file-icon" />}
+                    {item.type === 'file' && !(item.blob && (fileType === 'image' || fileType === 'video')) && getFileIcon(fileType, item)}
                   </div>
 
                   <Space direction="vertical" size={6} className="drive-card-meta">
@@ -846,6 +1043,7 @@ const DrivePage = () => {
       </div>
 
       <Modal
+        className="drive-create-modal"
         open={creatingFolder}
         title="新建文件夹"
         onOk={createFolder}
@@ -866,15 +1064,18 @@ const DrivePage = () => {
         sourceType="drive"
         onClose={() => setVideoOpen(false)}
       />
-      <StreamingAudio
-        open={audioOpen}
-        data={audioList}
-        index={audioIndex}
-        onClose={() => {
-          setAudioOpen(false);
-        }}
-      />
+      {audioOpen && (
+        <StreamingAudio
+          open
+          data={audioList}
+          index={audioIndex}
+          onClose={() => {
+            setAudioOpen(false);
+          }}
+        />
+      )}
       <Modal
+        className="drive-image-modal"
         open={imagePreviewOpen}
         footer={null}
         width="72vw"
@@ -886,16 +1087,39 @@ const DrivePage = () => {
           style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 16 }}
         />
       </Modal>
+      <Modal
+        className="drive-preview-modal"
+        open={filePreview.open}
+        title={filePreview.title}
+        footer={null}
+        width={filePreview.type === 'text' ? '76vw' : '82vw'}
+        onCancel={closeFilePreview}
+        maskClosable={false}
+        destroyOnClose
+      >
+        {filePreview.type === 'text' ? (
+          <pre className="drive-text-preview">{filePreview.text}</pre>
+        ) : (
+          <iframe
+            className="drive-browser-preview"
+            title={filePreview.title}
+            src={filePreview.url}
+            sandbox={filePreview.type === 'html' ? 'allow-same-origin' : undefined}
+          />
+        )}
+      </Modal>
 
       <input
         ref={fileInputRef}
         type="file"
         multiple
         style={{ display: 'none' }}
-        onChange={(event) => {
+        onChange={async (event) => {
           const files = Array.from(event.target.files ?? []).map((file) => attachRelativePath(file, file.name));
-          uploadFiles(files);
-          event.target.value = '';
+          await uploadFiles(files);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }}
       />
       <input
@@ -903,10 +1127,12 @@ const DrivePage = () => {
         type="file"
         multiple
         style={{ display: 'none' }}
-        onChange={(event) => {
+        onChange={async (event) => {
           const files = Array.from(event.target.files ?? []) as UploadFile[];
-          uploadFiles(files);
-          event.target.value = '';
+          await uploadFiles(files);
+          if (directoryInputRef.current) {
+            directoryInputRef.current.value = '';
+          }
         }}
       />
     </div>

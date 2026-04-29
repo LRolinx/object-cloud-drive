@@ -1,6 +1,7 @@
 use std::io;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 
 use actix_files::NamedFile;
 use actix_multipart::Multipart;
@@ -286,7 +287,16 @@ pub async fn get_user_file_and_folder(
 
     for row in files {
         let file_sha256: String = row.get("file_sha256");
-        let media_type = detect_media_type(&state.config.upload_dir.join(&file_sha256)).await;
+        let suffix: String = row.get("suffix");
+        let media_type = detect_media_type_cached(
+            &state.pool,
+            &state.config.upload_dir.join(&file_sha256),
+            Some(&suffix),
+            "drive",
+            &file_sha256,
+            None,
+        )
+        .await?;
         result.push(UserFileAndFolder {
             id: row.get::<i64, _>("id").to_string(),
             p_uuid: row.get("folder_uuid"),
@@ -294,7 +304,7 @@ pub async fn get_user_file_and_folder(
             name: row.get("file_name"),
             size: 0.0,
             update_time: row.get("create_time"),
-            suffix: Some(row.get("suffix")),
+            suffix: Some(suffix),
             file_sha256: Some(file_sha256),
             media_type,
         });
@@ -848,7 +858,16 @@ pub async fn resource_pool_get_folder_and_file(
             });
         } else {
             let (file_name, file_ext) = split_file_name_and_ext(&name);
-            let media_type = detect_media_type(&entry_path).await;
+            let source_key = entry_path.to_string_lossy().to_string();
+            let media_type = detect_media_type_cached(
+                &state.pool,
+                &entry_path,
+                Some(file_ext),
+                "resourcepool",
+                &source_key,
+                Some(&metadata),
+            )
+            .await?;
             result.push(ResourcePoolItem {
                 item_type: "file".to_string(),
                 name: file_name.to_string(),
@@ -1229,7 +1248,108 @@ async fn ensure_screenshot(video_path: &Path, screenshot_path: &Path) -> io::Res
         .map(|_| ())
 }
 
-async fn detect_media_type(path: &Path) -> Option<String> {
+fn infer_media_type_by_extension(ext: Option<&str>) -> Option<String> {
+    match ext?
+        .trim()
+        .trim_start_matches('.')
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "mp4" | "avi" | "wmv" | "m4v" | "mov" | "asf" | "flv" | "f4v" | "rmvb" | "rm" | "3gp"
+        | "vob" | "mkv" | "webm" | "mpeg" | "mpg" | "ts" | "mts" | "m2ts" => {
+            Some("video".to_string())
+        }
+        "mp3" | "aac" | "m4a" | "wav" | "ogg" | "oga" | "alac" | "flac" | "ape" | "wma"
+        | "opus" => Some("audio".to_string()),
+        _ => None,
+    }
+}
+
+fn media_cache_value(media_type: Option<&str>) -> &str {
+    media_type.unwrap_or("unknown")
+}
+
+fn media_type_from_cache(value: String) -> Option<String> {
+    if value == "unknown" || value.trim().is_empty() {
+        None
+    } else {
+        Some(value)
+    }
+}
+
+fn metadata_cache_key(metadata: &std::fs::Metadata) -> (i64, i64) {
+    let file_size = i64::try_from(metadata.len()).unwrap_or(i64::MAX);
+    let modified_time = metadata
+        .modified()
+        .ok()
+        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+        .map(|value| i64::try_from(value.as_secs()).unwrap_or(i64::MAX))
+        .unwrap_or(0);
+    (file_size, modified_time)
+}
+
+async fn detect_media_type_cached(
+    pool: &SqlitePool,
+    path: &Path,
+    ext: Option<&str>,
+    source_type: &str,
+    source_key: &str,
+    metadata: Option<&std::fs::Metadata>,
+) -> Result<Option<String>> {
+    let (file_size, modified_time) = match metadata {
+        Some(value) => metadata_cache_key(value),
+        None => match fs::metadata(path).await {
+            Ok(value) => metadata_cache_key(&value),
+            Err(_) => (0, 0),
+        },
+    };
+
+    if let Some(row) = sqlx::query(
+        "SELECT media_type FROM t_media_type_cache
+         WHERE source_type = ? AND source_key = ? AND file_size = ? AND modified_time = ?
+         LIMIT 1",
+    )
+    .bind(source_type)
+    .bind(source_key)
+    .bind(file_size)
+    .bind(modified_time)
+    .fetch_optional(pool)
+    .await
+    .map_err(error::ErrorInternalServerError)?
+    {
+        return Ok(media_type_from_cache(row.get("media_type")));
+    }
+
+    let detected = detect_media_type(path, ext).await;
+    sqlx::query(
+        "INSERT INTO t_media_type_cache (source_type, source_key, file_size, modified_time, media_type, update_time)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(source_type, source_key) DO UPDATE SET
+             file_size = excluded.file_size,
+             modified_time = excluded.modified_time,
+             media_type = excluded.media_type,
+             update_time = excluded.update_time",
+    )
+    .bind(source_type)
+    .bind(source_key)
+    .bind(file_size)
+    .bind(modified_time)
+    .bind(media_cache_value(detected.as_deref()))
+    .bind(now_string())
+    .execute(pool)
+    .await
+    .map_err(error::ErrorInternalServerError)?;
+
+    Ok(detected)
+}
+
+async fn detect_media_type(path: &Path, ext: Option<&str>) -> Option<String> {
+    if let Some(media_type) = infer_media_type_by_extension(
+        ext.or_else(|| path.extension().and_then(|value| value.to_str())),
+    ) {
+        return Some(media_type);
+    }
+
     let video_output = tokio::process::Command::new("ffprobe")
         .arg("-v")
         .arg("error")

@@ -141,6 +141,53 @@
   }
 }
 
+@media (max-width: 640px) {
+  .streaming-video-layout {
+    gap: 12px;
+  }
+
+  .streaming-video-element {
+    max-height: 54dvh;
+    border-radius: 12px;
+  }
+
+  .streaming-video-actions {
+    flex-wrap: wrap;
+  }
+
+  .streaming-video-actions .ant-btn {
+    flex: 1 1 44%;
+    min-width: 0;
+  }
+
+  .streaming-video-playlist {
+    max-height: 210px;
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .streaming-video-playlist-scroll {
+    max-height: 164px;
+    gap: 8px;
+  }
+
+  .streaming-video-playlist-item {
+    min-height: 72px;
+    gap: 10px;
+    padding: 7px;
+    border-radius: 10px;
+  }
+
+  .streaming-video-playlist-thumb {
+    flex-basis: 92px;
+    width: 92px;
+  }
+
+  .streaming-video-playlist-name {
+    font-size: 13px;
+  }
+}
+
 
 .container, 
 .video-controls, 
@@ -333,6 +380,11 @@
 }
 
 @media screen and (max-width: 540px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .wrapper .video-controls {
     padding: 3px 10px 7px;
   }
