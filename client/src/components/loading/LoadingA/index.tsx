@@ -1,8 +1,8 @@
-import {LoadingAEmits, LoadingAProps} from './type'
+import {LoadingAProps} from './type'
 import {memo} from "react";
 
 export const LoadingA = memo(
-    (props: LoadingAProps, context: LoadingAEmits) => {
+    (props: LoadingAProps) => {
         return <>
             {props.open && (
                 <div className="loading">

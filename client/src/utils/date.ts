@@ -11,7 +11,7 @@ export const wait = (time: number = 1000) =>
  * @param time 间隔时间
  */
 export const Debounce = (time: number) => {
-  let timer: NodeJS.Timeout | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
   return () =>
     new Promise<void>((resolve) => {
       if (timer) clearTimeout(timer)
@@ -27,7 +27,7 @@ export const Debounce = (time: number) => {
  * @param time 间隔时间
  */
 export const Throttle = (time: number) => {
-  let timer: NodeJS.Timeout | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
   return () =>
     new Promise<void>((resolve) => {
       if (timer) {

@@ -1,7 +1,7 @@
 import { Button, Card, Checkbox, Form, Input, Space, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { invoke } from '@tauri-apps/api';
+import { invoke } from '@tauri-apps/api/core';
 
 import { VerificationCodeInput } from '@/components/verification_code_input';
 import { loginapi, registeredapi } from '@/api/user';

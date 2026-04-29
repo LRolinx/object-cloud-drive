@@ -1,12 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import * as path from 'path'
+import * as path from 'node:path'
 import autoprefixer from 'autoprefixer'
 import PostcssFlexbugsFixes from 'postcss-flexbugs-fixes'
-
-function _resolve(dir: string) {
-  return path.resolve(__dirname, dir)
-}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -24,8 +20,7 @@ export default defineConfig({
   // https://tauri.studio/v1/api/config#buildconfig.beforedevcommand
   envPrefix: ["VITE_", "TAURI_"],
   build: {
-    // Tauri supports es2021
-    target: ["es2021", "chrome100", "safari13"],
+    target: "esnext",
     // don't minify for debug builds
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // produce sourcemaps for debug builds
